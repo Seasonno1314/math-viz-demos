@@ -4,122 +4,874 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>小学数学数形结合 · 动态演示视频库</title>
+  <title>数形结合 · 让抽象的数，变成看得见的图</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg-0: #0B1120;
+      --bg-1: #101A31;
+      --bg-card: #0F1628;
+      --bg-card-hi: #131C33;
+      --line: rgba(255, 255, 255, .09);
+      --line-soft: rgba(255, 255, 255, .055);
+      --txt: #EAEDF4;
+      --txt-2: #9CA8C0;
+      --txt-3: #5D6A85;
+      --gold: #E8B964;
+      --gold-soft: rgba(232, 185, 100, .16);
+      --gold-line: rgba(232, 185, 100, .55);
+      --font-d: "Space Grotesk", "Bahnschrift", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-b: "PingFang SC", "Microsoft YaHei", "Space Grotesk", sans-serif;
+      --font-m: "JetBrains Mono", Consolas, "Courier New", monospace;
+      --ease-out: cubic-bezier(.16, 1, .3, 1);
+      --ease-slide: cubic-bezier(.77, 0, .175, 1);
+    }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
-      background: #111318;
-      color: #e8e8e8;
-      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
-      padding: 24px 16px 60px;
+      background: linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 46%, var(--bg-0) 100%);
+      color: var(--txt);
+      font-family: var(--font-b);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
 
-    header {
-      text-align: center;
-      max-width: 1080px;
-      margin: 0 auto 8px;
+    /* 永久网格底纹 —— 结构指纹，不抢注意力 */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, .028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .028) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 55%, transparent 100%);
     }
 
-    h1 {
-      font-size: 26px;
-      color: #ffd75e;
-      margin-bottom: 8px;
+    ::selection {
+      background: var(--gold);
+      color: #14100a;
     }
 
-    .sub {
-      color: #9aa0ab;
-      font-size: 14px;
-      line-height: 1.7;
-      margin-bottom: 6px;
-    }
-
-    .note {
-      color: #6b7280;
-      font-size: 12px;
-    }
-
-    .grid {
-      max-width: 1080px;
-      margin: 24px auto 0;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 18px;
-    }
-
-    .card {
-      background: #1a1d24;
-      border: 1px solid #2a2e38;
-      border-radius: 10px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .card .preview {
-      width: 100%;
-      aspect-ratio: 16/9;
-      object-fit: cover;
-      background: #000;
-      display: block;
-      cursor: pointer;
-    }
-
-    .card .body {
-      padding: 12px 14px 14px;
-    }
-
-    .card .no {
-      display: inline-block;
-      background: #ffd75e;
-      color: #1a1d24;
-      font-size: 12px;
-      font-weight: 700;
-      border-radius: 4px;
-      padding: 1px 7px;
-      margin-bottom: 6px;
-    }
-
-    .card h3 {
-      font-size: 16px;
-      margin-bottom: 6px;
-    }
-
-    .card p {
-      font-size: 13px;
-      color: #b7bcc6;
-      line-height: 1.6;
-    }
-
-    .card a {
-      color: #7ec8ff;
-      font-size: 13px;
+    a {
+      color: inherit;
       text-decoration: none;
     }
 
-    .card a:hover {
-      text-decoration: underline;
+    :focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 3px;
+      border-radius: 2px;
     }
 
-    footer {
-      text-align: center;
-      color: #6b7280;
+    .kicker {
+      font-family: var(--font-m);
       font-size: 12px;
-      margin-top: 36px;
+      font-weight: 600;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--gold);
     }
 
+    /* ---------- 顶栏 ---------- */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px clamp(20px, 5vw, 64px);
+      background: rgba(11, 17, 32, .72);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--line);
+      opacity: 0;
+      transform: translateY(-8px);
+      animation: fadeDown .7s var(--ease-out) .15s forwards;
+    }
+
+    @keyframes fadeDown {
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .brand {
+      font-family: var(--font-d);
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: .02em;
+    }
+
+    .brand::before {
+      content: "◫ ";
+      color: var(--gold);
+    }
+
+    .brand-sub {
+      color: var(--txt-3);
+      font-weight: 400;
+      font-family: var(--font-m);
+      font-size: 12px;
+      letter-spacing: .12em;
+    }
+
+    .topnav {
+      display: flex;
+      gap: 24px;
+      font-size: 14px;
+      color: var(--txt-2);
+    }
+
+    .topnav a {
+      transition: color .25s;
+    }
+
+    .topnav a:hover {
+      color: var(--gold);
+    }
+
+    /* ---------- Hero ---------- */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 120px clamp(20px, 5vw, 64px) 40px;
+      overflow: hidden;
+    }
+
+    #fx {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .hero>*:not(#fx) {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-inner {
+      text-align: center;
+      max-width: 900px;
+      margin-bottom: 44px;
+    }
+
+    .hero-inner .kicker {
+      opacity: 0;
+      animation: riseIn .8s var(--ease-out) .25s forwards;
+    }
+
+    .title {
+      margin-top: 18px;
+      font-family: var(--font-d);
+      font-weight: 700;
+      font-size: clamp(2.3rem, 6.4vw, 4.6rem);
+      line-height: 1.12;
+      letter-spacing: .01em;
+      opacity: 0;
+      animation: riseBlur .9s var(--ease-out) .38s forwards;
+    }
+
+    .title em {
+      font-style: normal;
+      color: var(--gold);
+    }
+
+    .lede {
+      margin: 20px auto 0;
+      max-width: 620px;
+      color: var(--txt-2);
+      font-size: clamp(15px, 1.6vw, 18px);
+      opacity: 0;
+      animation: riseIn .8s var(--ease-out) .5s forwards;
+    }
+
+    .cta {
+      display: inline-block;
+      margin-top: 28px;
+      padding: 11px 26px;
+      border: 1px solid var(--gold-line);
+      border-radius: 2px;
+      color: var(--gold);
+      font-family: var(--font-m);
+      font-size: 13px;
+      letter-spacing: .14em;
+      transition: background .3s, color .3s, transform .3s var(--ease-out);
+      opacity: 0;
+      animation: riseIn .8s var(--ease-out) .62s forwards;
+    }
+
+    .cta:hover {
+      background: var(--gold);
+      color: #14100a;
+      transform: translateY(-2px);
+    }
+
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(22px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes riseBlur {
+      from {
+        opacity: 0;
+        transform: translateY(26px);
+        filter: blur(10px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+        filter: none;
+      }
+    }
+
+    /* ---------- 旗舰轮播 ---------- */
+    .stage {
+      position: relative;
+      width: min(1040px, 94vw);
+      opacity: 0;
+      transform: scale(.97) translateY(16px);
+      animation: stageIn 1s var(--ease-out) .8s forwards;
+    }
+
+    @keyframes stageIn {
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* ---------- 黑金边框悬浮装饰 ---------- */
+    .hero-corners {
+      position: absolute;
+      inset: clamp(86px, 11vh, 128px) clamp(16px, 4vw, 44px);
+      z-index: 3;
+    }
+
+    .frame-corners {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .frame-corners i {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border: 0 solid var(--gold);
+      opacity: .72;
+      filter: drop-shadow(0 0 6px rgba(232, 185, 100, .65));
+      animation: cornerFloat 4.8s ease-in-out infinite;
+    }
+
+    .hero-corners i {
+      width: 42px;
+      height: 42px;
+    }
+
+    .frame-corners i:nth-child(1) {
+      top: -2px;
+      left: -2px;
+      border-top-width: 2px;
+      border-left-width: 2px;
+      border-top-left-radius: 2px;
+      animation-delay: 0s;
+    }
+
+    .frame-corners i:nth-child(2) {
+      top: -2px;
+      right: -2px;
+      border-top-width: 2px;
+      border-right-width: 2px;
+      border-top-right-radius: 2px;
+      animation-delay: .7s;
+    }
+
+    .frame-corners i:nth-child(3) {
+      bottom: -2px;
+      left: -2px;
+      border-bottom-width: 2px;
+      border-left-width: 2px;
+      border-bottom-left-radius: 2px;
+      animation-delay: 1.4s;
+    }
+
+    .frame-corners i:nth-child(4) {
+      bottom: -2px;
+      right: -2px;
+      border-bottom-width: 2px;
+      border-right-width: 2px;
+      border-bottom-right-radius: 2px;
+      animation-delay: 2.1s;
+    }
+
+    @keyframes cornerFloat {
+      0%, 100% {
+        transform: translate(0, 0);
+        opacity: .5;
+      }
+      50% {
+        transform: translate(0, -4px);
+        opacity: 1;
+      }
+    }
+
+    .stage-frame {
+      position: relative;
+    }
+
+    .stage-frame::before {
+      content: "";
+      position: absolute;
+      inset: -14px;
+      border: 1px solid rgba(232, 185, 100, .3);
+      border-radius: 6px;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 0 30px rgba(232, 185, 100, .12);
+      animation: frameBreathe 5.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .stage-frame::after {
+      content: "";
+      position: absolute;
+      inset: -34px;
+      z-index: -1;
+      background:
+        radial-gradient(58% 58% at 50% 50%, rgba(232, 185, 100, .10), rgba(5, 8, 14, .78) 72%, transparent 92%);
+      filter: blur(12px);
+      animation: frameBreathe 5.5s ease-in-out 1.1s infinite;
+      pointer-events: none;
+    }
+
+    .stage-frame .frame-corners {
+      inset: -9px;
+      z-index: 6;
+    }
+
+    @keyframes frameBreathe {
+      0%, 100% {
+        opacity: .55;
+        transform: translateY(0);
+      }
+      50% {
+        opacity: 1;
+        transform: translateY(-5px);
+      }
+    }
+
+    .stage-main {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid var(--line);
+      box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8);
+      cursor: pointer;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transform: scale(1.03);
+      transition: opacity .75s var(--ease-slide), transform .75s var(--ease-slide);
+      pointer-events: none;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+
+    .slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .slide::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(6, 10, 20, .05) 40%, rgba(6, 10, 20, .86) 100%);
+    }
+
+    .slide figcaption {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 3;
+      padding: 20px clamp(18px, 3vw, 34px) 22px;
+    }
+
+    .slide-no {
+      font-family: var(--font-m);
+      font-size: 12px;
+      color: var(--gold);
+      letter-spacing: .16em;
+    }
+
+    .slide h3 {
+      margin-top: 4px;
+      font-family: var(--font-d);
+      font-size: clamp(20px, 2.6vw, 30px);
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .slide p {
+      margin-top: 4px;
+      color: rgba(234, 237, 244, .82);
+      font-size: clamp(13px, 1.4vw, 15px);
+      max-width: 70%;
+    }
+
+    .slide-open {
+      position: absolute;
+      right: clamp(18px, 3vw, 34px);
+      bottom: 26px;
+      z-index: 4;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border: 1px solid rgba(255, 255, 255, .35);
+      border-radius: 2px;
+      background: rgba(11, 17, 32, .45);
+      color: #fff;
+      font-family: var(--font-m);
+      font-size: 12px;
+      letter-spacing: .1em;
+      cursor: pointer;
+      transition: background .3s, border-color .3s;
+    }
+
+    .slide-open:hover {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #14100a;
+    }
+
+    .stage-ui {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .stage-progress {
+      flex: 1;
+      display: flex;
+      gap: 6px;
+    }
+
+    .stage-progress .bar {
+      flex: 1;
+      height: 3px;
+      background: rgba(255, 255, 255, .12);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .stage-progress .bar .fill {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--gold);
+    }
+
+    .stage-progress .bar.playing .fill {
+      animation: grow 6.2s linear forwards;
+    }
+
+    @keyframes grow {
+      from {
+        width: 0;
+      }
+      to {
+        width: 100%;
+      }
+    }
+
+    .stage-btn {
+      background: none;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      color: var(--txt-2);
+      width: 36px;
+      height: 30px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: color .25s, border-color .25s;
+      display: grid;
+      place-items: center;
+    }
+
+    .stage-btn:hover {
+      color: var(--gold);
+      border-color: var(--gold-line);
+    }
+
+    .scroll-cue {
+      margin-top: 26px;
+      font-family: var(--font-m);
+      font-size: 11px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--txt-3);
+      animation: cueBounce 2.4s ease-in-out infinite;
+      transition: opacity .4s;
+    }
+
+    @keyframes cueBounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(7px);
+      }
+    }
+
+    /* ---------- 数据条 ---------- */
+    .stats {
+      position: relative;
+      z-index: 2;
+      max-width: 1080px;
+      margin: 70px auto 0;
+      padding: 0 clamp(20px, 5vw, 64px);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .stat {
+      padding: 18px 0 18px 20px;
+      border-left: 1px solid var(--line);
+    }
+
+    .stat:first-child {
+      border-left: none;
+      padding-left: 0;
+    }
+
+    .stat .num {
+      display: block;
+      font-family: var(--font-d);
+      font-weight: 700;
+      font-size: clamp(30px, 4vw, 44px);
+      line-height: 1;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat .lbl {
+      display: block;
+      margin-top: 6px;
+      font-family: var(--font-m);
+      font-size: 12px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--txt-2);
+    }
+
+    .stat p {
+      margin-top: 4px;
+      color: var(--txt-3);
+      font-size: 13px;
+    }
+
+    /* ---------- 视频库 ---------- */
+    .gallery {
+      position: relative;
+      z-index: 2;
+      max-width: 1080px;
+      margin: 110px auto 0;
+      padding: 0 clamp(20px, 5vw, 64px);
+      scroll-margin-top: 90px;
+    }
+
+    .gallery-head .kicker::before {
+      content: "— ";
+    }
+
+    .gallery-head h2 {
+      margin-top: 10px;
+      font-family: var(--font-d);
+      font-weight: 700;
+      font-size: clamp(26px, 3.6vw, 40px);
+      line-height: 1.2;
+    }
+
+    .gallery-head h2 em {
+      font-style: normal;
+      color: var(--gold);
+    }
+
+    .filters {
+      margin-top: 26px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .chip {
+      font-family: var(--font-b);
+      font-size: 14px;
+      color: var(--txt-2);
+      padding: 8px 16px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      background: transparent;
+      cursor: pointer;
+      transition: all .25s var(--ease-out);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chip .cnt {
+      font-family: var(--font-m);
+      font-size: 11px;
+      color: var(--txt-3);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0 7px;
+    }
+
+    .chip:hover {
+      border-color: var(--gold-line);
+      color: var(--txt);
+    }
+
+    .chip.active {
+      background: var(--gold-soft);
+      border-color: var(--gold-line);
+      color: var(--gold);
+    }
+
+    .chip.active .cnt {
+      color: var(--gold);
+      border-color: var(--gold-line);
+    }
+
+    .grid {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+      content-visibility: auto;
+      contain-intrinsic-size: auto 340px;
+    }
+
+    .card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+      transition: transform .35s var(--ease-out), border-color .35s;
+      transform-style: preserve-3d;
+      will-change: transform;
+      opacity: 0;
+    }
+
+    .card.revealed {
+      opacity: 1;
+      transition: opacity .7s var(--ease-out) calc(var(--i, 0) * 60ms),
+        transform .35s var(--ease-out), border-color .35s;
+    }
+
+    .card:hover {
+      border-color: var(--gold-line);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--gold);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .4s var(--ease-slide);
+      z-index: 3;
+    }
+
+    .card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .preview {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      display: block;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .6s var(--ease-out);
+    }
+
+    .card:hover .preview img {
+      transform: scale(1.07);
+    }
+
+    .preview .play-badge {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(8, 12, 24, .35);
+      opacity: 0;
+      transition: opacity .35s;
+    }
+
+    .preview .play-badge span {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: 1.5px solid var(--gold);
+      color: var(--gold);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      background: rgba(11, 17, 32, .5);
+      transform: scale(.8);
+      transition: transform .35s var(--ease-out);
+    }
+
+    .card:hover .play-badge {
+      opacity: 1;
+    }
+
+    .card:hover .play-badge span {
+      transform: scale(1);
+    }
+
+    .body {
+      padding: 14px 16px 16px;
+      transform: translateZ(30px);
+    }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .tag {
+      font-family: var(--font-m);
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: var(--gold);
+    }
+
+    .no {
+      font-family: var(--font-m);
+      font-size: 12px;
+      color: var(--txt-3);
+    }
+
+    .body h3 {
+      font-family: var(--font-d);
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    .body p {
+      margin-top: 6px;
+      color: var(--txt-2);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .dl {
+      display: inline-block;
+      margin-top: 12px;
+      font-family: var(--font-m);
+      font-size: 12px;
+      letter-spacing: .06em;
+      color: var(--txt-3);
+      transition: color .25s;
+    }
+
+    .dl:hover {
+      color: var(--gold);
+    }
+
+    /* ---------- 页脚 ---------- */
+    footer {
+      position: relative;
+      z-index: 2;
+      margin-top: 110px;
+      padding: 40px clamp(20px, 5vw, 64px) 48px;
+      border-top: 1px solid var(--line);
+      text-align: center;
+      color: var(--txt-3);
+      font-size: 13px;
+    }
+
+    footer .note {
+      margin-top: 6px;
+      font-family: var(--font-m);
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    /* ---------- 模态播放器 ---------- */
     .modal {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, .85);
-      z-index: 10;
+      z-index: 100;
       align-items: center;
       justify-content: center;
+      background: rgba(5, 8, 16, .88);
+      backdrop-filter: blur(8px);
     }
 
     .modal.show {
@@ -127,82 +879,457 @@
     }
 
     .modal video {
-      max-width: 92vw;
-      max-height: 88vh;
+      max-width: 94vw;
+      max-height: 86vh;
       background: #000;
+      box-shadow: 0 40px 120px -30px rgba(0, 0, 0, .9);
+      transform: scale(.96);
+      transition: transform .35s var(--ease-out);
+    }
+
+    .modal.show video {
+      transform: scale(1);
     }
 
     .modal .close {
       position: absolute;
-      top: 16px;
-      right: 24px;
+      top: 18px;
+      right: 26px;
       color: #fff;
-      font-size: 30px;
+      font-size: 34px;
       cursor: pointer;
       user-select: none;
+      line-height: 1;
+      opacity: .8;
+      transition: opacity .25s, transform .25s;
+    }
+
+    .modal .close:hover {
+      opacity: 1;
+      transform: rotate(90deg);
+    }
+
+    /* ---------- 响应式 & 无障碍 ---------- */
+    @media (max-width: 720px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px 0;
+      }
+      .stat {
+        padding-left: 14px;
+      }
+      .slide p {
+        max-width: 100%;
+      }
+      .topnav {
+        gap: 14px;
+        font-size: 13px;
+      }
+    }
+
+    @media (hover: none) {
+      .card:hover .preview img {
+        transform: none;
+      }
+      .preview .play-badge {
+        opacity: 1;
+        background: rgba(8, 12, 24, .2);
+      }
+      .preview .play-badge span {
+        transform: scale(1);
+        width: 46px;
+        height: 46px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+      #fx {
+        display: none;
+      }
     }
   </style>
 </head>
 
 <body>
-  <header>
-    <h1>小学数学数形结合 · 动态演示视频库</h1>
-    <p class="sub">共 18 段动画，覆盖运算律、分数、行程、图形面积与体积、统计、思维拓展。<br>
-      卡片为全片循环的动图预览（WebP，自动播放）；点击预览可播放 1080p 原片，也可直接下载 mp4。</p>
-
+  <header class="topbar">
+    <a class="brand" href="#top">数形结合<span class="brand-sub"> / MATH·VIZ</span></a>
+    <nav class="topnav">
+      <a href="#gallery">视频库</a>
+      <a href="https://github.com/Seasonno1314/math-viz-demos" target="_blank" rel="noopener">GitHub ↗</a>
+    </nav>
   </header>
-  <div class="grid" id="grid"></div>
-  <footer>Manim 渲染 · 案例规范见《一知未来-小学数学可视化-最佳实践案例库-动态视频.md》<br>
-    <p class="note">无需登录、无需安装任何软件，浏览器打开即用。GitHub Pages 在线托管。</p>
+
+  <section class="hero" id="top">
+    <canvas id="fx"></canvas>
+    <div class="frame-corners hero-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="hero-inner">
+      <p class="kicker">Manim · 数形结合 · 18 段动画</p>
+      <h1 class="title">让抽象的数，<br>变成<em>看得见</em>的图</h1>
+      <p class="lede">运算律、分数、行程、面积、统计与思维拓展——一条动画讲清一个数学原理，原理都动起来了。</p>
+      <a class="cta" href="#gallery">进入视频库 ↓</a>
+    </div>
+
+    <div class="stage">
+      <div class="stage-frame">
+        <div class="stage-main" id="stageMain" aria-label="精选视频轮播"></div>
+        <div class="frame-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="stage-ui">
+        <div class="stage-progress" id="stageProgress" aria-hidden="true"></div>
+        <button class="stage-btn" id="stagePrev" aria-label="上一个">‹</button>
+        <button class="stage-btn" id="stageToggle" aria-label="暂停轮播" aria-pressed="false">❚❚</button>
+        <button class="stage-btn" id="stageNext" aria-label="下一个">›</button>
+      </div>
+    </div>
+    <div class="scroll-cue" id="scrollCue">向下滑动 · 探索 18 段动画</div>
+  </section>
+
+  <section class="stats" id="stats">
+    <div class="stat"><span class="num" data-count="18">0</span><span class="lbl">段动画</span><p>覆盖 6 大数学主题</p></div>
+    <div class="stat"><span class="num" data-count="6">0</span><span class="lbl">大主题</span><p>运算律 · 分数 · 行程 · 几何 · 统计 · 拓展</p></div>
+    <div class="stat"><span class="num" data-count="1080">0</span><span class="lbl">P 高清渲染</span><p>30 fps · H.264 · WebP 动图预览</p></div>
+    <div class="stat"><span class="num" data-count="0">0</span><span class="lbl">安装成本</span><p>无需登录 · 浏览器即开即用</p></div>
+  </section>
+
+  <section class="gallery" id="gallery">
+    <div class="gallery-head">
+      <p class="kicker">Gallery · 视频库</p>
+      <h2>十八段原理，<em>一眼看懂</em></h2>
+    </div>
+    <div class="filters" id="filters" role="tablist" aria-label="按主题筛选"></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <footer>
+    Manim 渲染 · 小学数学 · 数形结合动态演示视频库
+    <p class="note">GitHub Pages 在线托管 · 免登录</p>
   </footer>
 
-  <div class="modal" id="modal">
-    <span class="close" id="modalClose">&times;</span>
-    <video id="modalVideo" controls playsinline></video>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="视频播放">
+    <span class="close" id="modalClose" aria-label="关闭">&times;</span>
+    <video id="modalVideo" controls playsinline preload="metadata"></video>
   </div>
 
   <script>
-    const items = [
-      {no: "12", title: "乘法分配律", webp: "12-乘法分配律.webp", mp4: "12-乘法分配律.mp4", desc: "把 4×3 与 2×3 切成两块再拼合，直观看到 (4+2)×3。"},
-      {no: "13", title: "乘法交换律 / 结合律", webp: "13-乘法交换结合律.webp", mp4: "13-乘法交换结合律.mp4", desc: "点阵旋转 90° 不变总数；分组括号移动，总数也不变。"},
-      {no: "16", title: "分数乘法", webp: "16-分数乘法.webp", mp4: "16-分数乘法.mp4", desc: "正方形先横切再竖切，重叠部分就是两个分数相乘的结果。"},
-      {no: "17", title: "分数除法", webp: "17-分数除法.webp", mp4: "17-分数除法.mp4", desc: "先平分再倒推填充：6/8 里有多少个 1/4，看得清清楚楚。"},
-      {no: "22", title: "相遇问题", webp: "22-相遇问题.webp", mp4: "22-相遇问题.mp4", desc: "两车相向而行，在 8 个刻度上用速度比 60:40 找到相遇点。"},
-      {no: "23", title: "追及问题", webp: "23-追及问题.webp", mp4: "23-追及问题.mp4", desc: "速度差恒定（70-40=30），路程差随时间不断缩小直到追上。"},
-      {no: "28", title: "火车过桥", webp: "28-火车过桥.webp", mp4: "28-火车过桥.mp4", desc: "车头车尾双路径演示：总路程 = 桥长 + 车长。"},
-      {no: "29", title: "周长概念", webp: "29-周长概念.webp", mp4: "29-周长概念.mp4", desc: "把四边拆下来拉直排成一排，周长就是围一圈的边之和。"},
-      {no: "31", title: "平行四边形面积", webp: "31-平行四边形面积.webp", mp4: "31-平行四边形面积.mp4", desc: "沿高剪下一块三角形平移过去，拼成长方形——面积不变。"},
-      {no: "32", title: "三角形面积", webp: "32-三角形面积.webp", mp4: "32-三角形面积.mp4", desc: "两个一样的三角形旋转拼接成平行四边形，面积取其一半。"},
-      {no: "33", title: "梯形面积", webp: "33-梯形面积.webp", mp4: "33-梯形面积.mp4", desc: "两个一样的梯形拼成平行四边形，新底 = 上底 + 下底。"},
-      {no: "34", title: "圆的周长", webp: "34-圆的周长.webp", mp4: "34-圆的周长.mp4", desc: "让圆在直尺上滚一整圈，滚过的长度就是周长 ≈ π×直径。"},
-      {no: "35", title: "圆的面积", webp: "35-圆的面积.webp", mp4: "35-圆的面积.mp4", desc: "把圆切成 16 个扇形拼成近似长方形，长 πr、宽 r，得 πr²。"},
-      {no: "37", title: "圆柱体积", webp: "37-圆柱体积.webp", mp4: "37-圆柱体积.mp4", desc: "圆柱切碎拼成长方体，体积 = 底面积 × 高 = πr²h。"},
-      {no: "39", title: "轴对称图形", webp: "39-轴对称图形.webp", mp4: "39-轴对称图形.mp4", desc: "把左半边沿对称轴翻过去，完全重合就是轴对称。"},
-      {no: "44", title: "可能性 · 转盘", webp: "44-可能性转盘.webp", mp4: "44-可能性转盘.mp4", desc: "随机转 24 次实时计数：转得越多，红占比越接近 1/4。"},
-      {no: "46", title: "高斯求和", webp: "46-高斯求和.webp", mp4: "46-高斯求和.mp4", desc: "阶梯与倒阶梯互补成矩形，1+2+…+n = (n+1)×n÷2。"},
-      {no: "48", title: "一笔画", webp: "48-一笔画.webp", mp4: "48-一笔画.mp4", desc: "奇点不超过 2 个才能一笔画完；4 个奇点则必然走不完。"}
+    const ITEMS = [
+      {no: "12", title: "乘法分配律", cat: "运算律", webp: "12-乘法分配律.webp", mp4: "12-乘法分配律.mp4", desc: "把 4×3 与 2×3 切成两块再拼合，直观看到 (4+2)×3。"},
+      {no: "13", title: "乘法交换律 / 结合律", cat: "运算律", webp: "13-乘法交换结合律.webp", mp4: "13-乘法交换结合律.mp4", desc: "点阵旋转 90° 不变总数；分组括号移动，总数也不变。"},
+      {no: "16", title: "分数乘法", cat: "分数", webp: "16-分数乘法.webp", mp4: "16-分数乘法.mp4", desc: "正方形先横切再竖切，重叠部分就是两个分数相乘的结果。"},
+      {no: "17", title: "分数除法", cat: "分数", webp: "17-分数除法.webp", mp4: "17-分数除法.mp4", desc: "先平分再倒推填充：6/8 里有多少个 1/4，看得清清楚楚。"},
+      {no: "22", title: "相遇问题", cat: "行程问题", webp: "22-相遇问题.webp", mp4: "22-相遇问题.mp4", desc: "两车相向而行，在 8 个刻度上用速度比 60:40 找到相遇点。"},
+      {no: "23", title: "追及问题", cat: "行程问题", webp: "23-追及问题.webp", mp4: "23-追及问题.mp4", desc: "速度差恒定（70-40=30），路程差随时间不断缩小直到追上。"},
+      {no: "28", title: "火车过桥", cat: "行程问题", webp: "28-火车过桥.webp", mp4: "28-火车过桥.mp4", desc: "车头车尾双路径演示：总路程 = 桥长 + 车长。"},
+      {no: "29", title: "周长概念", cat: "图形与几何", webp: "29-周长概念.webp", mp4: "29-周长概念.mp4", desc: "把四边拆下来拉直排成一排，周长就是围一圈的边之和。"},
+      {no: "31", title: "平行四边形面积", cat: "图形与几何", webp: "31-平行四边形面积.webp", mp4: "31-平行四边形面积.mp4", desc: "沿高剪下一块三角形平移过去，拼成长方形——面积不变。"},
+      {no: "32", title: "三角形面积", cat: "图形与几何", webp: "32-三角形面积.webp", mp4: "32-三角形面积.mp4", desc: "两个一样的三角形旋转拼接成平行四边形，面积取其一半。"},
+      {no: "33", title: "梯形面积", cat: "图形与几何", webp: "33-梯形面积.webp", mp4: "33-梯形面积.mp4", desc: "两个一样的梯形拼成平行四边形，新底 = 上底 + 下底。"},
+      {no: "34", title: "圆的周长", cat: "图形与几何", webp: "34-圆的周长.webp", mp4: "34-圆的周长.mp4", desc: "让圆在直尺上滚一整圈，滚过的长度就是周长 ≈ π×直径。"},
+      {no: "35", title: "圆的面积", cat: "图形与几何", webp: "35-圆的面积.webp", mp4: "35-圆的面积.mp4", desc: "把圆切成 16 个扇形拼成近似长方形，长 πr、宽 r，得 πr²。"},
+      {no: "37", title: "圆柱体积", cat: "图形与几何", webp: "37-圆柱体积.webp", mp4: "37-圆柱体积.mp4", desc: "圆柱切碎拼成长方体，体积 = 底面积 × 高 = πr²h。"},
+      {no: "39", title: "轴对称图形", cat: "图形与几何", webp: "39-轴对称图形.webp", mp4: "39-轴对称图形.mp4", desc: "把左半边沿对称轴翻过去，完全重合就是轴对称。"},
+      {no: "44", title: "可能性 · 转盘", cat: "统计与可能性", webp: "44-可能性转盘.webp", mp4: "44-可能性转盘.mp4", desc: "随机转 24 次实时计数：转得越多，红占比越接近 1/4。"},
+      {no: "46", title: "高斯求和", cat: "思维拓展", webp: "46-高斯求和.webp", mp4: "46-高斯求和.mp4", desc: "阶梯与倒阶梯互补成矩形，1+2+…+n = (n+1)×n÷2。"},
+      {no: "48", title: "一笔画", cat: "思维拓展", webp: "48-一笔画.webp", mp4: "48-一笔画.mp4", desc: "奇点不超过 2 个才能一笔画完；4 个奇点则必然走不完。"}
     ];
+    const SHOWCASE_NOS = ["46", "35", "44", "16"];
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const finePointer = window.matchMedia("(hover: hover)").matches;
+
+    /* ---------- 顶栏滚动淡化提示 ---------- */
+    const scrollCue = document.getElementById("scrollCue");
+    addEventListener("scroll", () => {
+      if (scrollCue) scrollCue.style.opacity = scrollY > 40 ? "0" : "1";
+    }, {passive: true});
+
+    /* ---------- 数学氛围 canvas ---------- */
+    (function fx() {
+      const cv = document.getElementById("fx");
+      if (!cv || reducedMotion) return;
+      const ctx = cv.getContext("2d");
+      let W, H, parts = [], mouse = {x: 0, y: 0}, tx = 0, ty = 0;
+      const GLYPHS = ["π", "½", "×", "÷", "∞", "√", "=", "+"];
+
+      function resize() {
+        W = cv.width = cv.offsetWidth;
+        H = cv.height = cv.offsetHeight;
+        seed();
+      }
+
+      function seed() {
+        const n = Math.max(16, Math.min(30, Math.floor(W / 60)));
+        parts = [];
+        for (let i = 0; i < n; i++) {
+          const t = Math.random();
+          parts.push({
+            type: t < .35 ? "ring" : t < .55 ? "square" : t < .7 ? "dot" : "glyph",
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: 6 + Math.random() * 26,
+            rot: Math.random() * Math.PI,
+            vr: (Math.random() - .5) * .006,
+            vy: -(0.08 + Math.random() * 0.22),
+            a: 0.05 + Math.random() * 0.10,
+            g: GLYPHS[Math.floor(Math.random() * GLYPHS.length)],
+            ph: Math.random() * Math.PI * 2
+          });
+        }
+      }
+
+      addEventListener("pointermove", e => {
+        tx = (e.clientX / innerWidth - .5);
+        ty = (e.clientY / innerHeight - .5);
+      }, {passive: true});
+
+      function frame() {
+        mouse.x += (tx - mouse.x) * .04;
+        mouse.y += (ty - mouse.y) * .04;
+        ctx.clearRect(0, 0, W, H);
+        ctx.strokeStyle = "#E8B964";
+        ctx.fillStyle = "#E8B964";
+        ctx.lineWidth = 1;
+        for (const p of parts) {
+          p.y += p.vy;
+          p.rot += p.vr;
+          if (p.y < -40) {
+            p.y = H + 40;
+            p.x = Math.random() * W;
+          }
+          const ox = mouse.x * p.r * .6, oy = mouse.y * p.r * .6;
+          ctx.globalAlpha = p.a;
+          ctx.beginPath();
+          if (p.type === "ring") {
+            ctx.arc(p.x + ox, p.y + oy, p.r, 0, Math.PI * 2);
+            ctx.stroke();
+          } else if (p.type === "square") {
+            ctx.save();
+            ctx.translate(p.x + ox, p.y + oy);
+            ctx.rotate(p.rot);
+            ctx.strokeRect(-p.r * .6, -p.r * .6, p.r * 1.2, p.r * 1.2);
+            ctx.restore();
+          } else if (p.type === "dot") {
+            ctx.arc(p.x + ox, p.y + oy, p.r * .22, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.font = (p.r * .9) + "px 'Space Grotesk', sans-serif";
+            ctx.fillText(p.g, p.x + ox, p.y + oy);
+          }
+        }
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(frame);
+      }
+
+      addEventListener("resize", resize, {passive: true});
+      resize();
+      frame();
+    })();
+
+    /* ---------- 旗舰轮播 ---------- */
+    const stageMain = document.getElementById("stageMain");
+    const stageProgress = document.getElementById("stageProgress");
+    const stageToggle = document.getElementById("stageToggle");
+    const stagePrev = document.getElementById("stagePrev");
+    const stageNext = document.getElementById("stageNext");
+    const SHOWCASE = SHOWCASE_NOS.map(no => ITEMS.find(i => i.no === no));
+    const DUR = 6200;
+
+    let si = 0, playing = true, timer = null, hoverPaused = false;
+
+    function slideHTML(it, idx) {
+      return `<figure class="slide${idx === 0 ? " active" : ""}" data-no="${it.no}">` +
+        `<img src="webp/${it.webp}" alt="${it.title}" ${idx === 0 ? "" : 'loading="lazy"'}>` +
+        `<figcaption><span class="slide-no">案例 ${it.no} · ${it.cat}</span>` +
+        `<h3>${it.title}</h3><p>${it.desc}</p></figcaption>` +
+        `<button class="slide-open" data-open="${it.no}">▶ 播放全片</button></figure>`;
+    }
+
+    function buildStage() {
+      stageMain.innerHTML = SHOWCASE.map((it, i) => slideHTML(it, i)).join("");
+      stageProgress.innerHTML = SHOWCASE.map(() => `<span class="bar"><span class="fill"></span></span>`).join("");
+      stageMain.addEventListener("click", e => {
+        const btn = e.target.closest(".slide-open");
+        if (btn) { openModal(btn.dataset.open); return; }
+        const f = e.target.closest(".slide");
+        if (f) openModal(f.dataset.no);
+      });
+      updateProgress();
+    }
+
+    function show(i) {
+      const slides = stageMain.querySelectorAll(".slide");
+      slides.forEach((s, k) => s.classList.toggle("active", k === i));
+      si = i;
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const bars = stageProgress.querySelectorAll(".bar");
+      bars.forEach((b, k) => {
+        b.classList.toggle("playing", k === si && playing);
+        const fill = b.querySelector(".fill");
+        fill.style.animation = "none";
+        void fill.offsetWidth;
+        fill.style.animation = "";
+      });
+    }
+
+    function schedule() {
+      clearTimeout(timer);
+      if (!playing || hoverPaused) return;
+      timer = setTimeout(() => {
+        show((si + 1) % SHOWCASE.length);
+        schedule();
+      }, DUR);
+    }
+
+    function setPlay(on) {
+      playing = on;
+      stageToggle.textContent = on ? "❚❚" : "▶";
+      stageToggle.setAttribute("aria-pressed", String(!on));
+      stageToggle.setAttribute("aria-label", on ? "暂停轮播" : "播放轮播");
+      updateProgress();
+      schedule();
+    }
+
+    stageToggle.addEventListener("click", () => setPlay(!playing));
+    stageNext.addEventListener("click", () => { show((si + 1) % SHOWCASE.length); schedule(); });
+    stagePrev.addEventListener("click", () => { show((si - 1 + SHOWCASE.length) % SHOWCASE.length); schedule(); });
+
+    const stage = document.querySelector(".stage");
+    stage.addEventListener("mouseenter", () => { hoverPaused = true; clearTimeout(timer); });
+    stage.addEventListener("mouseleave", () => { hoverPaused = false; schedule(); });
+    stage.addEventListener("focusin", () => { hoverPaused = true; clearTimeout(timer); });
+    stage.addEventListener("focusout", () => { hoverPaused = false; schedule(); });
+
+    addEventListener("keydown", e => {
+      if (!document.querySelector(".modal.show") && stage.contains(document.activeElement)) {
+        if (e.key === "ArrowRight") { show((si + 1) % SHOWCASE.length); schedule(); }
+        if (e.key === "ArrowLeft") { show((si - 1 + SHOWCASE.length) % SHOWCASE.length); schedule(); }
+      }
+    });
+
+    buildStage();
+    schedule();
+
+    /* ---------- 数据递增 ---------- */
+    const statsEl = document.getElementById("stats");
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        if (!en.isIntersecting) return;
+        io.unobserve(en.target);
+        en.target.querySelectorAll("[data-count]").forEach(n => {
+          const target = +n.dataset.count;
+          if (reducedMotion || target === 0) {
+            n.textContent = target;
+            return;
+          }
+          const t0 = performance.now();
+          const dur = 1200;
+          (function tick(t) {
+            const p = Math.min(1, (t - t0) / dur);
+            const ease = 1 - Math.pow(1 - p, 4);
+            n.textContent = Math.round(target * ease);
+            if (p < 1) requestAnimationFrame(tick);
+          })(t0);
+        });
+      });
+    }, {threshold: .35});
+    io.observe(statsEl);
+
+    /* ---------- 分类筛选 ---------- */
+    const filters = document.getElementById("filters");
     const grid = document.getElementById("grid");
+    const cats = ["全部"].concat([...new Set(ITEMS.map(i => i.cat))]);
+
+    function renderCards(cat) {
+      const list = cat === "全部" ? ITEMS : ITEMS.filter(i => i.cat === cat);
+      grid.innerHTML = "";
+      list.forEach((it, idx) => {
+        const card = document.createElement("article");
+        card.className = "card";
+        card.dataset.cat = it.cat;
+        card.style.setProperty("--i", idx % 9);
+        card.innerHTML =
+          `<button class="preview" aria-label="播放 ${it.title}">` +
+          `<img src="webp/${it.webp}" alt="${it.title}" loading="lazy">` +
+          `<span class="play-badge"><span>▶</span></span></button>` +
+          `<div class="body"><div class="meta"><span class="tag">${it.cat}</span><span class="no">#${it.no}</span></div>` +
+          `<h3>${it.title}</h3><p>${it.desc}</p>` +
+          `<a class="dl" href="mp4/${it.mp4}" download>下载 1080p 原片 ↓</a></div>`;
+        card.querySelector(".preview").addEventListener("click", () => openModal(it.no));
+        grid.appendChild(card);
+        requestAnimationFrame(() => card.classList.add("revealed"));
+      });
+    }
+
+    cats.forEach(c => {
+      const n = c === "全部" ? ITEMS.length : ITEMS.filter(i => i.cat === c).length;
+      const chip = document.createElement("button");
+      chip.className = "chip" + (c === "全部" ? " active" : "");
+      chip.setAttribute("role", "tab");
+      chip.dataset.cat = c;
+      chip.innerHTML = c + `<span class="cnt">${n}</span>`;
+      chip.addEventListener("click", () => {
+        filters.querySelectorAll(".chip").forEach(x => x.classList.remove("active"));
+        chip.classList.add("active");
+        renderCards(c);
+      });
+      filters.appendChild(chip);
+    });
+    renderCards("全部");
+
+    /* ---------- 3D 倾角（仅精确指针） ---------- */
+    if (finePointer && !reducedMotion) {
+      grid.addEventListener("pointermove", e => {
+        const card = e.target.closest(".card");
+        if (!card) return;
+        const r = card.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width - .5;
+        const py = (e.clientY - r.top) / r.height - .5;
+        card.style.transform = `perspective(900px) rotateX(${(-py * 7).toFixed(2)}deg) rotateY(${(px * 9).toFixed(2)}deg)`;
+      }, {passive: true});
+      grid.addEventListener("pointerleave", e => {
+        const card = e.target.closest(".card");
+        if (card) card.style.transform = "";
+      });
+    }
+
+    /* ---------- 模态播放器 ---------- */
     const modal = document.getElementById("modal");
     const modalVideo = document.getElementById("modalVideo");
-    document.getElementById("modalClose").onclick = () => {modal.classList.remove("show"); modalVideo.pause();};
-    modal.onclick = (e) => {if (e.target === modal) {modal.classList.remove("show"); modalVideo.pause();} };
-    for (const it of items) {
-      const card = document.createElement("div");
-      card.className = "card";
-      const img = document.createElement("img");
-      img.className = "preview";
-      img.src = "webp/" + it.webp;
-      img.alt = it.title;
-      img.loading = "lazy";
-      img.onclick = () => {modalVideo.src = "mp4/" + it.mp4; modal.classList.add("show"); modalVideo.play();};
-      card.innerHTML =
-        `<div class="body"><span class="no">案例 ${it.no}</span>` +
-        `<h3>${it.title}</h3><p>${it.desc}</p><br>` +
-        `<a href="mp4/${it.mp4}" download>下载 1080p 原片</a></div>`;
-      card.prepend(img);
-      grid.appendChild(card);
+    let lastNo = null;
+
+    function openModal(no) {
+      const it = ITEMS.find(i => i.no === no);
+      if (!it) return;
+      lastNo = it;
+      modalVideo.src = "mp4/" + it.mp4;
+      modal.classList.add("show");
+      modalVideo.play().catch(() => {});
     }
+
+    function closeModal() {
+      modal.classList.remove("show");
+      modalVideo.pause();
+      modalVideo.removeAttribute("src");
+      modalVideo.load();
+    }
+
+    document.getElementById("modalClose").addEventListener("click", closeModal);
+    modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+    addEventListener("keydown", e => {
+      if (e.key === "Escape" && modal.classList.contains("show")) closeModal();
+    });
   </script>
 </body>
 
