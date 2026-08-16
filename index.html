@@ -1,88 +1,209 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>小学数学数形结合 · 动态演示视频库</title>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#111318; color:#e8e8e8; font-family:"Microsoft YaHei","PingFang SC",sans-serif; padding:24px 16px 60px; }
-  header { text-align:center; max-width:1080px; margin:0 auto 8px; }
-  h1 { font-size:26px; color:#ffd75e; margin-bottom:8px; }
-  .sub { color:#9aa0ab; font-size:14px; line-height:1.7; margin-bottom:6px; }
-  .note { color:#6b7280; font-size:12px; }
-  .grid { max-width:1080px; margin:24px auto 0; display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:18px; }
-  .card { background:#1a1d24; border:1px solid #2a2e38; border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
-  .card .preview { width:100%; aspect-ratio:16/9; object-fit:cover; background:#000; display:block; cursor:pointer; }
-  .card .body { padding:12px 14px 14px; }
-  .card .no { display:inline-block; background:#ffd75e; color:#1a1d24; font-size:12px; font-weight:700; border-radius:4px; padding:1px 7px; margin-bottom:6px; }
-  .card h3 { font-size:16px; margin-bottom:6px; }
-  .card p { font-size:13px; color:#b7bcc6; line-height:1.6; }
-  .card a { color:#7ec8ff; font-size:13px; text-decoration:none; }
-  .card a:hover { text-decoration:underline; }
-  footer { text-align:center; color:#6b7280; font-size:12px; margin-top:36px; }
-  .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:10; align-items:center; justify-content:center; }
-  .modal.show { display:flex; }
-  .modal video { max-width:92vw; max-height:88vh; background:#000; }
-  .modal .close { position:absolute; top:16px; right:24px; color:#fff; font-size:30px; cursor:pointer; user-select:none; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小学数学数形结合 · 动态演示视频库</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #111318;
+      color: #e8e8e8;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      padding: 24px 16px 60px;
+    }
+
+    header {
+      text-align: center;
+      max-width: 1080px;
+      margin: 0 auto 8px;
+    }
+
+    h1 {
+      font-size: 26px;
+      color: #ffd75e;
+      margin-bottom: 8px;
+    }
+
+    .sub {
+      color: #9aa0ab;
+      font-size: 14px;
+      line-height: 1.7;
+      margin-bottom: 6px;
+    }
+
+    .note {
+      color: #6b7280;
+      font-size: 12px;
+    }
+
+    .grid {
+      max-width: 1080px;
+      margin: 24px auto 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    .card {
+      background: #1a1d24;
+      border: 1px solid #2a2e38;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card .preview {
+      width: 100%;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      background: #000;
+      display: block;
+      cursor: pointer;
+    }
+
+    .card .body {
+      padding: 12px 14px 14px;
+    }
+
+    .card .no {
+      display: inline-block;
+      background: #ffd75e;
+      color: #1a1d24;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 1px 7px;
+      margin-bottom: 6px;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .card p {
+      font-size: 13px;
+      color: #b7bcc6;
+      line-height: 1.6;
+    }
+
+    .card a {
+      color: #7ec8ff;
+      font-size: 13px;
+      text-decoration: none;
+    }
+
+    .card a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      text-align: center;
+      color: #6b7280;
+      font-size: 12px;
+      margin-top: 36px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .85);
+      z-index: 10;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal video {
+      max-width: 92vw;
+      max-height: 88vh;
+      background: #000;
+    }
+
+    .modal .close {
+      position: absolute;
+      top: 16px;
+      right: 24px;
+      color: #fff;
+      font-size: 30px;
+      cursor: pointer;
+      user-select: none;
+    }
+  </style>
 </head>
+
 <body>
-<header>
-  <h1>小学数学数形结合 · 动态演示视频库</h1>
-  <p class="sub">共 18 段动画，覆盖运算律、分数、行程、图形面积与体积、统计、思维拓展。卡片为全片循环的动图预览（WebP，自动播放）；点击预览可播放 1080p 原片，也可直接下载 mp4。</p>
-  <p class="note">无需登录、无需安装任何软件，浏览器打开即用。GitHub Pages 在线托管。</p>
-</header>
-<div class="grid" id="grid"></div>
-<footer>Manim 渲染 · 案例规范见《03-最佳实践案例库-动态视频.md》</footer>
+  <header>
+    <h1>小学数学数形结合 · 动态演示视频库</h1>
+    <p class="sub">共 18 段动画，覆盖运算律、分数、行程、图形面积与体积、统计、思维拓展。<br>
+      卡片为全片循环的动图预览（WebP，自动播放）；点击预览可播放 1080p 原片，也可直接下载 mp4。</p>
 
-<div class="modal" id="modal">
-  <span class="close" id="modalClose">&times;</span>
-  <video id="modalVideo" controls playsinline></video>
-</div>
+  </header>
+  <div class="grid" id="grid"></div>
+  <footer>Manim 渲染 · 案例规范见《一知未来-小学数学可视化-最佳实践案例库-动态视频.md》<br>
+    <p class="note">无需登录、无需安装任何软件，浏览器打开即用。GitHub Pages 在线托管。</p>
+  </footer>
 
-<script>
-const items = [
-  { no:"12", title:"乘法分配律", webp:"12-乘法分配律.webp", mp4:"12-乘法分配律.mp4", desc:"把 4×3 与 2×3 切成两块再拼合，直观看到 (4+2)×3。" },
-  { no:"13", title:"乘法交换律 / 结合律", webp:"13-乘法交换结合律.webp", mp4:"13-乘法交换结合律.mp4", desc:"点阵旋转 90° 不变总数；分组括号移动，总数也不变。" },
-  { no:"16", title:"分数乘法", webp:"16-分数乘法.webp", mp4:"16-分数乘法.mp4", desc:"正方形先横切再竖切，重叠部分就是两个分数相乘的结果。" },
-  { no:"17", title:"分数除法", webp:"17-分数除法.webp", mp4:"17-分数除法.mp4", desc:"先平分再倒推填充：6/8 里有多少个 1/4，看得清清楚楚。" },
-  { no:"22", title:"相遇问题", webp:"22-相遇问题.webp", mp4:"22-相遇问题.mp4", desc:"两车相向而行，在 8 个刻度上用速度比 60:40 找到相遇点。" },
-  { no:"23", title:"追及问题", webp:"23-追及问题.webp", mp4:"23-追及问题.mp4", desc:"速度差恒定（70-40=30），路程差随时间不断缩小直到追上。" },
-  { no:"28", title:"火车过桥", webp:"28-火车过桥.webp", mp4:"28-火车过桥.mp4", desc:"车头车尾双路径演示：总路程 = 桥长 + 车长。" },
-  { no:"29", title:"周长概念", webp:"29-周长概念.webp", mp4:"29-周长概念.mp4", desc:"把四边拆下来拉直排成一排，周长就是围一圈的边之和。" },
-  { no:"31", title:"平行四边形面积", webp:"31-平行四边形面积.webp", mp4:"31-平行四边形面积.mp4", desc:"沿高剪下一块三角形平移过去，拼成长方形——面积不变。" },
-  { no:"32", title:"三角形面积", webp:"32-三角形面积.webp", mp4:"32-三角形面积.mp4", desc:"两个一样的三角形旋转拼接成平行四边形，面积取其一半。" },
-  { no:"33", title:"梯形面积", webp:"33-梯形面积.webp", mp4:"33-梯形面积.mp4", desc:"两个一样的梯形拼成平行四边形，新底 = 上底 + 下底。" },
-  { no:"34", title:"圆的周长", webp:"34-圆的周长.webp", mp4:"34-圆的周长.mp4", desc:"让圆在直尺上滚一整圈，滚过的长度就是周长 ≈ π×直径。" },
-  { no:"35", title:"圆的面积", webp:"35-圆的面积.webp", mp4:"35-圆的面积.mp4", desc:"把圆切成 16 个扇形拼成近似长方形，长 πr、宽 r，得 πr²。" },
-  { no:"37", title:"圆柱体积", webp:"37-圆柱体积.webp", mp4:"37-圆柱体积.mp4", desc:"圆柱切碎拼成长方体，体积 = 底面积 × 高 = πr²h。" },
-  { no:"39", title:"轴对称图形", webp:"39-轴对称图形.webp", mp4:"39-轴对称图形.mp4", desc:"把左半边沿对称轴翻过去，完全重合就是轴对称。" },
-  { no:"44", title:"可能性 · 转盘", webp:"44-可能性转盘.webp", mp4:"44-可能性转盘.mp4", desc:"随机转 24 次实时计数：转得越多，红占比越接近 1/4。" },
-  { no:"46", title:"高斯求和", webp:"46-高斯求和.webp", mp4:"46-高斯求和.mp4", desc:"阶梯与倒阶梯互补成矩形，1+2+…+n = (n+1)×n÷2。" },
-  { no:"48", title:"一笔画", webp:"48-一笔画.webp", mp4:"48-一笔画.mp4", desc:"奇点不超过 2 个才能一笔画完；4 个奇点则必然走不完。" }
-];
-const grid = document.getElementById("grid");
-const modal = document.getElementById("modal");
-const modalVideo = document.getElementById("modalVideo");
-document.getElementById("modalClose").onclick = () => { modal.classList.remove("show"); modalVideo.pause(); };
-modal.onclick = (e) => { if (e.target === modal) { modal.classList.remove("show"); modalVideo.pause(); } };
-for (const it of items) {
-  const card = document.createElement("div");
-  card.className = "card";
-  const img = document.createElement("img");
-  img.className = "preview";
-  img.src = "webp/" + it.webp;
-  img.alt = it.title;
-  img.loading = "lazy";
-  img.onclick = () => { modalVideo.src = "mp4/" + it.mp4; modal.classList.add("show"); modalVideo.play(); };
-  card.innerHTML =
-    `<div class="body"><span class="no">案例 ${it.no}</span>` +
-    `<h3>${it.title}</h3><p>${it.desc}</p><br>` +
-    `<a href="mp4/${it.mp4}" download>下载 1080p 原片</a></div>`;
-  card.prepend(img);
-  grid.appendChild(card);
-}
-</script>
+  <div class="modal" id="modal">
+    <span class="close" id="modalClose">&times;</span>
+    <video id="modalVideo" controls playsinline></video>
+  </div>
+
+  <script>
+    const items = [
+      {no: "12", title: "乘法分配律", webp: "12-乘法分配律.webp", mp4: "12-乘法分配律.mp4", desc: "把 4×3 与 2×3 切成两块再拼合，直观看到 (4+2)×3。"},
+      {no: "13", title: "乘法交换律 / 结合律", webp: "13-乘法交换结合律.webp", mp4: "13-乘法交换结合律.mp4", desc: "点阵旋转 90° 不变总数；分组括号移动，总数也不变。"},
+      {no: "16", title: "分数乘法", webp: "16-分数乘法.webp", mp4: "16-分数乘法.mp4", desc: "正方形先横切再竖切，重叠部分就是两个分数相乘的结果。"},
+      {no: "17", title: "分数除法", webp: "17-分数除法.webp", mp4: "17-分数除法.mp4", desc: "先平分再倒推填充：6/8 里有多少个 1/4，看得清清楚楚。"},
+      {no: "22", title: "相遇问题", webp: "22-相遇问题.webp", mp4: "22-相遇问题.mp4", desc: "两车相向而行，在 8 个刻度上用速度比 60:40 找到相遇点。"},
+      {no: "23", title: "追及问题", webp: "23-追及问题.webp", mp4: "23-追及问题.mp4", desc: "速度差恒定（70-40=30），路程差随时间不断缩小直到追上。"},
+      {no: "28", title: "火车过桥", webp: "28-火车过桥.webp", mp4: "28-火车过桥.mp4", desc: "车头车尾双路径演示：总路程 = 桥长 + 车长。"},
+      {no: "29", title: "周长概念", webp: "29-周长概念.webp", mp4: "29-周长概念.mp4", desc: "把四边拆下来拉直排成一排，周长就是围一圈的边之和。"},
+      {no: "31", title: "平行四边形面积", webp: "31-平行四边形面积.webp", mp4: "31-平行四边形面积.mp4", desc: "沿高剪下一块三角形平移过去，拼成长方形——面积不变。"},
+      {no: "32", title: "三角形面积", webp: "32-三角形面积.webp", mp4: "32-三角形面积.mp4", desc: "两个一样的三角形旋转拼接成平行四边形，面积取其一半。"},
+      {no: "33", title: "梯形面积", webp: "33-梯形面积.webp", mp4: "33-梯形面积.mp4", desc: "两个一样的梯形拼成平行四边形，新底 = 上底 + 下底。"},
+      {no: "34", title: "圆的周长", webp: "34-圆的周长.webp", mp4: "34-圆的周长.mp4", desc: "让圆在直尺上滚一整圈，滚过的长度就是周长 ≈ π×直径。"},
+      {no: "35", title: "圆的面积", webp: "35-圆的面积.webp", mp4: "35-圆的面积.mp4", desc: "把圆切成 16 个扇形拼成近似长方形，长 πr、宽 r，得 πr²。"},
+      {no: "37", title: "圆柱体积", webp: "37-圆柱体积.webp", mp4: "37-圆柱体积.mp4", desc: "圆柱切碎拼成长方体，体积 = 底面积 × 高 = πr²h。"},
+      {no: "39", title: "轴对称图形", webp: "39-轴对称图形.webp", mp4: "39-轴对称图形.mp4", desc: "把左半边沿对称轴翻过去，完全重合就是轴对称。"},
+      {no: "44", title: "可能性 · 转盘", webp: "44-可能性转盘.webp", mp4: "44-可能性转盘.mp4", desc: "随机转 24 次实时计数：转得越多，红占比越接近 1/4。"},
+      {no: "46", title: "高斯求和", webp: "46-高斯求和.webp", mp4: "46-高斯求和.mp4", desc: "阶梯与倒阶梯互补成矩形，1+2+…+n = (n+1)×n÷2。"},
+      {no: "48", title: "一笔画", webp: "48-一笔画.webp", mp4: "48-一笔画.mp4", desc: "奇点不超过 2 个才能一笔画完；4 个奇点则必然走不完。"}
+    ];
+    const grid = document.getElementById("grid");
+    const modal = document.getElementById("modal");
+    const modalVideo = document.getElementById("modalVideo");
+    document.getElementById("modalClose").onclick = () => {modal.classList.remove("show"); modalVideo.pause();};
+    modal.onclick = (e) => {if (e.target === modal) {modal.classList.remove("show"); modalVideo.pause();} };
+    for (const it of items) {
+      const card = document.createElement("div");
+      card.className = "card";
+      const img = document.createElement("img");
+      img.className = "preview";
+      img.src = "webp/" + it.webp;
+      img.alt = it.title;
+      img.loading = "lazy";
+      img.onclick = () => {modalVideo.src = "mp4/" + it.mp4; modal.classList.add("show"); modalVideo.play();};
+      card.innerHTML =
+        `<div class="body"><span class="no">案例 ${it.no}</span>` +
+        `<h3>${it.title}</h3><p>${it.desc}</p><br>` +
+        `<a href="mp4/${it.mp4}" download>下载 1080p 原片</a></div>`;
+      card.prepend(img);
+      grid.appendChild(card);
+    }
+  </script>
 </body>
+
 </html>
