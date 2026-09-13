@@ -9,6 +9,13 @@
 ![WebP](https://img.shields.io/badge/预览-Animated%20WebP-E8B964)
 ![成片](https://img.shields.io/badge/成片-1080p%20%2F%2030fps-0B1120)
 
+## 官方网站
+
+🌐 [访问 看见数学 官网](https://Seasonno1314.github.io/math-viz-demos/)
+
+官网提供 数形结合的可视化浏览、为数学知识具象演示和交互操作提供入口。GitHub 仓库仍是 Demo模板和代码成果的唯一来源，官网负责展示、导航与使用指引。
+目前提供小学数学的示例视频，接下来会覆盖小学-初中-高中-本科的教学大纲知识点的可视化案例，以及可交互案例。
+
 ### 👉 [**打开在线视频库**](https://Seasonno1314.github.io/math-viz-demos/)
 
 </div>
@@ -83,3 +90,23 @@
   - `webp/` —— 18 个动图预览
   - `mp4/` —— 18 个 1080p 原片
 - 本地使用：直接打开 `index.html`，或点击 mp4 下载到本地播放。
+
+---
+
+## 关于作者
+
+**小何传家 heshenxian1** — AI 博主，公众号「一知未来」主理人
+
+<img src="images/关于作者-小何传家heshenxian1.png" width="220" alt="小何传家 heshenxian1 微信二维码">
+
+| 平台 | 账号 / 链接 |
+|------|------|
+| 微信公众号 | 一知未来 |
+| 个人微信 | 小何传家 heshenxian1（扫上方二维码添加） |
+
+
+微信公众号「一知未来」二维码：
+
+<img src="images/微信公众号「一知未来」二维码.png" width="320" alt="微信公众号「一知未来」二维码">
+
+> 如果这个项目对你有帮助，欢迎关注公众号「一知未来」，一起把抽象的数，变成看得见的图。
