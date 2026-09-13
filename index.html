@@ -7,7 +7,9 @@
   <title>数形结合 · 让抽象的数，变成看得见的图</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --bg-0: #0B1120;
@@ -234,6 +236,7 @@
         opacity: 0;
         transform: translateY(22px);
       }
+
       to {
         opacity: 1;
         transform: none;
@@ -246,6 +249,7 @@
         transform: translateY(26px);
         filter: blur(10px);
       }
+
       to {
         opacity: 1;
         transform: none;
@@ -333,10 +337,13 @@
     }
 
     @keyframes cornerFloat {
-      0%, 100% {
+
+      0%,
+      100% {
         transform: translate(0, 0);
         opacity: .5;
       }
+
       50% {
         transform: translate(0, -4px);
         opacity: 1;
@@ -376,10 +383,13 @@
     }
 
     @keyframes frameBreathe {
-      0%, 100% {
+
+      0%,
+      100% {
         opacity: .55;
         transform: translateY(0);
       }
+
       50% {
         opacity: 1;
         transform: translateY(-5px);
@@ -519,6 +529,7 @@
       from {
         width: 0;
       }
+
       to {
         width: 100%;
       }
@@ -555,9 +566,12 @@
     }
 
     @keyframes cueBounce {
-      0%, 100% {
+
+      0%,
+      100% {
         transform: translateY(0);
       }
+
       50% {
         transform: translateY(7px);
       }
@@ -915,12 +929,15 @@
         grid-template-columns: repeat(2, 1fr);
         gap: 18px 0;
       }
+
       .stat {
         padding-left: 14px;
       }
+
       .slide p {
         max-width: 100%;
       }
+
       .topnav {
         gap: 14px;
         font-size: 13px;
@@ -931,10 +948,12 @@
       .card:hover .preview img {
         transform: none;
       }
+
       .preview .play-badge {
         opacity: 1;
         background: rgba(8, 12, 24, .2);
       }
+
       .preview .play-badge span {
         transform: scale(1);
         width: 46px;
@@ -946,6 +965,7 @@
       html {
         scroll-behavior: auto;
       }
+
       *,
       *::before,
       *::after {
@@ -953,6 +973,7 @@
         animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
       }
+
       #fx {
         display: none;
       }
@@ -975,7 +996,7 @@
     <div class="hero-inner">
       <p class="kicker">Manim · 数形结合 · 18 段动画</p>
       <h1 class="title">让抽象的数，<br>变成<em>看得见</em>的图</h1>
-      <p class="lede">运算律、分数、行程、面积、统计与思维拓展——一条动画讲清一个数学原理，原理都动起来了。</p>
+      <p class="lede">运算律、分数、行程、面积、统计与思维拓展<br>——一条动画讲清一个数学原理，原理都动起来了。</p>
       <a class="cta" href="#gallery">进入视频库 ↓</a>
     </div>
 
@@ -995,10 +1016,18 @@
   </section>
 
   <section class="stats" id="stats">
-    <div class="stat"><span class="num" data-count="18">0</span><span class="lbl">段动画</span><p>覆盖 6 大数学主题</p></div>
-    <div class="stat"><span class="num" data-count="6">0</span><span class="lbl">大主题</span><p>运算律 · 分数 · 行程 · 几何 · 统计 · 拓展</p></div>
-    <div class="stat"><span class="num" data-count="1080">0</span><span class="lbl">P 高清渲染</span><p>30 fps · H.264 · WebP 动图预览</p></div>
-    <div class="stat"><span class="num" data-count="0">0</span><span class="lbl">安装成本</span><p>无需登录 · 浏览器即开即用</p></div>
+    <div class="stat"><span class="num" data-count="18">0</span><span class="lbl">段动画</span>
+      <p>覆盖 6 大数学主题</p>
+    </div>
+    <div class="stat"><span class="num" data-count="6">0</span><span class="lbl">大主题</span>
+      <p>运算律 · 分数 · 行程 · 几何 · 统计 · 拓展</p>
+    </div>
+    <div class="stat"><span class="num" data-count="1080">0</span><span class="lbl">P 高清渲染</span>
+      <p>30 fps · H.264 · WebP 动图预览</p>
+    </div>
+    <div class="stat"><span class="num" data-count="0">0</span><span class="lbl">安装成本</span>
+      <p>无需登录 · 浏览器即开即用</p>
+    </div>
   </section>
 
   <section class="gallery" id="gallery">
@@ -1158,7 +1187,7 @@
       stageProgress.innerHTML = SHOWCASE.map(() => `<span class="bar"><span class="fill"></span></span>`).join("");
       stageMain.addEventListener("click", e => {
         const btn = e.target.closest(".slide-open");
-        if (btn) { openModal(btn.dataset.open); return; }
+        if (btn) {openModal(btn.dataset.open); return;}
         const f = e.target.closest(".slide");
         if (f) openModal(f.dataset.no);
       });
@@ -1202,19 +1231,19 @@
     }
 
     stageToggle.addEventListener("click", () => setPlay(!playing));
-    stageNext.addEventListener("click", () => { show((si + 1) % SHOWCASE.length); schedule(); });
-    stagePrev.addEventListener("click", () => { show((si - 1 + SHOWCASE.length) % SHOWCASE.length); schedule(); });
+    stageNext.addEventListener("click", () => {show((si + 1) % SHOWCASE.length); schedule();});
+    stagePrev.addEventListener("click", () => {show((si - 1 + SHOWCASE.length) % SHOWCASE.length); schedule();});
 
     const stage = document.querySelector(".stage");
-    stage.addEventListener("mouseenter", () => { hoverPaused = true; clearTimeout(timer); });
-    stage.addEventListener("mouseleave", () => { hoverPaused = false; schedule(); });
-    stage.addEventListener("focusin", () => { hoverPaused = true; clearTimeout(timer); });
-    stage.addEventListener("focusout", () => { hoverPaused = false; schedule(); });
+    stage.addEventListener("mouseenter", () => {hoverPaused = true; clearTimeout(timer);});
+    stage.addEventListener("mouseleave", () => {hoverPaused = false; schedule();});
+    stage.addEventListener("focusin", () => {hoverPaused = true; clearTimeout(timer);});
+    stage.addEventListener("focusout", () => {hoverPaused = false; schedule();});
 
     addEventListener("keydown", e => {
       if (!document.querySelector(".modal.show") && stage.contains(document.activeElement)) {
-        if (e.key === "ArrowRight") { show((si + 1) % SHOWCASE.length); schedule(); }
-        if (e.key === "ArrowLeft") { show((si - 1 + SHOWCASE.length) % SHOWCASE.length); schedule(); }
+        if (e.key === "ArrowRight") {show((si + 1) % SHOWCASE.length); schedule();}
+        if (e.key === "ArrowLeft") {show((si - 1 + SHOWCASE.length) % SHOWCASE.length); schedule();}
       }
     });
 
@@ -1315,7 +1344,7 @@
       lastNo = it;
       modalVideo.src = "mp4/" + it.mp4;
       modal.classList.add("show");
-      modalVideo.play().catch(() => {});
+      modalVideo.play().catch(() => { });
     }
 
     function closeModal() {
@@ -1326,7 +1355,7 @@
     }
 
     document.getElementById("modalClose").addEventListener("click", closeModal);
-    modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+    modal.addEventListener("click", e => {if (e.target === modal) closeModal();});
     addEventListener("keydown", e => {
       if (e.key === "Escape" && modal.classList.contains("show")) closeModal();
     });
