@@ -139,26 +139,6 @@ python -m http.server 8000
 - 视频由 [Manim CE](https://www.manim.community/) 渲染，1920×1080 / 30fps。
 - 主页 `index.html` 为零构建单文件应用：无打包器、无框架、无外部 JS 依赖。
 - 支持键盘操作与 `prefers-reduced-motion` 降级。
-
----
-
-## 授权与署名
-
-<img src="../images/logo-yizhiweilai.png" width="72" alt="一知未来" align="left" style="margin-right:14px">
-
-本案例库由「**一知未来**」创作分享，采用 **MIT License** 授权。
-
-你可以自由使用、复制、修改、合并、发布、分发、再授权及销售本项目的副本，
-**惟须在副本中包含上述版权声明与许可声明**。
-
-完整协议见 [LICENSE](../LICENSE)。
-
-`Copyright (c) 2026 小何传家 heshenxian1（一知未来）`
-
-页面底部亦附有同样的授权证书说明。
-
----
-
 ## 关于作者
 
 **小何传家 heshenxian1** — AI 博主，公众号「一知未来」主理人。
@@ -166,3 +146,13 @@ python -m http.server 8000
 详见[主站 README](../README.md#关于作者)。
 
 <img src="../images/微信公众号「一知未来」二维码.png" width="280" alt="微信公众号「一知未来」二维码">
+
+---
+
+## 授权与署名
+
+<img src="../images/logo-yizhiweilai.png" width="64" alt="一知未来" align="left" style="margin-right:14px">
+
+本项目由「**一知未来**」创作分享，采用 **MIT License** 授权，可自由使用、复制、修改与分发，惟须保留本版权声明与许可声明。
+
+`Copyright (c) 2026 小何传家 heshenxian1（一知未来）` · 完整协议见 [LICENSE](../LICENSE)

@@ -147,26 +147,6 @@ python -m http.server 8000
 --line: rgba(255,255,255,.09);             /* 发丝线 */
 字体: Space Grotesk + PingFang SC / 微软雅黑 + JetBrains Mono
 ```
-
----
-
-## 授权与署名
-
-<img src="images/logo-yizhiweilai.png" width="72" alt="一知未来" align="left" style="margin-right:14px">
-
-本项目由「**一知未来**」创作分享，采用 **MIT License** 授权。
-
-你可以自由使用、复制、修改、合并、发布、分发、再授权及销售本项目的副本，
-**惟须在副本中包含上述版权声明与许可声明**。
-
-完整协议见 **[LICENSE](LICENSE)**。
-
-`Copyright (c) 2026 小何传家 heshenxian1（一知未来）`
-
-两个站点的页面底部均附有同样的授权证书说明。
-
----
-
 ## 关于作者
 
 **小何传家 heshenxian1** — AI 博主，公众号「一知未来」主理人
@@ -183,3 +163,13 @@ python -m http.server 8000
 <img src="images/微信公众号「一知未来」二维码.png" width="320" alt="微信公众号「一知未来」二维码">
 
 > 如果这个项目对你有帮助，欢迎关注公众号「一知未来」，一起把抽象的数，变成看得见的图。
+
+---
+
+## 授权与署名
+
+<img src="images/logo-yizhiweilai.png" width="64" alt="一知未来" align="left" style="margin-right:14px">
+
+本项目由「**一知未来**」创作分享，采用 **MIT License** 授权，可自由使用、复制、修改与分发，惟须保留本版权声明与许可声明。
+
+`Copyright (c) 2026 小何传家 heshenxian1（一知未来）` · 完整协议见 [LICENSE](LICENSE)

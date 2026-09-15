@@ -147,26 +147,6 @@ python -m http.server 8000
 --line: rgba(255,255,255,.09);             /* hairline */
 font: Space Grotesk + PingFang SC / Microsoft YaHei + JetBrains Mono
 ```
-
----
-
-## License & Credits
-
-<img src="images/logo-yizhiweilai.png" width="72" alt="Yizhi Weilai" align="left" style="margin-right:14px">
-
-This project is created and shared by **Yizhi Weilai (一知未来)** under the **MIT License**.
-
-You are free to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of this project,
-**provided that the copyright notice and this permission notice are included in all copies**.
-
-Full text: **[LICENSE](LICENSE)**.
-
-`Copyright (c) 2026 小何传家 heshenxian1（一知未来 / Yizhi Weilai）`
-
-Both sites carry the same license notice in their page footer.
-
----
-
 ## About the author
 
 **小何传家 heshenxian1** — AI content creator, runs the WeChat public account 「一知未来」 (Yizhi Weilai).
@@ -183,3 +163,13 @@ WeChat public account QR code:
 <img src="images/微信公众号「一知未来」二维码.png" width="320" alt="WeChat public account QR code">
 
 > If this project helps you, follow 「一知未来」 — let's keep turning abstract numbers into pictures you can see.
+
+---
+
+## License & credits
+
+<img src="images/logo-yizhiweilai.png" width="64" alt="Yizhi Weilai" align="left" style="margin-right:14px">
+
+This project is created and shared by **Yizhi Weilai (一知未来)** under the **MIT License** — free to use, copy, modify and distribute, provided the copyright and license notices are retained.
+
+`Copyright (c) 2026 小何传家 heshenxian1（一知未来 / Yizhi Weilai）` · Full text: [LICENSE](LICENSE)

@@ -141,26 +141,6 @@ python -m http.server 8000
 - Videos are rendered with [Manim CE](https://www.manim.community/) at 1920×1080 / 30fps.
 - The home page is a zero-build single-file app: no bundler, no framework, no external JS.
 - Keyboard navigation and `prefers-reduced-motion` degradation are supported.
-
----
-
-## License & credits
-
-<img src="../images/logo-yizhiweilai.png" width="72" alt="Yizhi Weilai" align="left" style="margin-right:14px">
-
-This library is created and shared by **Yizhi Weilai (一知未来)** under the **MIT License**.
-
-You are free to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of this project,
-**provided that the copyright notice and this permission notice are included in all copies**.
-
-Full text: [LICENSE](../LICENSE).
-
-`Copyright (c) 2026 小何传家 heshenxian1（一知未来 / Yizhi Weilai）`
-
-The same license notice also appears in the page footer.
-
----
-
 ## About the author
 
 **小何传家 heshenxian1** — AI content creator, runs the WeChat public account 「一知未来」 (Yizhi Weilai).
@@ -168,3 +148,13 @@ The same license notice also appears in the page footer.
 See the [main README](../README.en.md#about-the-author) for contact details.
 
 <img src="../images/微信公众号「一知未来」二维码.png" width="280" alt="WeChat public account QR code">
+
+---
+
+## License & credits
+
+<img src="../images/logo-yizhiweilai.png" width="64" alt="Yizhi Weilai" align="left" style="margin-right:14px">
+
+This project is created and shared by **Yizhi Weilai (一知未来)** under the **MIT License** — free to use, copy, modify and distribute, provided the copyright and license notices are retained.
+
+`Copyright (c) 2026 小何传家 heshenxian1（一知未来 / Yizhi Weilai）` · Full text: [LICENSE](../LICENSE)
