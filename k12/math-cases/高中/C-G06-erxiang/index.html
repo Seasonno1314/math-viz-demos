@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-G06 二项分布 · 大数学交互交付</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;background:#f8fafc;color:#1e293b;min-height:100vh}
+.header{text-align:center;padding:18px 16px 10px;background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);color:#fff}
+.header h1{font-size:22px;font-weight:700;letter-spacing:1px}
+.header p{font-size:13px;opacity:.75;margin-top:3px}
+.main{display:grid;grid-template-columns:1fr 310px;gap:0;max-width:1180px;margin:16px auto;padding:0 16px}
+.chart-wrap{background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);padding:16px;min-height:520px}
+.chart-wrap svg{width:100%;height:auto;display:block}
+.panel{display:flex;flex-direction:column;gap:12px;margin-left:16px}
+.card{background:#fff;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,.06);padding:14px}
+.card h3{font-size:13px;color:#475569;margin-bottom:10px;font-weight:600;border-bottom:1px solid #e2e8f0;padding-bottom:6px}
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.slider-row label{font-size:13px;font-weight:600;min-width:18px;color:#334155}
+.slider-row input[type=range]{flex:1;accent-color:#2563eb;height:6px}
+.slider-row .val{font-size:14px;font-weight:700;color:#2563eb;min-width:36px;text-align:right}
+.btn-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.btn{border:none;border-radius:6px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
+.btn-secondary{background:#e2e8f0;color:#334155}.btn-secondary:hover{background:#cbd5e1}
+.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}
+.btn-warning{background:#E8B964;color:#fff}.btn-warning:hover{background:#d4a54e}
+.btn-danger{background:#dc2626;color:#fff}.btn-danger:hover{background:#b91c1c}
+.readout{font-size:12px;line-height:1.7;color:#475569}
+.readout .row{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed #f1f5f9}
+.readout .row span:last-child{font-weight:700;color:#1e293b}
+.formula-box{background:#f0f7ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 10px;font-size:12px;color:#1e40af;text-align:center;margin-top:6px;font-family:"Times New Roman",serif;letter-spacing:.5px}
+.verify-box{margin-top:6px;padding:8px;border-radius:6px;font-size:12px;text-align:center;font-weight:600;transition:all .3s}
+.verify-ok{background:#d1fae5;color:#065f46}
+.verify-fail{background:#fee2e2;color:#991b1b}
+.classroom{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;font-size:12px;line-height:1.8;color:#92400e}
+.classroom h3{color:#92400e;border-color:#fde68a}
+.classroom p{margin-bottom:4px}
+.classroom em{font-style:normal;font-weight:700;color:#b45309}
+@media(max-width:880px){
+.main{grid-template-columns:1fr;padding:0 10px}
+.panel{margin-left:0;margin-top:12px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>C-G06 二项分布 · 大数学交互交付</h1>
+  <p>X ~ B(n, p) &nbsp;|&nbsp; 拖动滑块探索分布形状的变化</p>
+</div>
+
+<div class="main">
+  <!-- Left: Chart -->
+  <div class="chart-wrap">
+    <svg id="chart" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <!-- Right: Controls -->
+  <div class="panel">
+    <!-- Sliders -->
+    <div class="card">
+      <h3>参数控制</h3>
+      <div class="slider-row">
+        <label>n</label>
+        <input type="range" id="sliderN" min="1" max="30" value="10">
+        <span class="val" id="valN">10</span>
+      </div>
+      <div class="slider-row">
+        <label>p</label>
+        <input type="range" id="sliderP" min="5" max="95" value="50">
+        <span class="val" id="valP">0.50</span>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="card">
+      <h3>动画控制</h3>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnPlay">▶ 播放变形</button>
+        <button class="btn btn-secondary" id="btnPause">⏸ 暂停</button>
+        <button class="btn btn-secondary" id="btnStep">⏭ 单步</button>
+        <button class="btn btn-danger" id="btnReset">↺ 重置</button>
+        <button class="btn btn-warning" id="btnCopy">🔗 复制链接</button>
+      </div>
+    </div>
+
+    <!-- Readout -->
+    <div class="card">
+      <h3>实时数据</h3>
+      <div class="readout" id="readout"></div>
+      <div class="formula-box">P(X=k) = C(n,k) · p<sup>k</sup> · (1−p)<sup>n−k</sup></div>
+      <div class="verify-box" id="verifyBox">点击"验证求和"检查 ΣP(X=k)</div>
+      <div class="btn-row" style="margin-top:6px">
+        <button class="btn btn-success" id="btnVerify">✅ 验证求和 = 1</button>
+      </div>
+    </div>
+
+    <!-- Classroom -->
+    <div class="classroom">
+      <h3>课堂思考</h3>
+      <p>💡 <em>先猜：</em>n=10, p=0.5 时分布是什么形状？</p>
+      <p>💡 <em>验证：</em>p=0.2, n=20 时最可能的结果是几？</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ── Math helpers ── */
+function lnGamma(z){
+  if(z<0.5) return Math.log(Math.PI/Math.sin(Math.PI*z)) - lnGamma(1-z);
+  z-=1;
+  const g=7, c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,
+    771.32342877765313,-176.61502916214059,12.507343278686905,
+    -0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  let x=c[0]; for(let i=1;i<g+2;i++) x+=c[i]/(z+i);
+  const t=z+g+0.5;
+  return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x);
+}
+function lnChoose(n,k){return lnGamma(n+1)-lnGamma(k+1)-lnGamma(n-k+1)}
+function binomPMF(n,p,k){
+  if(k<0||k>n) return 0;
+  if(p===0) return k===0?1:0;
+  if(p===1) return k===n?1:0;
+  return Math.exp(lnChoose(n,k)+k*Math.log(p)+(n-k)*Math.log(1-p));
+}
+
+/* ── State ── */
+const SVG_NS="http://www.w3.org/2000/svg";
+let state={n:10,p:0.5};
+let anim=null;
+let prevBars=null;
+
+/* ── DOM refs ── */
+const svg=document.getElementById("chart");
+const sliderN=document.getElementById("sliderN");
+const sliderP=document.getElementById("sliderP");
+const valN=document.getElementById("valN");
+const valP=document.getElementById("valP");
+const readout=document.getElementById("readout");
+const verifyBox=document.getElementById("verifyBox");
+
+/* ── Chart layout ── */
+const W=1000,H=720;
+const M={top:40,right:30,bottom:60,left:70};
+const cW=W-M.left-M.right;
+const cH=H-M.top-M.bottom;
+
+function computeBars(n,p){
+  const arr=[];
+  for(let k=0;k<=n;k++) arr.push(binomPMF(n,p,k));
+  return arr;
+}
+
+function findMode(arr){
+  let mx=0,mi=0;
+  for(let i=0;i<arr.length;i++){if(arr[i]>mx){mx=arr[i];mi=i}}
+  return mi;
+}
+
+function easeInOutCubic(t){return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}
+
+/* ── Render ── */
+function render(morphProgress){
+  const n=state.n, p=state.p;
+  const bars=computeBars(n,p);
+  const modeK=findMode(bars);
+  const maxY=Math.max(...bars)*1.18||1;
+
+  const target=bars.slice();
+
+  let drawBars;
+  if(prevBars && morphProgress!==undefined && morphProgress<1){
+    const len=Math.max(prevBars.length, target.length);
+    drawBars=[];
+    for(let i=0;i<len;i++){
+      const from=prevBars[i]||0;
+      const to=target[i]||0;
+      drawBars.push(from+(to-from)*easeInOutCubic(morphProgress));
+    }
+  } else {
+    drawBars=bars;
+  }
+
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+  // defs
+  const defs=document.createElementNS(SVG_NS,"defs");
+  const grad=document.createElementNS(SVG_NS,"linearGradient");
+  grad.id="barGrad";grad.setAttribute("x1","0");grad.setAttribute("y1","0");
+  grad.setAttribute("x2","0");grad.setAttribute("y2","1");
+  const s1=document.createElementNS(SVG_NS,"stop");
+  s1.setAttribute("offset","0%");s1.setAttribute("stop-color","#3b82f6");
+  const s2=document.createElementNS(SVG_NS,"stop");
+  s2.setAttribute("offset","100%");s2.setAttribute("stop-color","#1d4ed8");
+  grad.appendChild(s1);grad.appendChild(s2);defs.appendChild(grad);
+
+  const gradM=document.createElementNS(SVG_NS,"linearGradient");
+  gradM.id="barGradMode";gradM.setAttribute("x1","0");gradM.setAttribute("y1","0");
+  gradM.setAttribute("x2","0");gradM.setAttribute("y2","1");
+  const sm1=document.createElementNS(SVG_NS,"stop");
+  sm1.setAttribute("offset","0%");sm1.setAttribute("stop-color","#ef4444");
+  const sm2=document.createElementNS(SVG_NS,"stop");
+  sm2.setAttribute("offset","100%");sm2.setAttribute("stop-color","#b91c1c");
+  gradM.appendChild(sm1);gradM.appendChild(sm2);defs.appendChild(gradM);
+  svg.appendChild(defs);
+
+  // grid
+  const gGrid=document.createElementNS(SVG_NS,"g");
+  const gridSteps=8;
+  for(let i=0;i<=gridSteps;i++){
+    const y=M.top+cH*(1-i/gridSteps);
+    const line=document.createElementNS(SVG_NS,"line");
+    line.setAttribute("x1",M.left);line.setAttribute("x2",W-M.right);
+    line.setAttribute("y1",y);line.setAttribute("y2",y);
+    line.setAttribute("stroke","#e2e8f0");line.setAttribute("stroke-width","1");
+    if(i>0) line.setAttribute("stroke-dasharray","4,4");
+    gGrid.appendChild(line);
+    const txt=document.createElementNS(SVG_NS,"text");
+    txt.setAttribute("x",M.left-8);txt.setAttribute("y",y+4);
+    txt.setAttribute("text-anchor","end");txt.setAttribute("font-size","11");
+    txt.setAttribute("fill","#94a3b8");
+    txt.textContent=(maxY*i/gridSteps).toFixed(3);
+    gGrid.appendChild(txt);
+  }
+  svg.appendChild(gGrid);
+
+  // bars
+  const barCount=drawBars.length;
+  const gap=barCount<=15?4:barCount<=20?2:1;
+  const barW=Math.max(2,(cW-gap*(barCount+1))/barCount);
+
+  for(let k=0;k<barCount;k++){
+    const val=drawBars[k];
+    const bx=M.left+gap+(barW+gap)*k;
+    const bh=(val/maxY)*cH;
+    const by=M.top+cH-bh;
+    const isMode=(k===modeK);
+
+    const rect=document.createElementNS(SVG_NS,"rect");
+    rect.setAttribute("x",bx);rect.setAttribute("y",by);
+    rect.setAttribute("width",barW);rect.setAttribute("height",Math.max(0,bh));
+    rect.setAttribute("rx",Math.min(3,barW/3));
+    rect.setAttribute("fill",isMode?"url(#barGradMode)":"url(#barGrad)");
+    rect.setAttribute("stroke",isMode?"#dc2626":"none");rect.setAttribute("stroke-width",isMode?"2":"0");
+    rect.setAttribute("opacity","0.92");
+    svg.appendChild(rect);
+
+    if(bh>14 && barW>12){
+      const vt=document.createElementNS(SVG_NS,"text");
+      vt.setAttribute("x",bx+barW/2);vt.setAttribute("y",by-4);
+      vt.setAttribute("text-anchor","middle");vt.setAttribute("font-size",Math.min(10,barW*0.7));
+      vt.setAttribute("fill",isMode?"#dc2626":"#475569");vt.setAttribute("font-weight","700");
+      vt.textContent=val.toFixed(3);
+      svg.appendChild(vt);
+    }
+  }
+
+  // k labels
+  const gLabels=document.createElementNS(SVG_NS,"g");
+  for(let k=0;k<barCount;k++){
+    const bx=M.left+gap+(barW+gap)*k+barW/2;
+    const txt=document.createElementNS(SVG_NS,"text");
+    txt.setAttribute("x",bx);txt.setAttribute("y",M.top+cH+18);
+    txt.setAttribute("text-anchor","middle");txt.setAttribute("font-size",Math.min(13,Math.max(8,barW*0.8)));
+    txt.setAttribute("fill","#334155");txt.setAttribute("font-weight","600");
+    txt.textContent=k;
+    gLabels.appendChild(txt);
+  }
+  svg.appendChild(gLabels);
+
+  // axis lines
+  const xAxis=document.createElementNS(SVG_NS,"line");
+  xAxis.setAttribute("x1",M.left);xAxis.setAttribute("x2",W-M.right);
+  xAxis.setAttribute("y1",M.top+cH);xAxis.setAttribute("y2",M.top+cH);
+  xAxis.setAttribute("stroke","#475569");xAxis.setAttribute("stroke-width","2");
+  svg.appendChild(xAxis);
+
+  const yAxis=document.createElementNS(SVG_NS,"line");
+  yAxis.setAttribute("x1",M.left);yAxis.setAttribute("x2",M.left);
+  yAxis.setAttribute("y1",M.top);yAxis.setAttribute("y2",M.top+cH);
+  yAxis.setAttribute("stroke","#475569");yAxis.setAttribute("stroke-width","2");
+  svg.appendChild(yAxis);
+
+  // axis titles
+  const xTitle=document.createElementNS(SVG_NS,"text");
+  xTitle.setAttribute("x",M.left+cW/2);xTitle.setAttribute("y",H-8);
+  xTitle.setAttribute("text-anchor","middle");xTitle.setAttribute("font-size","14");
+  xTitle.setAttribute("fill","#334155");xTitle.setAttribute("font-weight","600");
+  xTitle.textContent="k（成功次数）";
+  svg.appendChild(xTitle);
+
+  const yTitle=document.createElementNS(SVG_NS,"text");
+  yTitle.setAttribute("x",16);yTitle.setAttribute("y",M.top+cH/2);
+  yTitle.setAttribute("text-anchor","middle");yTitle.setAttribute("font-size","13");
+  yTitle.setAttribute("fill","#334155");yTitle.setAttribute("font-weight","600");
+  yTitle.setAttribute("transform",`rotate(-90,16,${M.top+cH/2})`);
+  yTitle.textContent="P(X = k)";
+  svg.appendChild(yTitle);
+
+  // expected value line
+  const ex=n*p;
+  if(ex>=0 && ex<=n){
+    const exX=M.left+gap+(barW+gap)*ex+barW/2;
+    const line=document.createElementNS(SVG_NS,"line");
+    line.setAttribute("x1",exX);line.setAttribute("x2",exX);
+    line.setAttribute("y1",M.top);line.setAttribute("y2",M.top+cH);
+    line.setAttribute("stroke","#E8B964");line.setAttribute("stroke-width","2.5");
+    line.setAttribute("stroke-dasharray","8,5");line.setAttribute("opacity","0.85");
+    svg.appendChild(line);
+
+    const marker=document.createElementNS(SVG_NS,"text");
+    marker.setAttribute("x",exX+6);marker.setAttribute("y",M.top+14);
+    marker.setAttribute("font-size","12");marker.setAttribute("fill","#b45309");
+    marker.setAttribute("font-weight","700");
+    marker.textContent=`E(X)=${ex.toFixed(1)}`;
+    svg.appendChild(marker);
+  }
+
+  // mode marker
+  {
+    const mX=M.left+gap+(barW+gap)*modeK+barW/2;
+    const mText=document.createElementNS(SVG_NS,"text");
+    mText.setAttribute("x",mX);mText.setAttribute("y",M.top+cH+34);
+    mText.setAttribute("text-anchor","middle");mText.setAttribute("font-size","11");
+    mText.setAttribute("fill","#dc2626");mText.setAttribute("font-weight","700");
+    mText.textContent=`Mode=${modeK}`;
+    svg.appendChild(mText);
+  }
+
+  // SVG title
+  const svgTitle=document.createElementNS(SVG_NS,"text");
+  svgTitle.setAttribute("x",W/2);svgTitle.setAttribute("y",24);
+  svgTitle.setAttribute("text-anchor","middle");svgTitle.setAttribute("font-size","16");
+  svgTitle.setAttribute("fill","#1e293b");svgTitle.setAttribute("font-weight","700");
+  svgTitle.textContent=`X ~ B(${n}, ${p.toFixed(2)})`;
+  svg.appendChild(svgTitle);
+
+  // readout
+  const variance=n*p*(1-p);
+  const sumAll=computeBars(n,p).reduce((a,b)=>a+b,0);
+  readout.innerHTML=`
+    <div class="row"><span>参数 n</span><span>${n}</span></div>
+    <div class="row"><span>参数 p</span><span>${p.toFixed(2)}</span></div>
+    <div class="row"><span>E(X) = np</span><span>${ex.toFixed(3)}</span></div>
+    <div class="row"><span>D(X) = np(1−p)</span><span>${variance.toFixed(3)}</span></div>
+    <div class="row"><span>标准差 σ</span><span>${Math.sqrt(variance).toFixed(3)}</span></div>
+    <div class="row"><span>众数 Mode</span><span>${modeK}</span></div>
+    <div class="row"><span>P(X=mode)</span><span>${bars[modeK].toFixed(5)}</span></div>
+    <div class="row"><span>ΣP(X=k)</span><span style="color:#059669">${sumAll.toFixed(8)}</span></div>
+  `;
+
+  prevBars=target;
+}
+
+/* ── Animation ── */
+function animateMorph(dur){
+  if(anim) cancelAnimationFrame(anim);
+  const start=performance.now();
+  dur=dur||800;
+  function tick(now){
+    const t=Math.min(1,(now-start)/dur);
+    render(t);
+    if(t<1) anim=requestAnimationFrame(tick); else anim=null;
+  }
+  anim=requestAnimationFrame(tick);
+}
+function play(){
+  prevBars=computeBars(state.n,state.p);
+  const endP=Math.min(0.95,Math.round((state.p+0.45)*100)/100);
+  state.p=endP;
+  sliderP.value=endP*100;
+  valP.textContent=endP.toFixed(2);
+  animateMorph(800);
+}
+function pause(){if(anim){cancelAnimationFrame(anim);anim=null}}
+function step(){
+  pause();
+  prevBars=computeBars(state.n,state.p);
+  state.p=Math.min(0.95,Math.round((state.p+0.05)*100)/100);
+  sliderP.value=state.p*100;
+  valP.textContent=state.p.toFixed(2);
+  render(1);
+}
+function reset(){
+  pause();
+  state.n=10;state.p=0.5;
+  sliderN.value=10;sliderP.value=50;
+  valN.textContent="10";valP.textContent="0.50";
+  prevBars=null;
+  render(1);
+  history.replaceState(null,"","?n=10&p=0.5");
+}
+
+/* ── Verify ── */
+function verify(){
+  const sum=computeBars(state.n,state.p).reduce((a,b)=>a+b,0);
+  const ok=Math.abs(sum-1)<1e-6;
+  verifyBox.className="verify-box "+(ok?"verify-ok":"verify-fail");
+  verifyBox.textContent=ok
+    ?`✅ ΣP(X=k) = ${sum.toFixed(10)} ≈ 1（验证通过）`
+    :`⚠ ΣP(X=k) = ${sum.toFixed(10)}，偏差较大！`;
+}
+
+/* ── Copy link ── */
+function copyLink(){
+  const url=new URL(location.href);
+  url.searchParams.set("n",state.n);
+  url.searchParams.set("p",state.p);
+  navigator.clipboard.writeText(url.toString()).then(()=>{
+    document.getElementById("btnCopy").textContent="✓ 已复制";
+    setTimeout(()=>document.getElementById("btnCopy").textContent="🔗 复制链接",1200);
+  }).catch(()=>{});
+}
+
+/* ── Events ── */
+sliderN.addEventListener("input",()=>{
+  state.n=+sliderN.value;valN.textContent=state.n;animateMorph(300);
+});
+sliderP.addEventListener("input",()=>{
+  state.p=+sliderP.value/100;valP.textContent=state.p.toFixed(2);animateMorph(300);
+});
+document.getElementById("btnPlay").addEventListener("click",play);
+document.getElementById("btnPause").addEventListener("click",pause);
+document.getElementById("btnStep").addEventListener("click",step);
+document.getElementById("btnReset").addEventListener("click",reset);
+document.getElementById("btnVerify").addEventListener("click",verify);
+document.getElementById("btnCopy").addEventListener("click",copyLink);
+
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"){e.preventDefault();anim?pause():play()}
+  if(e.code==="ArrowRight"){e.preventDefault();step()}
+  if(e.code==="KeyR"&&!e.ctrlKey&&!e.metaKey){e.preventDefault();reset()}
+});
+
+/* ── URL params ── */
+(function initFromURL(){
+  const sp=new URLSearchParams(location.search);
+  if(sp.has("n")){const v=parseInt(sp.get("n"));if(v>=1&&v<=30){state.n=v;sliderN.value=v;valN.textContent=v}}
+  if(sp.has("p")){const v=parseFloat(sp.get("p"));if(v>=0.05&&v<=0.95){state.p=Math.round(v*100)/100;sliderP.value=state.p*100;valP.textContent=state.p.toFixed(2)}}
+})();
+
+/* ── SciDemo protocol ── */
+window.SciDemo={
+  setParams(o){
+    if(o.n!==undefined){state.n=Math.max(1,Math.min(30,+o.n));sliderN.value=state.n;valN.textContent=state.n}
+    if(o.p!==undefined){state.p=Math.max(0.05,Math.min(0.95,+o.p));sliderP.value=state.p*100;valP.textContent=state.p.toFixed(2)}
+    animateMorph(600);
+  },
+  play, pause, step, reset,
+  reverse(){},
+  verify,
+  get state(){return{...state}},
+  get isReady(){return true}
+};
+
+/* ── Init ── */
+render(1);
+
+})();
+</script>
+</body>
+</html>

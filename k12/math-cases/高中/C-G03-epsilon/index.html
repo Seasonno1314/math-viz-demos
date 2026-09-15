@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-G03 ε-δ 极限定义 · 大数学交互交付</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--blue:#2563eb;--gold:#E8B964;--green:#059669;--red:#dc2626;--bg:#0f172a;--panel:#1e293b;--text:#e2e8f0;--dim:#94a3b8;--border:#334155;--radius:10px}
+html,body{height:100%;font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+#app{display:grid;grid-template-columns:1fr 310px;max-width:1180px;margin:0 auto;height:100vh;gap:0}
+@media(max-width:880px){#app{grid-template-columns:1fr;grid-template-rows:1fr auto;overflow-y:auto}}
+.svg-wrap{position:relative;display:flex;align-items:center;justify-content:center;padding:12px}
+.svg-wrap svg{width:100%;height:auto;max-height:100vh}
+.panel{background:var(--panel);border-left:1px solid var(--border);padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+@media(max-width:880px){.panel{border-left:none;border-top:1px solid var(--border)}}
+.panel h2{font-size:15px;font-weight:700;letter-spacing:.5px;color:var(--gold);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:2px}
+.ctrl-group{display:flex;flex-direction:column;gap:6px}
+.ctrl-row{display:flex;align-items:center;gap:8px}
+.ctrl-row label{font-size:12px;color:var(--dim);min-width:28px;text-align:right}
+.ctrl-row input[type=range]{flex:1;accent-color:var(--blue);height:4px}
+.ctrl-row .val{font-size:12px;font-weight:600;min-width:52px;text-align:left;color:var(--text)}
+select{width:100%;padding:6px 8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap}
+.btn{padding:6px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-blue{background:var(--blue);color:#fff}.btn-blue:hover{filter:brightness(1.2)}
+.btn-gold{background:var(--gold);color:#0f172a}.btn-gold:hover{filter:brightness(1.15)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{filter:brightness(1.2)}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{filter:brightness(1.2)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--dim)}.btn-outline:hover{border-color:var(--text);color:var(--text)}
+.readout{font-size:12px;line-height:1.7;background:var(--bg);border-radius:8px;padding:10px 12px;border:1px solid var(--border)}
+.readout .r-label{color:var(--dim)}.readout .r-val{font-weight:700;font-family:'Cascadia Code','Fira Code',monospace;font-size:13px}
+.readout .r-blue{color:var(--blue)}.readout .r-gold{color:var(--gold)}.readout .r-green{color:var(--green)}.readout .r-red{color:var(--red)}
+.step-feedback{font-size:11px;line-height:1.6;color:var(--dim);background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-height:2.4em}
+.questions{background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);border-radius:8px;padding:10px 12px}
+.questions h3{font-size:12px;color:var(--blue);margin-bottom:6px}
+.questions p{font-size:11.5px;line-height:1.6;color:var(--dim);margin-bottom:4px}
+.questions p strong{color:var(--text)}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-top:4px}
+.badge-ok{background:rgba(5,150,105,.2);color:var(--green)}.badge-fail{background:rgba(220,38,38,.2);color:var(--red)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="svg-wrap">
+    <svg id="mainSvg" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="clipGraph"><rect x="100" y="20" width="860" height="680"/></clipPath>
+      </defs>
+      <!-- will be drawn by JS -->
+    </svg>
+  </div>
+  <div class="panel">
+    <h2>ε-δ 极限定义 · 控制面板</h2>
+
+    <div class="ctrl-group">
+      <label style="font-size:12px;color:var(--dim);margin-bottom:-2px">函数 f(x)</label>
+      <select id="selFunc">
+        <option value="x2">f(x) = x²</option>
+        <option value="sin">f(x) = sin(x) + x</option>
+        <option value="inv">f(x) = 2/(x−1) + 1</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-row">
+        <label>ε</label>
+        <input type="range" id="sliderEps" min="0.05" max="2" step="0.01" value="0.5">
+        <span class="val" id="valEps">0.50</span>
+      </div>
+      <div class="ctrl-row">
+        <label>δ</label>
+        <input type="range" id="sliderDelta" min="0.01" max="3" step="0.01" value="0.5">
+        <span class="val" id="valDelta">0.50</span>
+      </div>
+      <div class="ctrl-row">
+        <label>a</label>
+        <input type="range" id="sliderA" min="-3" max="5" step="0.05" value="1">
+        <span class="val" id="valA">1.00</span>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-row">
+        <label style="min-width:0"></label>
+        <button class="btn btn-green" id="btnAutoDelta" style="flex:1" title="自动计算满足条件的最大 δ">自动 δ</button>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-blue" id="btnPlay">▶ 播放</button>
+      <button class="btn btn-outline" id="btnPause">⏸ 暂停</button>
+      <button class="btn btn-gold" id="btnStep">⏭ 单步</button>
+      <button class="btn btn-red" id="btnReset">↺ 重置</button>
+      <button class="btn btn-outline" id="btnCopy">📋 复制链接</button>
+    </div>
+    <div class="step-feedback" id="stepMsg">单步会逐级缩小 ε，并自动给出匹配的 δ</div>
+
+    <div class="readout" id="readout">
+      <span class="r-label">f(x)=</span><span class="r-val" id="roFunc">x²</span><br>
+      <span class="r-label">极限点 a = </span><span class="r-val r-gold" id="roA">1.00</span>
+      <span class="r-label">，L = f(a) = </span><span class="r-val r-gold" id="roL">1.00</span><br>
+      <span class="r-label">ε = </span><span class="r-val r-blue" id="roEps">0.50</span>
+      <span class="r-label">，ε-带 = [</span><span class="r-val" id="roEpsLo">0.50</span><span class="r-label"> , </span><span class="r-val" id="roEpsHi">1.50</span><span class="r-label">]</span><br>
+      <span class="r-label">δ = </span><span class="r-val" id="roDelta" style="color:var(--gold)">0.50</span>
+      <span class="r-label">，δ-区间 = (</span><span class="r-val" id="roDLo">0.50</span><span class="r-label"> , </span><span class="r-val" id="roDHi">1.50</span><span class="r-label">)</span><br>
+      <span id="verifyBadge"></span>
+    </div>
+
+    <div class="questions">
+      <h3>课堂思考</h3>
+      <p><strong>Q1.</strong> 先猜：ε 缩小一半，δ 也要缩小一半吗？</p>
+      <p><strong>Q2.</strong> 验证：对 f(x)=x² 在 x→2 处，ε=0.5 时 δ 最大能取多少？</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ── Coordinate system ── */
+const XMIN=-4, XMAX=6, YMIN=-2, YMAX=8;
+const SVG_W=1000, SVG_H=720;
+const PAD_L=80, PAD_R=40, PAD_T=30, PAD_B=40;
+const GW=SVG_W-PAD_L-PAD_R, GH=SVG_H-PAD_T-PAD_B;
+
+function xToSvg(x){return PAD_L+(x-XMIN)/(XMAX-XMIN)*GW}
+function yToSvg(y){return PAD_T+(YMAX-y)/(YMAX-YMIN)*GH}
+function svgToX(sx){return XMIN+(sx-PAD_L)/GW*(XMAX-XMIN)}
+function svgToY(sy){return YMAX-(sy-PAD_T)/GH*(YMAX-YMIN)}
+
+/* ── Functions ── */
+const FUNCS={
+  x2:{name:'x²',f:x=>x*x,df:x=>2*x,Lof:a=>a*a},
+  sin:{name:'sin(x)+x',f:x=>Math.sin(x)+x,df:x=>Math.cos(x)+1,Lof:a=>Math.sin(a)+a},
+  inv:{name:'2/(x−1)+1',f:x=>Math.abs(x-1)<1e-9?NaN:2/(x-1)+1,df:x=>-2/((x-1)*(x-1)),Lof:a=>Math.abs(a-1)<1e-9?NaN:2/(a-1)+1}
+};
+
+/* ── State ── */
+let S={
+  funcKey:'x2', a:1, eps:0.5, delta:0.5,
+  playing:false, animId:null, animT:0,
+  animTargetEps:0.05
+};
+function L(){return FUNCS[S.funcKey].Lof(S.a)}
+
+/* ── DOM refs ── */
+const $=id=>document.getElementById(id);
+const svg=$('mainSvg');
+const selFunc=$('selFunc'), sEps=$('sliderEps'), sDelta=$('sliderDelta'), sA=$('sliderA');
+const vEps=$('valEps'), vDelta=$('valDelta'), vA=$('valA');
+const btnPlay=$('btnPlay'), btnPause=$('btnPause'), btnStep=$('btnStep'), btnReset=$('btnReset'), btnCopy=$('btnCopy'), btnAuto=$('btnAutoDelta');
+
+/* ── URL params ── */
+function loadURL(){
+  const p=new URLSearchParams(location.search);
+  if(p.has('func')){S.funcKey=p.get('func');selFunc.value=S.funcKey}
+  if(p.has('a')){S.a=parseFloat(p.get('a'))||1}
+  if(p.has('eps')){S.eps=parseFloat(p.get('eps'))||0.5}
+  if(p.has('delta')){S.delta=parseFloat(p.get('delta'))||0.5}
+  syncSlidersFromState();
+}
+function saveURL(){
+  const u=new URL(location.href);
+  u.searchParams.set('func',S.funcKey);
+  u.searchParams.set('a',S.a);
+  u.searchParams.set('eps',S.eps);
+  u.searchParams.set('delta',S.delta);
+  history.replaceState(null,'',u);
+}
+function syncSlidersFromState(){
+  sEps.value=S.eps; sDelta.value=S.delta; sA.value=S.a;
+  vEps.textContent=S.eps.toFixed(2); vDelta.textContent=S.delta.toFixed(2); vA.textContent=S.a.toFixed(2);
+}
+
+/* ── Auto δ (binary search largest delta satisfying |f(x)-L|<eps for all x in (a-d,a+d)) ── */
+function computeMaxDelta(eps){
+  eps = (eps===undefined)? S.eps : eps;
+  const f=FUNCS[S.funcKey].f, a=S.a, Lv=L();
+  if(isNaN(Lv)||!isFinite(Lv))return 1;
+  function ok(d){
+    if(d<=0)return false;
+    const N=60;
+    for(let i=0;i<=N;i++){
+      const x=a-d+2*d*i/N;
+      const fv=f(x);
+      if(isNaN(fv)||!isFinite(fv)||Math.abs(fv-Lv)>=eps-1e-9)return false;
+    }
+    return true;
+  }
+  if(!ok(0.001))return 0.01;
+  if(ok(3))return 3;
+  let lo=0.001,hi=3;
+  for(let k=0;k<30;k++){
+    const mid=(lo+hi)/2;
+    if(ok(mid))lo=mid;else hi=mid;
+  }
+  return Math.round(lo*1000)/1000;
+}
+
+/* ── SVG drawing ── */
+function draw(){
+  const f=FUNCS[S.funcKey].f, a=S.a, eps=S.eps, d=S.delta, Lv=L();
+  const epsLo=Lv-eps, epsHi=Lv+eps;
+  const dLo=a-d, dHi=a+d;
+
+  let h='';
+
+  // background
+  h+=`<rect width="${SVG_W}" height="${SVG_H}" fill="#0f172a" rx="8"/>`;
+
+  // grid lines
+  for(let x=Math.ceil(XMIN);x<=XMAX;x++){
+    const sx=xToSvg(x);
+    h+=`<line x1="${sx}" y1="${PAD_T}" x2="${sx}" y2="${SVG_H-PAD_B}" stroke="#1e293b" stroke-width="1"/>`;
+    if(x!==0) h+=`<text x="${sx}" y="${SVG_H-PAD_B+16}" fill="#64748b" font-size="11" text-anchor="middle" font-family="monospace">${x}</text>`;
+  }
+  for(let y=Math.ceil(YMIN);y<=YMAX;y++){
+    const sy=yToSvg(y);
+    h+=`<line x1="${PAD_L}" y1="${sy}" x2="${SVG_W-PAD_R}" y2="${sy}" stroke="#1e293b" stroke-width="1"/>`;
+    if(y!==0) h+=`<text x="${PAD_L-8}" y="${sy+4}" fill="#64748b" font-size="11" text-anchor="end" font-family="monospace">${y}</text>`;
+  }
+
+  // axes
+  const ox=xToSvg(0), oy=yToSvg(0);
+  h+=`<line x1="${PAD_L}" y1="${oy}" x2="${SVG_W-PAD_R}" y2="${oy}" stroke="#475569" stroke-width="1.5"/>`;
+  h+=`<line x1="${ox}" y1="${PAD_T}" x2="${ox}" y2="${SVG_H-PAD_B}" stroke="#475569" stroke-width="1.5"/>`;
+  h+=`<text x="${SVG_W-PAD_R+4}" y="${oy+4}" fill="#64748b" font-size="12" font-family="monospace">x</text>`;
+  h+=`<text x="${ox-2}" y="${PAD_T-6}" fill="#64748b" font-size="12" font-family="monospace">y</text>`;
+
+  // ε-band (horizontal) — blue
+  const syEpsLo=yToSvg(epsLo), syEpsHi=yToSvg(epsHi);
+  h+=`<rect x="${PAD_L}" y="${Math.min(syEpsHi,syEpsLo)}" width="${GW}" height="${Math.abs(syEpsLo-syEpsHi)}" fill="rgba(37,99,235,0.13)" clip-path="url(#clipGraph)"/>`;
+  h+=`<line x1="${PAD_L}" y1="${syEpsHi}" x2="${SVG_W-PAD_R}" y2="${syEpsHi}" stroke="var(--blue)" stroke-width="1.2" stroke-dasharray="6,4" opacity=".7"/>`;
+  h+=`<line x1="${PAD_L}" y1="${syEpsLo}" x2="${SVG_W-PAD_R}" y2="${syEpsLo}" stroke="var(--blue)" stroke-width="1.2" stroke-dasharray="6,4" opacity=".7"/>`;
+  // L line
+  const syL=yToSvg(Lv);
+  h+=`<line x1="${PAD_L}" y1="${syL}" x2="${SVG_W-PAD_R}" y2="${syL}" stroke="var(--blue)" stroke-width="1" opacity=".4"/>`;
+  h+=`<text x="${SVG_W-PAD_R+2}" y="${syEpsHi+4}" fill="#2563eb" font-size="10" font-family="monospace">L+ε</text>`;
+  h+=`<text x="${SVG_W-PAD_R+2}" y="${syL+4}" fill="#2563eb" font-size="10" font-family="monospace">L</text>`;
+  h+=`<text x="${SVG_W-PAD_R+2}" y="${syEpsLo+4}" fill="#2563eb" font-size="10" font-family="monospace">L−ε</text>`;
+
+  // δ-interval (vertical) — gold
+  const sxDLo=xToSvg(dLo), sxDHi=xToSvg(dHi);
+  h+=`<rect x="${Math.min(sxDLo,sxDHi)}" y="${PAD_T}" width="${Math.abs(sxDHi-sxDLo)}" height="${GH}" fill="rgba(232,185,100,0.10)" clip-path="url(#clipGraph)"/>`;
+  h+=`<line x1="${sxDLo}" y1="${PAD_T}" x2="${sxDLo}" y2="${SVG_H-PAD_B}" stroke="var(--gold)" stroke-width="1.2" stroke-dasharray="6,4" opacity=".7"/>`;
+  h+=`<line x1="${sxDHi}" y1="${PAD_T}" x2="${sxDHi}" y2="${SVG_H-PAD_B}" stroke="var(--gold)" stroke-width="1.2" stroke-dasharray="6,4" opacity=".7"/>`;
+  // a line
+  const sxA=xToSvg(a);
+  h+=`<line x1="${sxA}" y1="${PAD_T}" x2="${sxA}" y2="${SVG_H-PAD_B}" stroke="var(--gold)" stroke-width="1" opacity=".4"/>`;
+  h+=`<text x="${sxDLo+2}" y="${SVG_H-PAD_B+28}" fill="#E8B964" font-size="10" font-family="monospace">a−δ</text>`;
+  h+=`<text x="${sxA-2}" y="${SVG_H-PAD_B+28}" fill="#E8B964" font-size="10" font-family="monospace" text-anchor="middle">a</text>`;
+  h+=`<text x="${sxDHi-2}" y="${SVG_H-PAD_B+28}" fill="#E8B964" font-size="10" font-family="monospace" text-anchor="end">a+δ</text>`;
+
+  // intersection highlight (verified region)
+  const ixL=Math.max(PAD_L,sxDLo), ixR=Math.min(SVG_W-PAD_R,sxDHi);
+  const iyT=Math.max(PAD_T,Math.min(syEpsHi,syEpsLo)), iyB=Math.min(SVG_H-PAD_B,Math.max(syEpsHi,syEpsLo));
+  if(ixR>ixL && iyB>iyT){
+    h+=`<rect x="${ixL}" y="${iyT}" width="${ixR-ixL}" height="${iyB-iyT}" fill="rgba(5,150,105,0.18)" stroke="var(--green)" stroke-width="1" rx="2"/>`;
+  }
+
+  // function curve
+  let pathD='';
+  const samples=600;
+  let first=true;
+  let violationPts=[];
+  for(let i=0;i<=samples;i++){
+    const x=XMIN+(XMAX-XMIN)*i/samples;
+    const y=f(x);
+    if(isNaN(y)||!isFinite(y)||y<YMIN-3||y>YMAX+3){first=true;continue}
+    const sx=xToSvg(x), sy=yToSvg(y);
+    if(first){pathD+=`M${sx.toFixed(2)},${sy.toFixed(2)}`;first=false}
+    else pathD+=` L${sx.toFixed(2)},${sy.toFixed(2)}`;
+  }
+  h+=`<path d="${pathD}" fill="none" stroke="#e2e8f0" stroke-width="2.2" stroke-linecap="round" clip-path="url(#clipGraph)"/>`;
+
+  // highlight violation points (where |f(x)-L| >= eps for x in (a-d, a+d))
+  for(let i=0;i<=100;i++){
+    const x=dLo+(dHi-dLo)*i/100;
+    const y=f(x);
+    if(isNaN(y))continue;
+    if(Math.abs(y-Lv)>=eps){
+      violationPts.push([x,y]);
+    }
+  }
+  violationPts.forEach(([x,y])=>{
+    const sx=xToSvg(x),sy=yToSvg(y);
+    h+=`<circle cx="${sx}" cy="${sy}" r="4" fill="var(--red)" opacity=".85"/>`;
+  });
+
+  // center point (a, L)
+  h+=`<circle cx="${sxA}" cy="${syL}" r="5" fill="var(--green)" stroke="#fff" stroke-width="1.5"/>`;
+
+  // limit point label
+  h+=`<text x="${sxA+10}" y="${syL-10}" fill="var(--green)" font-size="12" font-weight="700" font-family="sans-serif">(a, L)</text>`;
+
+  // implication arrows: δ-edge → f-value
+  // left arrow: x = a-δ → f(a-δ)
+  const fLo=f(dLo), fHi=f(dHi);
+  if(isFinite(fLo)&&!isNaN(fLo)){
+    const syFL=yToSvg(fLo);
+    h+=`<line x1="${sxDLo}" y1="${syFL}" x2="${sxDLo}" y2="${oy}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="3,3" opacity=".6"/>`;
+    h+=`<line x1="${sxDLo}" y1="${syFL}" x2="${sxA}" y2="${syFL}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="3,3" opacity=".6"/>`;
+    h+=`<text x="${sxDLo-4}" y="${(syFL+oy)/2}" fill="var(--gold)" font-size="9" text-anchor="end" font-family="monospace">f(a−δ)</text>`;
+    // check if violation
+    const isViolation=Math.abs(fLo-Lv)>=eps;
+    if(isViolation){
+      h+=`<circle cx="${sxDLo}" cy="${syFL}" r="6" fill="none" stroke="var(--red)" stroke-width="2"/>`;
+    }
+  }
+  if(isFinite(fHi)&&!isNaN(fHi)){
+    const syFH=yToSvg(fHi);
+    h+=`<line x1="${sxDHi}" y1="${syFH}" x2="${sxDHi}" y2="${oy}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="3,3" opacity=".6"/>`;
+    h+=`<line x1="${sxDHi}" y1="${syFH}" x2="${sxA}" y2="${syFH}" stroke="var(--gold)" stroke-width="1" stroke-dasharray="3,3" opacity=".6"/>`;
+    h+=`<text x="${sxDHi+4}" y="${(syFH+oy)/2}" fill="var(--gold)" font-size="9" font-family="monospace">f(a+δ)</text>`;
+    const isViolation=Math.abs(fHi-Lv)>=eps;
+    if(isViolation){
+      h+=`<circle cx="${sxDHi}" cy="${syFH}" r="6" fill="none" stroke="var(--red)" stroke-width="2"/>`;
+    }
+  }
+
+  // title in SVG
+  h+=`<text x="${SVG_W/2}" y="18" fill="#94a3b8" font-size="12" text-anchor="middle" font-family="sans-serif">ε-δ 定义可视化 · ${FUNCS[S.funcKey].name}</text>`;
+
+  // formula box
+  const fbX=PAD_L+10, fbY=PAD_T+8;
+  h+=`<rect x="${fbX}" y="${fbY}" width="260" height="36" rx="6" fill="rgba(15,23,42,.85)" stroke="var(--border)" stroke-width="1"/>`;
+  h+=`<text x="${fbX+10}" y="${fbY+14}" fill="var(--dim)" font-size="10" font-family="sans-serif">∀ε&gt;0, ∃δ&gt;0:</text>`;
+  h+=`<text x="${fbX+10}" y="${fbY+28}" fill="var(--text)" font-size="11" font-family="monospace">|x−a|&lt;δ ⟹ |f(x)−L|&lt;ε</text>`;
+
+  svg.innerHTML=h;
+
+  // verify & update readout
+  updateReadout();
+}
+
+/* ── Readout ── */
+function updateReadout(){
+  const f=FUNCS[S.funcKey].f, a=S.a, eps=S.eps, d=S.delta, Lv=L();
+  $('roFunc').textContent=FUNCS[S.funcKey].name;
+  $('roA').textContent=a.toFixed(2);
+  $('roL').textContent=isNaN(Lv)?'—':Lv.toFixed(4);
+  $('roEps').textContent=eps.toFixed(2);
+  $('roEpsLo').textContent=(Lv-eps).toFixed(2);
+  $('roEpsHi').textContent=(Lv+eps).toFixed(2);
+  $('roDelta').textContent=d.toFixed(2);
+  $('roDLo').textContent=(a-d).toFixed(2);
+  $('roDHi').textContent=(a+d).toFixed(2);
+}
+
+/* ── Verify ── */
+function verify(){
+  const f=FUNCS[S.funcKey].f, a=S.a, eps=S.eps, d=S.delta, Lv=L();
+  if(isNaN(Lv))return {ok:false,msg:'极限值 L 未定义 (a 在奇点)'};
+  const N=200;
+  let violations=[];
+  for(let i=0;i<=N;i++){
+    const x=(a-d)+2*d*i/N;
+    const y=f(x);
+    if(isNaN(y)||!isFinite(y)||Math.abs(y-Lv)>=eps){
+      violations.push(x);
+    }
+  }
+  const ok=violations.length===0;
+  const badge=$('verifyBadge');
+  if(ok){
+    badge.innerHTML=`<span class="status-badge badge-ok">✓ 验证通过 — δ=${d.toFixed(3)} 满足 ε=${eps.toFixed(2)}</span>`;
+  }else{
+    badge.innerHTML=`<span class="status-badge badge-fail">✗ 不满足 — ${violations.length} 个违规点 (δ 过大)</span>`;
+  }
+  return {ok,msg:ok?'验证通过':`有 ${violations.length} 个违规点`};
+}
+
+/* ── Animation ── */
+function setStepMsg(t){
+  const m=$('stepMsg');
+  if(m) m.textContent=t;
+}
+function buildFrames(target){
+  const eps0=Math.max(0.05,S.eps);
+  const N=80, out=[];
+  for(let k=0;k<=N;k++){
+    const t=k/N;
+    const eased=t<0.5?2*t*t:(1-Math.pow(-2*t+2,2)/2);
+    const eps=+(eps0+(target-eps0)*eased).toFixed(4);
+    out.push({eps, delta:computeMaxDelta(eps)});
+  }
+  return out;
+}
+function animStep(){
+  if(!S.playing)return;
+  S.animT+=1/S.frames.length;
+  let i=Math.floor(S.animT*S.frames.length);
+  if(i>=S.frames.length-1)i=S.frames.length-1;
+  const fr=S.frames[i];
+  S.eps=fr.eps; S.delta=fr.delta;
+  syncSlidersFromState();
+  draw();
+  if(i>=S.frames.length-1){
+    S.playing=false;
+    btnPlay.textContent='▶ 播放';
+    verify();
+    return;
+  }
+  S.animId=requestAnimationFrame(animStep);
+}
+function play(){
+  if(S.playing)return;
+  S.playing=true;S.animT=0;
+  S.frames=buildFrames(0.05);
+  btnPlay.textContent='⏸ 暂停';
+  S.animId=requestAnimationFrame(animStep);
+}
+
+/* ── Event wiring ── */
+selFunc.addEventListener('change',()=>{S.funcKey=selFunc.value;draw()});
+sEps.addEventListener('input',()=>{pause();S.eps=parseFloat(sEps.value);vEps.textContent=S.eps.toFixed(2);draw()});
+sDelta.addEventListener('input',()=>{pause();S.delta=parseFloat(sDelta.value);vDelta.textContent=S.delta.toFixed(2);draw()});
+sA.addEventListener('input',()=>{pause();S.a=parseFloat(sA.value);vA.textContent=S.a.toFixed(2);draw()});
+[sEps,sDelta,sA].forEach(s=>s.addEventListener('change',saveURL));
+
+btnPlay.addEventListener('click',()=>{
+  if(S.playing){pause();return}
+  play();
+});
+btnPause.addEventListener('click',pause);
+btnStep.addEventListener('click',step);
+btnReset.addEventListener('click',reset);
+btnCopy.addEventListener('click',()=>{
+  saveURL();
+  navigator.clipboard.writeText(location.href).then(()=>{btnCopy.textContent='✓ 已复制';setTimeout(()=>btnCopy.textContent='📋 复制链接',1200)});
+});
+btnAuto.addEventListener('click',()=>{
+  pause();
+  const maxD=computeMaxDelta();
+  S.delta=maxD;
+  syncSlidersFromState();
+  draw();
+  verify();
+  setStepMsg('自动 δ：当前 ε='+S.eps.toFixed(2)+' 时的最大 δ='+maxD.toFixed(3));
+});
+
+function pause(){
+  S.playing=false;
+  if(S.animId) cancelAnimationFrame(S.animId);
+  btnPlay.textContent='▶ 播放';
+}
+
+/* keyboard */
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  if(e.code==='Space'){e.preventDefault();S.playing?pause():btnPlay.click()}
+  if(e.code==='ArrowRight'){e.preventDefault();btnStep.click()}
+  if(e.code==='KeyR'){e.preventDefault();btnReset.click()}
+});
+
+/* ── SciDemo protocol ── */
+function state(){
+  const f=FUNCS[S.funcKey].f, a=S.a, eps=S.eps, d=S.delta, Lv=L();
+  return {
+    func:S.funcKey, a, eps, delta:d,
+    L:Lv, epsLo:Lv-eps, epsHi:Lv+eps,
+    deltaLo:a-d, deltaHi:a+d,
+    playing:S.playing
+  };
+}
+
+function setParams(p){
+  if(p.func!==undefined){S.funcKey=p.func;selFunc.value=S.funcKey}
+  if(p.a!==undefined) S.a=parseFloat(p.a);
+  if(p.eps!==undefined) S.eps=parseFloat(p.eps);
+  syncSlidersFromState();
+  draw();
+}
+
+function step(){
+  pause();
+  const minEps=0.05;
+  if(S.eps<=minEps+1e-6){
+    draw();
+    verify();
+    setStepMsg('ε 已是最小值 '+minEps.toFixed(2)+'，无法继续单步');
+    return;
+  }
+  S.eps=+Math.max(minEps, S.eps*0.8).toFixed(4);
+  S.delta=computeMaxDelta(S.eps);
+  syncSlidersFromState();
+  draw();
+  verify();
+  setStepMsg('单步：ε='+S.eps.toFixed(2)+' → 自动缩小 δ='+S.delta.toFixed(3)+'（|x−a|<δ 内 |f(x)−L|<ε ✓）');
+}
+
+function reset(){
+  pause();
+  S.funcKey='x2';S.a=1;S.eps=0.5;S.delta=0.5;
+  selFunc.value=S.funcKey;
+  syncSlidersFromState();
+  draw();
+  $('verifyBadge').innerHTML='';
+  setStepMsg('单步会逐级缩小 ε，并自动给出匹配的 δ');
+}
+
+function reverse(){
+  if(S.playing)return;
+  S.playing=true;S.animT=0;
+  S.frames=buildFrames(2);
+  btnPlay.textContent='⏸ 暂停';
+  S.animId=requestAnimationFrame(animStep);
+}
+
+function sciVerify(){ return verify(); }
+function isReady(){ return true; }
+
+window.SciDemo={setParams,play,pause,step,reset,reverse,verify:sciVerify,state,isReady};
+
+/* ── Init ── */
+loadURL();
+draw();
+})();
+</script>
+</body>
+</html>

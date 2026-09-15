@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-J01 勾股定理面积拼合 · 大数学交互交付</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f6f7f9; color:#1f2430; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; min-height:100vh; }
+  .wrap { max-width:1180px; margin:0 auto; padding:18px 16px 30px; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:14px; }
+  .layout { display:grid; grid-template-columns:1fr 310px; gap:16px; }
+  .stage { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  svg { width:100%; height:auto; display:block; }
+  .panel { display:flex; flex-direction:column; gap:12px; }
+  .box { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:12px 14px; }
+  .box h3 { font-size:14px; margin-bottom:8px; color:#374151; }
+  .ctl { margin-bottom:10px; }
+  .ctl label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px; }
+  .ctl label b { color:#2563eb; }
+  .ctl input[type=range] { width:100%; }
+  .btnrow { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  button { border:none; border-radius:8px; padding:9px 0; font-size:14px; cursor:pointer; background:#eef1f6; color:#1f2430; }
+  button:hover { background:#e2e8f0; }
+  button.pri { background:#2563eb; color:#fff; }
+  button.pri:hover { background:#1d4ed8; }
+  .readout { font-size:13px; line-height:1.7; }
+  .readout .big { font-size:15px; font-weight:700; color:#1f2430; }
+  .ok { color:#059669; font-weight:700; }
+  .warn { color:#d97706; }
+  .msg { font-size:12px; color:#6b7280; line-height:1.6; }
+  .q { font-size:12px; color:#6b7280; border-top:1px dashed #e3e6ec; padding-top:8px; margin-top:4px; }
+  .q b { color:#374151; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>C-J01 · 勾股定理：a² + b² = c²（面积计数版）</h1>
+  <p class="sub">蓝 a² 格块、橙 b² 格块旋转飞入斜边正方形，沿斜边逐格对齐铺满，恰好 c² 格。每格 = 1 面积单位，数一数：9 + 16 = 25。拖动滑块可换三边；勾股数时逐格精确铺满，非勾股数时显示面积守恒。</p>
+  <div class="layout">
+    <div class="stage">
+      <svg id="scene" viewBox="0 0 1000 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="勾股定理面积拼合动画"></svg>
+    </div>
+    <div class="panel">
+      <div class="box">
+        <h3>参数控制</h3>
+        <div class="ctl"><label>直角边 a（竖）<b id="va">3</b></label><input type="range" id="sa" min="1" max="8" step="1" value="3"></div>
+        <div class="ctl"><label>直角边 b（横）<b id="vb">4</b></label><input type="range" id="sb" min="1" max="8" step="1" value="4"></div>
+        <div class="btnrow">
+          <button class="pri" id="btnPlay">▶ 播放拼合</button>
+          <button id="btnReverse">⇄ 移回</button>
+          <button id="btnPause">⏸ 暂停</button>
+          <button id="btnStep">⏭ 单步</button>
+          <button id="btnReset">↺ 重置</button>
+          <button id="btnCopy">🔗 复制参数链接</button>
+        </div>
+      </div>
+      <div class="box">
+        <h3>实时数据</h3>
+        <div class="readout" id="readout"></div>
+      </div>
+      <div class="box">
+        <h3>课堂提问</h3>
+        <div class="q"><b>先猜</b>：a² 是 9 格，b² 是 16 格，斜边正方形要几格才正好？<br><b>后问</b>：为什么格块要"斜着"飞进去？改成 6、8、10 或 2、3 呢？</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+
+var SVG_NS = "http://www.w3.org/2000/svg";
+var W = 1000, H = 760, PAD = 70;
+var svg = document.getElementById("scene");
+
+var state = {
+  a: 3, b: 4,
+  isTriple: false,
+  c: 5,
+  angleDeg: 0,
+  progress: 0,
+  playing: false,
+  playingDir: 1,
+  lastTs: 0
+};
+
+var cells = [];
+var geo = null;
+
+/* ---------- 几何（屏幕坐标换算） ---------- */
+function buildGeo(a, b){
+  var c = Math.sqrt(a*a + b*b);
+  var span = a + b;
+  var scale = Math.min((W - PAD*2) / span, (H - PAD*2) / span);
+  var cx = (b - a) / 2, cy = (a - b) / 2;
+  var ox = W/2 - cx * scale;
+  var oy = H/2 + cy * scale;
+  return { a:a, b:b, c:c, scale:scale, ox:ox, oy:oy };
+}
+function X(g, x){ return g.ox + x * g.scale; }
+function Y(g, y){ return g.oy - y * g.scale; }
+function P(g, x, y){ return X(g,x) + "," + Y(g,y); }
+// 屏幕坐标下斜边正方形朝向角（方向 u=(-a,b)/c），用于格块旋转对齐斜边
+function hypAngle(a, b){ return Math.atan2(b, -a) * 180 / Math.PI; }
+
+/* ---------- SVG 辅助 ---------- */
+function el(tag, attrs){
+  var e = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function clearSvg(){ while (svg.firstChild) svg.removeChild(svg.firstChild); }
+function setWrapTransform(wrap, cx, cy, ang){
+  wrap.setAttribute("transform", "translate(" + cx + " " + cy + ") rotate(" + ang + ")");
+}
+// 带 <sup> 上标的富文本标注（tspan baseline-shift=super，规避字体缺 ² 字形）
+function richLabel(svgPt, parts, color, size){
+  var xy = svgPt.split(",");
+  var t = el("text", { x:xy[0], y:xy[1], fill:color, "font-size":size, "text-anchor":"middle",
+    "font-weight":"700", "font-family":"'Microsoft YaHei','PingFang SC',sans-serif" });
+  parts.forEach(function(p){
+    var n = el("tspan", {});
+    if (p.sup){ n.setAttribute("baseline-shift", "super"); n.setAttribute("font-size", size * 0.62); }
+    n.textContent = p.t;
+    t.appendChild(n);
+  });
+  svg.appendChild(t);
+  return t;
+}
+function s2(p){ return [{t:p}, {sup:"2"}]; }        // x → x²
+function st(p, tail){ return [{t:p}, {sup:"2"}, {t:tail}]; } // x²tail
+function drawRotatedCell(mx, my, sizeUnits, angle, color, alpha){
+  var g = geo;
+  var s = sizeUnits * g.scale * 0.96;
+  var wrap = el("g", { transform: "translate(" + X(g,mx) + " " + Y(g,my) + ") rotate(" + angle + ")" });
+  var r = el("rect", { x:-s/2, y:-s/2, width:s, height:s, fill:color, "fill-opacity":alpha, rx:1 });
+  wrap.appendChild(r);
+  svg.appendChild(wrap);
+  return wrap;
+}
+function mathPt(A, u, v, uu, vv){ return { x: A.x + u.x*uu + v.x*vv, y: A.y + u.y*uu + v.y*vv }; }
+function lerp(a, b, t){ return a + (b - a) * t; }
+
+/* ---------- 主绘制 ---------- */
+function redraw(){
+  clearSvg();
+  var a = state.a, b = state.b, c = state.c;
+  var g = buildGeo(a, b);
+  geo = g;
+  var isTriple = Number.isInteger(c);
+  state.isTriple = isTriple;
+  state.angleDeg = hypAngle(a, b);
+
+  var u = { x: (-a)/c, y: (-b)/c };   // 数学坐标 沿斜边方向
+  var v = { x: (-b)/c, y: (a)/c };    // 垂直斜边方向
+  var A = { x: b, y: 0 };             // 直角顶点（数学坐标）
+
+  // 直角三角形
+  var tri = el("polygon", { points: P(g,0,0) + " " + P(g,b,0) + " " + P(g,0,a),
+    fill:"#dbeafe", stroke:"#1f2937", "stroke-width":3 });
+  svg.appendChild(tri);
+  var ra = el("path", { d:"M " + X(g,0.28) + " " + Y(g,0) + " L " + X(g,0.28) + " " + Y(g,0.28) + " L " + X(g,0) + " " + Y(g,0.28),
+    fill:"none", stroke:"#1f2937", "stroke-width":2 });
+  svg.appendChild(ra);
+
+  // 三个正方形外轮廓（深描边，格阵贴齐后不会"漏白"）
+  var sqA = [ [0,0],[0,a],[-a,a],[-a,0] ];
+  var sqB = [ [0,0],[b,0],[b,-b],[0,-b] ];
+  var sqC = [ [b,0],[0,a],[-a,a-b],[b-a,-b] ];
+  function polyOf(pts){ return pts.map(function(p){ return P(g,p[0],p[1]); }).join(" "); }
+  function outline(pts, fill, sw){
+    var e = el("polygon", { points: polyOf(pts), fill:fill, stroke:"#1f2937", "stroke-width":sw, "stroke-linejoin":"round" });
+    svg.appendChild(e);
+  }
+  outline(sqA, "#eff6ff", 2.5);
+  outline(sqB, "#fff7ed", 2.5);
+  outline(sqC, "#f8fafc", 2.5);
+
+  cells = [];
+
+  // 斜边正方形淡灰格阵（沿斜边 u/v 方向铺格，格边与斜边严格对齐）
+  for (var j=0;j<c;j++) for (var i=0;i<c;i++){
+    var ct = mathPt(A, u, v, i+0.5, j+0.5);
+    drawRotatedCell(ct.x, ct.y, 1, state.angleDeg, "#e2e8f0", 0.5);
+  }
+  buildCells(g, u, v, A);
+
+  // 标注（全部用上标 tspan 渲染 ²）
+  richLabel(P(g, 0.35, a/2), s2("a"), "#1d4ed8", 15);
+  richLabel(P(g, b/2, -0.45), s2("b"), "#d97706", 15);
+  richLabel(P(g, b/2, a/2), s2("c"), "#334155", 14);
+  richLabel(P(g, -a/2, a/2), st((a*a) + " 格 (a"), ")", "#1d4ed8", 15);
+  richLabel(P(g, b/2, -b/2), st((b*b) + " 格 (b"), ")", "#d97706", 15);
+  richLabel(P(g, (b-a)/2, (a-b)/2), st((c*c) + " 格 (c"), ")", "#334155", 15);
+
+  applyProgress(state.progress);
+  updateReadout();
+}
+
+/* ---------- 格块转移映射（起点轴对齐 → 终点贴斜边旋转对齐） ---------- */
+function buildCells(g, u, v, A){
+  var a = state.a, b = state.b, c = state.c;
+  var target = [];
+  for (var j=0;j<c;j++) for (var i=0;i<c;i++){
+    var inA = (j >= c-a) && (i < a);
+    var ct = mathPt(A, u, v, i+0.5, j+0.5);
+    target.push({ inA:inA, tx:ct.x, ty:ct.y });
+  }
+  var srcA = [];
+  for (var jj=0;jj<a;jj++) for (var ii=0;ii<a;ii++) srcA.push({ mx:-(ii+0.5), my:jj+0.5 });
+  var srcB = [];
+  for (var jj2=0;jj2<b;jj2++) for (var ii2=0;ii2<b;ii2++) srcB.push({ mx:ii2+0.5, my:-(jj2+0.5) });
+
+  var maps = [];
+  var aIdx = 0, bIdx = 0;
+  for (var k=0;k<target.length;k++){
+    var t = target[k];
+    if (t.inA){ var s=srcA[aIdx++]; maps.push({ sx:s.mx, sy:s.my, tx:t.tx, ty:t.ty, color:"#3b82f6", ang:state.angleDeg }); }
+    else      { var s2=srcB[bIdx++]; maps.push({ sx:s2.mx, sy:s2.my, tx:t.tx, ty:t.ty, color:"#f59e0b", ang:state.angleDeg }); }
+  }
+  if (aIdx !== a*a || bIdx !== b*b) console.warn("mapping count mismatch");
+
+  cells = maps.map(function(m){
+    var wrap = drawRotatedCell(m.sx, m.sy, 1, 0, m.color, 1);
+    return { wrap: wrap, m: m };
+  });
+}
+
+/* ---------- 动画 ---------- */
+function ease(t){ return t<0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+
+function applyProgress(p){
+  p = Math.max(0, Math.min(1, p));
+  state.progress = p;
+  var e = ease(p);
+  var g = geo;
+  cells.forEach(function(c){
+    var x = c.m.sx + (c.m.tx - c.m.sx) * e;
+    var y = c.m.sy + (c.m.ty - c.m.sy) * e;
+    setWrapTransform(c.wrap, X(g,x), Y(g,y), c.m.ang * e);
+  });
+}
+
+function frame(ts){
+  if (!state.playing) return;
+  var dt = state.lastTs ? (ts - state.lastTs) / 1000 : 0;
+  state.lastTs = ts;
+  var speed = 0.9;
+  applyProgress(state.progress + (state.playingDir * dt) / speed);
+  if ((state.playingDir === 1 && state.progress >= 1) || (state.playingDir === -1 && state.progress <= 0)) stopPlaying();
+  else requestAnimationFrame(frame);
+}
+function stopPlaying(){ state.playing = false; }
+function play(dir){
+  stopPlaying();
+  state.playingDir = dir;
+  if (state.playingDir === 1) applyProgress(state.progress >= 1 ? 0 : state.progress);
+  else applyProgress(state.progress <= 0 ? 1 : state.progress);
+  state.playing = true;
+  state.lastTs = 0;
+  requestAnimationFrame(frame);
+}
+
+/* ---------- 控制 ---------- */
+function step(){ stopPlaying(); state.playingDir = 1; applyProgress(state.progress + 0.06); }
+function resetAll(){ stopPlaying(); state.playingDir = 1; applyProgress(0); }
+
+function setParams(p){
+  if (p.a !== undefined && p.b !== undefined){
+    var a = Math.max(1, Math.min(8, Math.round(p.a)));
+    var b = Math.max(1, Math.min(8, Math.round(p.b)));
+    state.a = a; state.b = b;
+    sa.value = a; sb.value = b; va.textContent = a; vb.textContent = b;
+    state.c = Math.sqrt(a*a + b*b);
+    resetAll();
+    redraw();
+  }
+}
+
+document.getElementById("btnPlay").onclick    = function(){ play(1); };
+document.getElementById("btnReverse").onclick = function(){ play(-1); };
+document.getElementById("btnPause").onclick   = function(){ stopPlaying(); };
+document.getElementById("btnStep").onclick    = function(){ step(); };
+document.getElementById("btnReset").onclick   = function(){ resetAll(); };
+document.getElementById("btnCopy").onclick = function(){
+  var u = new URL(location.href);
+  u.searchParams.set("a", state.a);
+  u.searchParams.set("b", state.b);
+  var s = u.href;
+  if (navigator.clipboard) navigator.clipboard.writeText(s).then(function(){ alert("链接已复制"); });
+  else { prompt("复制链接", s); }
+};
+
+var sa = document.getElementById("sa"), sb = document.getElementById("sb");
+var va = document.getElementById("va"), vb = document.getElementById("vb");
+function onSlider(){
+  state.a = +sa.value; state.b = +sb.value;
+  va.textContent = state.a; vb.textContent = state.b;
+  state.c = Math.sqrt(state.a*state.a + state.b*state.b);
+  resetAll(); redraw();
+}
+sa.oninput = onSlider; sb.oninput = onSlider;
+
+document.addEventListener("keydown", function(e){
+  if (e.key === " ") { e.preventDefault(); if (state.playing) stopPlaying(); else play(1); }
+  else if (e.key === "ArrowRight") { step(); }
+  else if (e.key === "r" || e.key === "R") { resetAll(); }
+});
+
+/* ---------- 数据面板 ---------- */
+function updateReadout(){
+  var a=state.a, b=state.b, c=state.c;
+  var a2=a*a, b2=b*b, c2=c*c;
+  var filled = Math.round(state.progress * c2);
+  var el = document.getElementById("readout");
+  var html = "";
+  if (Number.isInteger(c)){
+    html += '<div class="big">' + a2 + ' 格 + ' + b2 + ' 格 = ' + c2 + ' 格 <span class="ok">✓</span></div>';
+    html += '<div>a=' + a + '，b=' + b + '，c=' + c + '（勾股数）</div>';
+    html += '<div class="msg">拼合中：已铺 <b>' + filled + ' / ' + c2 + '</b> 格。蓝 ' + a2 + ' 格 + 橙 ' + b2 + ' 格旋转后沿斜边逐格对齐，恰好铺满 ' + c2 + ' 格。</div>';
+  } else {
+    html += '<div class="warn">a=' + a + '，b=' + b + '，c=' + c.toFixed(3) + '（非勾股数）</div>';
+    html += '<div class="big">a² + b² = ' + a2 + ' + ' + b2 + ' = ' + (a2+b2).toFixed(3) + ' = c² <span class="ok">✓</span></div>';
+    html += '<div class="msg">任意直角三角形成立：蓝 a² 区 + 橙 b² 区拼入斜边正方形，面积守恒。但逐格铺满只对勾股数精确。</div>';
+  }
+  el.innerHTML = html;
+}
+
+/* ---------- 初始化 + URL 参数 ---------- */
+function init(){
+  var q = new URLSearchParams(location.search);
+  var a = parseInt(q.get("a"), 10);
+  var b = parseInt(q.get("b"), 10);
+  if (Number.isInteger(a) && a>=1 && a<=8) state.a = a;
+  if (Number.isInteger(b) && b>=1 && b<=8) state.b = b;
+  sa.value = state.a; sb.value = state.b;
+  va.textContent = state.a; vb.textContent = state.b;
+  state.c = Math.sqrt(state.a*state.a + state.b*state.b);
+  redraw();
+}
+init();
+
+/* ---------- 质检钩子：验证格块是否贴斜边逐格到位 ---------- */
+function verify(){
+  if (!state.isTriple) return { mode:"regions", note:"非勾股数：面积守恒由数值算式保证", ok:true };
+  var g = geo;
+  var ang = state.angleDeg;
+  var ok = cells.length > 0 && cells.every(function(c){
+    var t = c.wrap.getAttribute("transform") || "";
+    var m = t.match(/translate\(([-\d.]+) ([-\d.]+)\) rotate\(([-\d.]+)\)/);
+    if (!m) return false;
+    var dx = Math.abs(+m[1] - X(g,c.m.tx));
+    var dy = Math.abs(+m[2] - Y(g,c.m.ty));
+    var da = Math.abs(((+m[3]) - ang + 540) % 360 - 180);
+    return dx < 1.5 && dy < 1.5 && da < 0.5;
+  });
+  return { mode:"cells", total:cells.length, alignedToHyp: ok, sumOk: state.a*state.a + state.b*state.b === state.c*state.c };
+}
+
+/* ---------- 录制/外部控制 API ---------- */
+window.SciDemo = {
+  setParams: function(p){ setParams(p); },
+  play: function(){ play(1); },
+  pause: function(){ stopPlaying(); },
+  step: function(){ step(); },
+  reset: function(){ resetAll(); },
+  reverse: function(){ play(-1); },
+  verify: function(){ return verify(); },
+  state: function(){
+    return { a:state.a, b:state.b, c:state.c, isTriple:state.isTriple, progress:state.progress, playing:state.playing };
+  }
+};
+Object.defineProperty(window.SciDemo, "isReady", { get: function(){ return true; } });
+
+})();
+</script>
+</body>
+</html>

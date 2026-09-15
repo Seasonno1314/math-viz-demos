@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>C-S01 比与比例·配方缩放</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#f8f9fa;font-family:system-ui,-apple-system,sans-serif;color:#1e293b;display:flex;flex-direction:column;align-items:center;padding:16px 16px 80px}
+    h1{font-size:1.5rem;font-weight:700;margin-bottom:2px}
+    .sub{font-size:.85rem;color:#64748b;margin-bottom:12px}
+    .main{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+    .cup-panel{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:16px}
+    .data-panel{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:16px;min-width:220px}
+    .ratio-val{font-size:2rem;font-weight:700;color:#0ea5e9;text-align:center;margin:8px 0}
+    .ratio-label{text-align:center;font-size:.85rem;color:#64748b}
+    .controls{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+    .slider-group{display:flex;flex-direction:column;align-items:center;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:12px 16px}
+    .slider-group label{font-size:.8rem;color:#64748b;margin-bottom:4px}
+    .slider-group .val{font-size:1.2rem;font-weight:700}
+    input[type=range]{width:140px;accent-color:#0ea5e9}
+    button{background:#0ea5e9;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:.9rem;font-weight:600;cursor:pointer}
+    button:hover{background:#0284c7}
+    button:disabled{background:#94a3b8;cursor:not-allowed}
+    .insight{background:#fef9c3;border-radius:8px;padding:8px 12px;font-size:.85rem;color:#854d0e;margin-top:12px;text-align:center;min-height:2em;transition:background .3s}
+    .insight.flash{background:#bbf7d0;color:#166534}
+    .eq{font-family:'Cambria Math',Georgia,serif;font-style:italic}
+    .badge{display:inline-block;background:#0ea5e9;color:#fff;border-radius:4px;padding:1px 6px;font-size:.7rem;font-weight:600;margin-left:4px;vertical-align:middle}
+    .prev-ratio{font-size:.8rem;color:#94a3b8;text-align:center;margin-top:4px}
+    .arrow-anim{display:inline-block;transition:transform .3s}
+    .arrow-anim.pop{transform:scale(1.3)}
+    .cup-labels{font-size:12px;font-weight:600;pointer-events:none}
+  </style>
+</head>
+<body>
+  <h1>比与比例·配方缩放</h1>
+  <p class="sub">拖动糖和水量，观察"比值不变"的奥秘</p>
+  <div class="main">
+    <div class="cup-panel">
+      <svg id="cup" width="160" height="280" viewBox="0 0 160 280"></svg>
+    </div>
+    <div class="data-panel">
+      <div class="ratio-label">糖 <span class="eq">:</span> 水</div>
+      <div class="ratio-val" id="ratioDisplay">1 : 4</div>
+      <div class="ratio-label">比值 <span class="eq" id="ratioVal">= 0.25</span></div>
+      <div style="margin-top:8px;text-align:center;font-size:.85rem;color:#64748b">
+        分数形式: <span class="eq" id="fracDisplay">1/4</span>
+      </div>
+      <div class="prev-ratio" id="prevRatioDisplay"></div>
+      <div style="margin-top:12px;text-align:center">
+        <button id="scaleBtn">放大配方 ×2</button>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="slider-group">
+      <label>糖 (份)</label>
+      <div class="val" id="sugarVal">1</div>
+      <input type="range" id="sugarSlider" min="1" max="10" value="1">
+    </div>
+    <div class="slider-group">
+      <label>水 (份)</label>
+      <div class="val" id="waterVal">4</div>
+      <input type="range" id="waterSlider" min="1" max="10" value="4">
+    </div>
+  </div>
+  <div class="insight" id="insight">拖动滑块开始探索</div>
+
+  <script>
+  window.SciDemo = (function(){
+    let sugar = 1, water = 4;
+    let prevSugar = 1, prevWater = 4;
+    let prevRatio = 0.25;
+    let playing = false;
+    let animId = null;
+    const MAX_CUP_HEIGHT = 200;
+    const MAX_CAPACITY = 20;
+    const CUP_X = 30, CUP_Y = 30, CUP_W = 100;
+
+    const svg = document.getElementById('cup');
+    const sugarSlider = document.getElementById('sugarSlider');
+    const waterSlider = document.getElementById('waterSlider');
+    const sugarValEl = document.getElementById('sugarVal');
+    const waterValEl = document.getElementById('waterVal');
+    const ratioDisplay = document.getElementById('ratioDisplay');
+    const ratioVal = document.getElementById('ratioVal');
+    const fracDisplay = document.getElementById('fracDisplay');
+    const scaleBtn = document.getElementById('scaleBtn');
+    const insightEl = document.getElementById('insight');
+    const prevRatioDisplay = document.getElementById('prevRatioDisplay');
+
+    function gcd(a, b) {
+      a = Math.round(Math.abs(a));
+      b = Math.round(Math.abs(b));
+      while (b) { [a, b] = [b, a % b]; }
+      return a;
+    }
+
+    function renderCup(animSugar, animWater) {
+      const s = animSugar !== undefined ? animSugar : sugar;
+      const w = animWater !== undefined ? animWater : water;
+      const total = s + w;
+      const sugarH = (s / MAX_CAPACITY) * MAX_CUP_HEIGHT;
+      const waterH = (w / MAX_CAPACITY) * MAX_CUP_HEIGHT;
+      const sugarY = CUP_Y + MAX_CUP_HEIGHT - sugarH;
+      const waterY = sugarY - waterH;
+      const cupBottom = CUP_Y + MAX_CUP_HEIGHT;
+
+      let svgContent = '';
+
+      // cup outline
+      svgContent += `<rect x="${CUP_X}" y="${CUP_Y}" width="${CUP_W}" height="${MAX_CUP_HEIGHT}" rx="6" ry="6" fill="none" stroke="#94a3b8" stroke-width="2.5"/>`;
+
+      // water section (on top of sugar)
+      if (w > 0) {
+        svgContent += `<rect x="${CUP_X + 1}" y="${waterY}" width="${CUP_W - 2}" height="${waterH}" fill="#3b82f6" rx="0" opacity="0.85"/>`;
+        // water label
+        if (waterH > 18) {
+          svgContent += `<text x="${CUP_X + CUP_W / 2}" y="${waterY + waterH / 2 + 4}" text-anchor="middle" class="cup-labels" fill="#fff" font-size="13">水 ${w}</text>`;
+        }
+      }
+
+      // sugar section (bottom)
+      if (s > 0) {
+        svgContent += `<rect x="${CUP_X + 1}" y="${sugarY}" width="${CUP_W - 2}" height="${sugarH}" fill="#f59e0b" rx="0" opacity="0.9"/>`;
+        // sugar label
+        if (sugarH > 18) {
+          svgContent += `<text x="${CUP_X + CUP_W / 2}" y="${sugarY + sugarH / 2 + 4}" text-anchor="middle" class="cup-labels" fill="#fff" font-size="13">糖 ${s}</text>`;
+        }
+      }
+
+      // dividing line between sugar and water
+      if (s > 0 && w > 0) {
+        svgContent += `<line x1="${CUP_X}" y1="${sugarY}" x2="${CUP_X + CUP_W}" y2="${sugarY}" stroke="#fff" stroke-width="2" stroke-dasharray="4,3"/>`;
+      }
+
+      // measurement ticks
+      for (let i = 0; i <= MAX_CAPACITY; i += 5) {
+        const tickY = cupBottom - (i / MAX_CAPACITY) * MAX_CUP_HEIGHT;
+        svgContent += `<line x1="${CUP_X - 5}" y1="${tickY}" x2="${CUP_X}" y2="${tickY}" stroke="#cbd5e1" stroke-width="1"/>`;
+        svgContent += `<text x="${CUP_X - 8}" y="${tickY + 4}" text-anchor="end" fill="#94a3b8" font-size="10">${i}</text>`;
+      }
+
+      // cup bottom label
+      svgContent += `<text x="${CUP_X + CUP_W / 2}" y="${cupBottom + 20}" text-anchor="middle" fill="#64748b" font-size="11">总 ${total} 份</text>`;
+
+      svg.innerHTML = svgContent;
+    }
+
+    function updateDisplay() {
+      sugarValEl.textContent = sugar;
+      waterValEl.textContent = water;
+      sugarSlider.value = sugar;
+      waterSlider.value = water;
+
+      const ratio = water !== 0 ? sugar / water : 0;
+      const g = gcd(sugar, water);
+      const ns = sugar / g, nw = water / g;
+
+      ratioDisplay.textContent = `${sugar} : ${water}`;
+      ratioVal.textContent = `= ${Number.isInteger(ratio) ? ratio : ratio.toFixed(ratio.toString().length > 6 ? 4 : ratio.toString().split('.')[1]?.length || 0)}`;
+      // simpler display
+      const ratioStr = (sugar / water);
+      if (Number.isInteger(ratioStr)) {
+        ratioVal.textContent = `= ${ratioStr}`;
+      } else {
+        ratioVal.textContent = `= ${ratioStr.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')}`;
+      }
+      fracDisplay.textContent = `${ns}/${nw}`;
+
+      const diff = Math.abs(ratio - prevRatio);
+      if (diff < 0.0001 && prevSugar !== sugar && prevWater !== water) {
+        insightEl.textContent = '比值不变! 前项和后项同时乘以相同的数，比值不变 ✓';
+        insightEl.classList.add('flash');
+        setTimeout(() => insightEl.classList.remove('flash'), 1200);
+      } else if (diff >= 0.0001) {
+        insightEl.textContent = `比值从 ${prevRatio.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')} 变为 ${ratioStr.toFixed(4).replace(/0+$/, '').replace(/\.$/, '')}`;
+        insightEl.classList.remove('flash');
+      } else {
+        insightEl.textContent = '拖动滑块或点击"放大配方"来探索';
+        insightEl.classList.remove('flash');
+      }
+
+      renderCup();
+    }
+
+    function animateMultiply(factor) {
+      if (playing) return;
+      const targetSugar = Math.min(sugar * factor, 10);
+      const targetWater = Math.min(water * factor, 10);
+      if (targetSugar === sugar && targetWater === water) {
+        insightEl.textContent = '已达到最大值，无法继续放大';
+        return;
+      }
+      playing = true;
+      scaleBtn.disabled = true;
+      scaleBtn.textContent = '缩放中...';
+
+      prevSugar = sugar;
+      prevWater = water;
+      prevRatio = sugar / water;
+
+      const startSugar = sugar;
+      const startWater = water;
+      const duration = 800;
+      const startTime = performance.now();
+
+      function tick(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        // ease out
+        const ease = 1 - Math.pow(1 - t, 3);
+
+        const curSugar = Math.round(startSugar + (targetSugar - startSugar) * ease);
+        const curWater = Math.round(startWater + (targetWater - startWater) * ease);
+
+        renderCup(curSugar, curWater);
+
+        if (t < 1) {
+          animId = requestAnimationFrame(tick);
+        } else {
+          sugar = targetSugar;
+          water = targetWater;
+          playing = false;
+          scaleBtn.disabled = false;
+          scaleBtn.textContent = '放大配方 ×2';
+          updateDisplay();
+        }
+      }
+      animId = requestAnimationFrame(tick);
+    }
+
+    sugarSlider.addEventListener('input', function() {
+      if (playing) return;
+      prevSugar = sugar;
+      prevWater = water;
+      prevRatio = sugar / water;
+      sugar = parseInt(this.value);
+      updateDisplay();
+    });
+
+    waterSlider.addEventListener('input', function() {
+      if (playing) return;
+      prevSugar = sugar;
+      prevWater = water;
+      prevRatio = sugar / water;
+      water = parseInt(this.value);
+      updateDisplay();
+    });
+
+    scaleBtn.addEventListener('click', function() {
+      animateMultiply(2);
+    });
+
+    // initial render
+    updateDisplay();
+
+    return {
+      setParams: function(params) {
+        if (playing) return;
+        if (params.sugar !== undefined) sugar = Math.max(1, Math.min(10, Math.round(params.sugar)));
+        if (params.water !== undefined) water = Math.max(1, Math.min(10, Math.round(params.water)));
+        prevSugar = sugar;
+        prevWater = water;
+        prevRatio = sugar / water;
+        updateDisplay();
+      },
+      play: function() {
+        animateMultiply(2);
+      },
+      pause: function() {
+        if (animId) cancelAnimationFrame(animId);
+        playing = false;
+        scaleBtn.disabled = false;
+        scaleBtn.textContent = '放大配方 ×2';
+      },
+      reset: function() {
+        if (animId) cancelAnimationFrame(animId);
+        playing = false;
+        sugar = 1;
+        water = 4;
+        prevSugar = 1;
+        prevWater = 4;
+        prevRatio = 0.25;
+        scaleBtn.disabled = false;
+        scaleBtn.textContent = '放大配方 ×2';
+        insightEl.textContent = '拖动滑块开始探索';
+        insightEl.classList.remove('flash');
+        updateDisplay();
+      },
+      state: function() {
+        return { sugar, water, ratio: sugar / water, playing };
+      },
+      verify: function() {
+        const r = sugar / water;
+        return {
+          mode: 'ratio',
+          sugar, water,
+          ratio: r,
+          ratioOk: true
+        };
+      },
+      isReady: function() {
+        return true;
+      }
+    };
+  })();
+  </script>
+</body>
+</html>

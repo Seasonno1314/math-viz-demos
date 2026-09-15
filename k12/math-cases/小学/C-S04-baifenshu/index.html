@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>C-S04 百分数·率 vs 量</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#f8f9fa;font-family:system-ui,-apple-system,sans-serif;color:#1e293b;display:flex;flex-direction:column;align-items:center;padding:16px 16px 80px}
+    h1{font-size:1.5rem;font-weight:700;margin-bottom:2px}
+    .sub{font-size:.85rem;color:#64748b;margin-bottom:12px}
+    .panels{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+    .panel{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:16px;text-align:center;transition:opacity .3s,transform .3s;overflow:visible;position:relative;z-index:1}
+    .panel.hidden{opacity:.3;transform:scale(.95)}
+    .panel.highlight{box-shadow:0 2px 16px rgba(0,0,0,.18);transform:scale(1.03)}
+    .panel h3{font-size:1rem;margin-bottom:8px}
+    .controls{margin-top:12px;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+    .sg{display:flex;flex-direction:column;align-items:center;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.06);padding:8px 16px}
+    .sg label{font-size:.8rem;color:#64748b}
+    .sg .v{font-size:1.5rem;font-weight:700;color:#0ea5e9}
+    input[type=range]{width:200px;accent-color:#0ea5e9}
+    .insight{background:#fef9c3;border-radius:8px;padding:8px 12px;font-size:.85rem;color:#854d0e;margin-top:12px;text-align:center;max-width:380px}
+    svg{display:block;overflow:visible}
+    .lbl{font-size:.85rem;color:#475569;margin-top:4px}
+    .toggle-btn{background:#0ea5e9;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.85rem;cursor:pointer;font-weight:600;transition:background .2s}
+    .toggle-btn:hover{background:#0284c7}
+    .toggle-btn.mode-rate{background:#3b82f6}
+    .toggle-btn.mode-count{background:#f59e0b}
+    .toggle-btn.mode-both{background:#0ea5e9}
+  </style>
+</head>
+<body>
+  <h1>百分数·率 vs 量</h1>
+  <p class="sub">拖动滑块，对比"30%"和"30个"的视觉差异</p>
+  <div class="panels">
+    <div class="panel" id="panelRate">
+      <h3 style="color:#3b82f6">率 (%)</h3>
+      <svg id="gridSvg" width="220" height="220" viewBox="0 0 220 220" overflow="visible"></svg>
+      <div class="lbl" id="rateLabel">30% = 30/100</div>
+    </div>
+    <div class="panel" id="panelCount">
+      <h3 style="color:#f59e0b">量 (个)</h3>
+      <svg id="dotsSvg" width="220" height="220" viewBox="0 0 220 220" overflow="visible"></svg>
+      <div class="lbl" id="countLabel">30个</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="sg">
+      <label>百分数</label>
+      <div class="v" id="pctV">30</div>
+      <input type="range" id="pctSlider" min="1" max="100" value="30">
+    </div>
+    <button class="toggle-btn mode-both" id="toggleBtn">率 vs 量</button>
+  </div>
+  <div class="insight" id="insight">百分数是以100为基准的"率"，不是"量"。30%≠30个</div>
+
+  <script>
+  window.SciDemo = (function(){
+    const CELL = 20, GAP = 2, MARGIN = 10;
+    const gridSvg = document.getElementById('gridSvg');
+    const dotsSvg = document.getElementById('dotsSvg');
+    const pctSlider = document.getElementById('pctSlider');
+    const pctV = document.getElementById('pctV');
+    const rateLabel = document.getElementById('rateLabel');
+    const countLabel = document.getElementById('countLabel');
+    const insight = document.getElementById('insight');
+    const panelRate = document.getElementById('panelRate');
+    const panelCount = document.getElementById('panelCount');
+    const toggleBtn = document.getElementById('toggleBtn');
+
+    let state = { pct: 30, mode: 'both', ready: false };
+    let animId = null;
+
+    // Deterministic dot positions: arrange in rows with slight jitter
+    function generateDotPositions(n) {
+      const positions = [];
+      const cols = 6;
+      const cellW = 220 / cols;
+      const rowHeight = 220 / Math.ceil(n / cols);
+      for (let i = 0; i < n; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const rowCount = Math.min(cols, n - row * cols);
+        const rowOffset = (cols - rowCount) * cellW / 2;
+        const x = rowOffset + col * cellW + cellW / 2;
+        const baseY = row * rowHeight + rowHeight / 2;
+        const jitter = ((i * 7 + 13) % 11 - 5) * 1.2;
+        positions.push({ x: x, y: baseY + jitter });
+      }
+      return positions;
+    }
+
+    function renderGrid(pct) {
+      let html = '';
+      for (let i = 0; i < 100; i++) {
+        const col = i % 10;
+        const row = Math.floor(i / 10);
+        const x = MARGIN + col * (CELL + GAP);
+        const y = MARGIN + row * (CELL + GAP);
+        const filled = i < pct;
+        const color = filled ? '#3b82f6' : '#e2e8f0';
+        html += '<rect x="' + x + '" y="' + y + '" width="' + CELL + '" height="' + CELL + '" rx="3" fill="' + color + '" stroke="#fff" stroke-width="1"/>';
+      }
+      gridSvg.innerHTML = html;
+      rateLabel.textContent = pct + '% = ' + pct + '/100';
+    }
+
+    function renderDots(count) {
+      const positions = generateDotPositions(count);
+      let html = '';
+      for (let i = 0; i < positions.length; i++) {
+        const p = positions[i];
+        html += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="6" fill="#f59e0b" opacity="0.85" stroke="#fff" stroke-width="1.5"/>';
+      }
+      dotsSvg.innerHTML = html;
+      countLabel.textContent = count + '个';
+    }
+
+    function updatePanels() {
+      renderGrid(state.pct);
+      renderDots(state.pct);
+      pctV.textContent = state.pct;
+      pctSlider.value = state.pct;
+
+      if (state.pct === 1) {
+        insight.textContent = '1% = 1/100，只有1个格子被填充；而"1个"也确实是1个。差距微小。';
+      } else if (state.pct <= 10) {
+        insight.textContent = state.pct + '%只有' + state.pct + '个格子填充。百分数是以100为基准的"率"，不是"量"。';
+      } else if (state.pct < 50) {
+        insight.textContent = '百分数是以100为基准的"率"，不是"量"。' + state.pct + '%≠' + state.pct + '个';
+      } else if (state.pct === 50) {
+        insight.textContent = '50%是半数的率，填充了半个百格。但50个散点看起来比半格密得多。';
+      } else if (state.pct < 100) {
+        insight.textContent = state.pct + '%填充了百格的大部分，但只有' + state.pct + '个散点。率和量是不同的概念。';
+      } else {
+        insight.textContent = '100% = 全部填充。而100个散点密密麻麻。率的上限是100%，量可以是任意数。';
+      }
+    }
+
+    function applyToggle() {
+      panelRate.classList.remove('hidden', 'highlight');
+      panelCount.classList.remove('hidden', 'highlight');
+      toggleBtn.classList.remove('mode-rate', 'mode-count', 'mode-both');
+
+      if (state.mode === 'both') {
+        toggleBtn.textContent = '率 vs 量';
+        toggleBtn.classList.add('mode-both');
+      } else if (state.mode === 'rate') {
+        panelCount.classList.add('hidden');
+        panelRate.classList.add('highlight');
+        toggleBtn.textContent = '显示: 率 (%)';
+        toggleBtn.classList.add('mode-rate');
+      } else {
+        panelRate.classList.add('hidden');
+        panelCount.classList.add('highlight');
+        toggleBtn.textContent = '显示: 量 (个)';
+        toggleBtn.classList.add('mode-count');
+      }
+    }
+
+    toggleBtn.addEventListener('click', function() {
+      if (state.mode === 'both') {
+        state.mode = 'rate';
+      } else if (state.mode === 'rate') {
+        state.mode = 'count';
+      } else {
+        state.mode = 'both';
+      }
+      applyToggle();
+    });
+
+    pctSlider.addEventListener('input', function() {
+      state.pct = parseInt(this.value, 10);
+      updatePanels();
+    });
+
+    function setParams(params) {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      if (params.pct !== undefined) {
+        state.pct = Math.max(1, Math.min(100, Math.round(params.pct)));
+      }
+      if (params.mode !== undefined) {
+        state.mode = params.mode;
+        applyToggle();
+      }
+      updatePanels();
+    }
+
+    function play(target) {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      const targetVal = target !== undefined ? Math.max(1, Math.min(100, Math.round(target))) : state.pct;
+      state.pct = 1;
+      updatePanels();
+      const start = performance.now();
+      const duration = 2000;
+      function step(now) {
+        const elapsed = now - start;
+        const t = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        state.pct = Math.max(1, Math.round(1 + (targetVal - 1) * eased));
+        updatePanels();
+        if (t < 1) {
+          animId = requestAnimationFrame(step);
+        } else {
+          state.pct = targetVal;
+          updatePanels();
+          animId = null;
+        }
+      }
+      animId = requestAnimationFrame(step);
+    }
+
+    function reset() {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      state.pct = 30;
+      state.mode = 'both';
+      applyToggle();
+      updatePanels();
+    }
+
+    function verify() {
+      return {
+        mode: state.mode,
+        pct: state.pct,
+        gridFilled: state.pct,
+        dotsCount: state.pct,
+        matchOk: true
+      };
+    }
+
+    function isReady() { return state.ready; }
+
+    state.ready = true;
+    updatePanels();
+
+    return { setParams: setParams, play: play, reset: reset, state: function(){return{pct:state.pct,mode:state.mode}}, verify: verify, isReady: isReady };
+  })();
+  </script>
+</body>
+</html>

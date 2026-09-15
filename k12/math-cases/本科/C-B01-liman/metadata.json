@@ -1,0 +1,25 @@
+{
+  "id": "C-B01",
+  "subject": "math",
+  "title": "黎曼和逼近定积分",
+  "audience": "本科",
+  "concept": "定积分 · 黎曼和上下夹逼 8/3",
+  "desc": "把 [0,2] 分成 n 等份，左和/右和矩形夹逼曲边梯形面积；n 越大越贴近 ∫₀² x² dx = 8/3。",
+  "engine": "svg",
+  "html": "math-cases/本科/C-B01-liman/index.html",
+  "mp4": "math-cases/本科/C-B01-liman/out/C-B01.mp4",
+  "gif": "math-cases/本科/C-B01-liman/out/C-B01-preview.gif",
+  "webp": "math-cases/本科/C-B01-liman/out/C-B01-preview.webp",
+  "cover": "math-cases/本科/C-B01-liman/out/C-B01-preview-cover.jpg",
+  "record": {
+    "params": { "n": 4, "mode": "left" },
+    "seconds": 8,
+    "fps": 30
+  },
+  "sources": [
+    { "name": "GeoGebra", "url": "https://www.geogebra.org/materials" },
+    { "name": "Desmos", "url": "https://www.desmos.com/calculator" }
+  ],
+  "status": "ready",
+  "note": "替代 Manim 本01；∫₀² x² 用 tspan 上/下标渲染，字号可见"
+}

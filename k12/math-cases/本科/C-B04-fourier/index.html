@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-B04 傅里叶级数 · 大数学交互交付</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f6f7f9; color:#1f2430; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; min-height:100vh; }
+  .wrap { max-width:1180px; margin:0 auto; padding:18px 16px 30px; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:14px; line-height:1.6; }
+  .layout { display:grid; grid-template-columns:1fr 310px; gap:16px; }
+  .stage { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  svg { width:100%; height:auto; display:block; }
+  .panel { display:flex; flex-direction:column; gap:12px; }
+  .box { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:12px 14px; }
+  .box h3 { font-size:14px; margin-bottom:8px; color:#374151; }
+  .ctl { margin-bottom:10px; }
+  .ctl label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px; }
+  .ctl label b { color:#2563eb; }
+  .ctl input[type=range] { width:100%; }
+  .btnrow { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+  button { border:none; border-radius:8px; padding:9px 0; font-size:14px; cursor:pointer; background:#eef1f6; color:#1f2430; }
+  button:hover { background:#e2e8f0; }
+  button.pri { background:#2563eb; color:#fff; }
+  button.pri:hover { background:#1d4ed8; }
+  button.on { background:#2563eb; color:#fff; }
+  .readout { font-size:13px; line-height:1.75; }
+  .readout .big { font-size:15px; font-weight:700; color:#1f2430; }
+  .readout .formula { font-family:"Cambria Math","Times New Roman",serif; font-size:14px; }
+  .ok { color:#059669; font-weight:700; }
+  .warn { color:#dc2626; font-weight:700; }
+  .msg { font-size:12px; color:#6b7280; line-height:1.6; }
+  .q { font-size:12px; color:#6b7280; border-top:1px dashed #e3e6ec; padding-top:8px; margin-top:4px; line-height:1.65; }
+  .q b { color:#374151; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>C-B04 · 傅里叶级数：用正弦波拼方波</h1>
+  <p class="sub">方波（幅值 1，周期 2π）可以分解为无穷多个奇次正弦谐波的叠加：<b>f(x) = (4/π) Σ sin((2k−1)x)/(2k−1)</b>。拖动滑块调整谐波数 N，观察逼近过程——不连续点附近始终存在 Gibbs 过冲。</p>
+  <div class="layout">
+    <div class="stage">
+      <svg id="scene" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="傅里叶级数逼近方波"></svg>
+    </div>
+    <div class="panel">
+      <div class="box">
+        <h3>参数控制</h3>
+        <div class="ctl"><label>谐波数 N <b id="vN">7</b></label><input type="range" id="sN" min="1" max="30" step="1" value="7"></div>
+        <div class="ctl"><label>波形频率 <b id="vF">1</b></label><input type="range" id="sF" min="1" max="5" step="1" value="1"></div>
+        <div class="btnrow">
+          <button class="pri" id="btnPlay">▶ 逐项叠加</button>
+          <button id="btnPause">⏸ 暂停</button>
+          <button id="btnStep">⏭ 单步</button>
+        </div>
+        <div class="btnrow" style="margin-top:7px">
+          <button id="btnReset">↺ 复位</button>
+          <button id="btnCopy">🔗 复制链接</button>
+          <span></span>
+        </div>
+      </div>
+      <div class="box">
+        <h3>实时数据</h3>
+        <div class="readout" id="readout"></div>
+      </div>
+      <div class="box">
+        <h3>课堂提问</h3>
+        <div class="q"><b>先猜</b>：加到第 7 个谐波，方波的棱角有多锐利？<br><b>验证</b>：为什么不连续点处总有 Gibbs 过冲？</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+
+var SVG_NS = "http://www.w3.org/2000/svg";
+var W = 1000, H = 720, PAD = 55;
+var X_MIN = -4 * Math.PI, X_MAX = 4 * Math.PI;
+var Y_MIN = -2, Y_MAX = 2;
+var svg = document.getElementById("scene");
+
+var state = { n: 7, freq: 1, current: 0, playing: false, lastTs: 0, animAccum: 0 };
+
+/* ---- 坐标映射 ---- */
+function sx(x){ return PAD + (x - X_MIN) / (X_MAX - X_MIN) * (W - PAD * 2); }
+function sy(y){ return H - PAD - (y - Y_MIN) / (Y_MAX - Y_MIN) * (H - PAD * 2); }
+
+function el(tag, attrs){
+  var e = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function clearSvg(){ while (svg.firstChild) svg.removeChild(svg.firstChild); }
+function txt(x, y, text, color, size, weight){
+  var t = el("text", { x:x, y:y, fill:color||"#374151", "font-size":size||13,
+    "text-anchor":"middle", "font-weight":weight||"normal",
+    "font-family":"'Microsoft YaHei','PingFang SC',sans-serif" });
+  t.textContent = text;
+  svg.appendChild(t);
+  return t;
+}
+
+/* ---- 方波函数 ---- */
+function squareWave(x, freq){
+  var p = (2 * Math.PI) / freq;
+  var t = ((x % p) + p) % p;
+  return t < p / 2 ? 1 : -1;
+}
+
+/* ---- 第 k 个谐波的傅里叶系数（k 从 1 开始，奇谐波 2k-1） ---- */
+function harmonicAmp(k, freq){
+  var m = (2 * k - 1) * freq;
+  return (4 / Math.PI) / m;
+}
+function harmonicVal(k, x, freq){
+  var m = (2 * k - 1) * freq;
+  return (4 / Math.PI) * Math.sin(m * x) / m;
+}
+
+/* ---- 部分和 ---- */
+function partialSum(x, n, freq){
+  var s = 0;
+  for (var k = 1; k <= n; k++) s += harmonicVal(k, x, freq);
+  return s;
+}
+
+/* ---- RMS 误差 ---- */
+function rmsError(n, freq){
+  var sum = 0, cnt = 0;
+  var steps = 200;
+  var dx = (X_MAX - X_MIN) / steps;
+  for (var i = 0; i <= steps; i++){
+    var x = X_MIN + i * dx;
+    var diff = partialSum(x, n, freq) - squareWave(x, freq);
+    sum += diff * diff;
+    cnt++;
+  }
+  return Math.sqrt(sum / cnt);
+}
+
+/* ---- 谐波颜色 ---- */
+var harmonicColors = [
+  "#2563eb","#7c3aed","#a855f7","#d946ef","#ec4899",
+  "#f43f5e","#f97316","#eab308","#84cc16","#22c55e",
+  "#14b8a6","#06b6d4","#0ea5e9","#6366f1","#8b5cf6",
+  "#c084fc","#e879f9","#fb7185","#fb923c","#facc15",
+  "#a3e635","#4ade80","#2dd4bf","#38bdf8","#818cf8",
+  "#c084fc","#e879f9","#fb7185","#fb923c","#facc15"
+];
+
+/* ---- 绘制 ---- */
+function redraw(){
+  clearSvg();
+  var n = state.current;
+  var freq = state.freq;
+
+  /* 网格线 */
+  // 水平
+  for (var yv = -2; yv <= 2; yv++){
+    svg.appendChild(el("line", { x1:sx(X_MIN), y1:sy(yv), x2:sx(X_MAX), y2:sy(yv),
+      stroke: Math.abs(yv) < 0.01 ? "#94a3b8" : "#eef0f4", "stroke-width": Math.abs(yv) < 0.01 ? 1.5 : 1 }));
+    if (yv !== 0) txt(sx(X_MIN) - 14, sy(yv) + 4, String(yv), "#94a3b8", 11);
+  }
+  // 垂直
+  var piTicks = [-4, -3, -2, -1, 1, 2, 3, 4];
+  for (var ti = 0; ti < piTicks.length; ti++){
+    var px = piTicks[ti] * Math.PI;
+    svg.appendChild(el("line", { x1:sx(px), y1:sy(Y_MIN), x2:sx(px), y2:sy(Y_MAX),
+      stroke: "#eef0f4", "stroke-width": 1 }));
+    var label = piTicks[ti] === 1 ? "π" : piTicks[ti] === -1 ? "-π" : piTicks[ti] + "π";
+    txt(sx(px), sy(0) + 16, label, "#94a3b8", 11);
+  }
+  // 轴
+  svg.appendChild(el("line", { x1:sx(X_MIN) - 10, y1:sy(0), x2:sx(X_MAX) + 10, y2:sy(0),
+    stroke:"#94a3b8", "stroke-width":1.5 }));
+  svg.appendChild(el("line", { x1:sx(X_MIN), y1:sy(Y_MIN) - 8, x2:sx(X_MIN), y2:sy(Y_MAX) + 8,
+    stroke:"#94a3b8", "stroke-width":1.5 }));
+  txt(sx(X_MAX) + 16, sy(0) + 4, "x", "#64748b", 13, "bold");
+  txt(sx(X_MIN) - 14, sy(2) - 8, "y", "#64748b", 13, "bold");
+
+  /* 方波（灰色）—— 用竖直线段画跳变 */
+  var swPath = "";
+  var prevY = squareWave(X_MIN, freq);
+  swPath = "M" + sx(X_MIN) + " " + sy(prevY);
+  var swStep = (X_MAX - X_MIN) / 600;
+  for (var x = X_MIN + swStep; x <= X_MAX + swStep * 0.5; x += swStep){
+    var curY = squareWave(x, freq);
+    if (curY !== prevY){
+      // 跳变处画竖线
+      swPath += " L" + sx(x) + " " + sy(prevY);
+      swPath += " L" + sx(x) + " " + sy(curY);
+    }
+    swPath += " L" + sx(x) + " " + sy(curY);
+    prevY = curY;
+  }
+  svg.appendChild(el("path", { d: swPath, fill:"none", stroke:"#9CA8C0", "stroke-width":3, "stroke-linejoin":"round", opacity:0.6 }));
+
+  /* 各谐波分量（细彩色线，仅画到 current 的） */
+  var step = (X_MAX - X_MIN) / 400;
+  for (var k = 1; k <= n; k++){
+    var col = harmonicColors[(k - 1) % harmonicColors.length];
+    var hPath = "M";
+    for (var x2 = X_MIN; x2 <= X_MAX; x2 += step){
+      var hy = harmonicVal(k, x2, freq);
+      hPath += (x2 === X_MIN ? "" : " L") + sx(x2) + " " + sy(hy);
+    }
+    svg.appendChild(el("path", { d: hPath, fill:"none", stroke:col, "stroke-width":1.2, opacity:0.35 }));
+  }
+
+  /* 傅里叶部分和（蓝色实线） */
+  if (n > 0){
+    var fPath = "M";
+    for (var x3 = X_MIN; x3 <= X_MAX; x3 += step){
+      var fy = partialSum(x3, n, freq);
+      fPath += (x3 === X_MIN ? "" : " L") + sx(x3) + " " + sy(fy);
+    }
+    svg.appendChild(el("path", { d: fPath, fill:"none", stroke:"#2563eb", "stroke-width":3, "stroke-linejoin":"round" }));
+  }
+
+  /* Gibbs 过冲高亮：在不连续点附近标注 */
+  if (n >= 2){
+    // 标记最近的过冲位置
+    var discontinuities = [];
+    var p = (2 * Math.PI) / freq;
+    for (var d = Math.ceil(X_MIN / p) * p; d <= X_MAX; d += p){
+      discontinuities.push(d);
+    }
+    for (var di = 0; di < discontinuities.length; di++){
+      var xd = discontinuities[di];
+      var yAtDisc = partialSum(xd + 0.01, n, freq);
+      if (Math.abs(yAtDisc) > 0.85 && Math.abs(yAtDisc) <= 1.2){
+        svg.appendChild(el("circle", { cx:sx(xd), cy:sy(yAtDisc), r:4.5,
+          fill:"none", stroke:"#dc2626", "stroke-width":2 }));
+      }
+    }
+  }
+
+  /* 收敛验证（绿色标注 RMS 误差） */
+  if (n > 0){
+    var rms = rmsError(n, freq);
+    var gy = sy(-1.85);
+    var gx = sx(X_MIN + 0.3);
+    var rectW = 180, rectH = 26;
+    svg.appendChild(el("rect", { x:gx - 4, y:gy - 14, width:rectW, height:rectH, rx:6,
+      fill:"#059669", opacity:0.12 }));
+    txt(gx + rectW / 2 - 4, gy + 4, "RMS 误差 = " + rms.toFixed(5), "#059669", 12, "bold");
+    // 收敛趋势
+    if (n > 1){
+      var rmsPrev = rmsError(n - 1, freq);
+      var ratio = rms / rmsPrev;
+      txt(gx + rectW / 2 - 4, gy + 18, "比前一步 × " + ratio.toFixed(3), "#059669", 10);
+    }
+  }
+
+  /* 顶部信息条 */
+  var bannerG = el("g", {});
+  bannerG.appendChild(el("rect", { x:W - 360, y:10, width:340, height:42, rx:8, fill:"#111827", opacity:0.88 }));
+  svg.appendChild(bannerG);
+  txt(W - 190, 37, "方波 = (4/π) Σ sin((2k−1)x) / (2k−1),  N = " + n, "#f8fafc", 14, "bold");
+
+  updateReadout();
+}
+
+function updateReadout(){
+  var n = state.current;
+  var freq = state.freq;
+  var rms = n > 0 ? rmsError(n, freq) : 1;
+  var el2 = document.getElementById("readout");
+
+  // 构建当前求和公式
+  var formulaParts = [];
+  for (var k = 1; k <= Math.min(n, 4); k++){
+    var m = 2 * k - 1;
+    var amp = (4 / Math.PI / m);
+    if (k > 1) formulaParts.push(" + ");
+    if (freq > 1){
+      formulaParts.push("(" + amp.toFixed(3) + ")·sin(" + m + freq + "x)");
+    } else {
+      formulaParts.push("(" + amp.toFixed(3) + ")·sin(" + m + "x)");
+    }
+  }
+  if (n > 4) formulaParts.push(" + ⋯");
+  var formulaStr = formulaParts.join("");
+
+  // 每步加入的谐波号
+  var currentHarmonic = n > 0 ? (2 * n - 1) * freq : 0;
+  var gibsNote = n >= 2 ? '<div class="warn">⚡ Gibbs 过冲 ≈ ' + (9 / Math.PI / 100 * 100).toFixed(1) + '%（理论上 ≈ 8.95%）</div>' : "";
+
+  el2.innerHTML =
+    '<div class="big">N = ' + n + '（第 ' + (n > 0 ? (2*n-1) : 0) + ' 次谐波）</div>' +
+    '<div class="formula" style="color:#2563eb">S<sub>' + n + '</sub>(x) = ' + formulaStr + '</div>' +
+    '<div>频率倍数：<b>' + freq + '</b>，当前最高谐波阶次 = ' + currentHarmonic + '</div>' +
+    '<div>RMS 误差：<b class="' + (rms < 0.05 ? "ok" : "") + '">' + rms.toFixed(5) + '</b>' +
+    (rms < 0.05 ? ' ✓ 趋近方波' : '') + '</div>' +
+    '<div>加入的谐波数：' + n + '/30' + (n < 30 ? '（可继续添加）' : '（已达上限）') + '</div>' +
+    gibsNote +
+    '<div class="msg">方波是奇函数，傅里叶展开只含奇次正弦项。每加一个谐波，逼近改善；但在跳变处，过冲幅度不随 N 增大而消失——这就是 Gibbs 现象。</div>';
+}
+
+/* ---------- 动画：逐项叠加 ---------- */
+function frame(ts){
+  if (!state.playing) return;
+  var dt = state.lastTs ? (ts - state.lastTs) / 1000 : 0;
+  state.lastTs = ts;
+  state.animAccum += dt;
+
+  // 每 0.5 秒加一个谐波
+  var interval = 0.5;
+  while (state.animAccum >= interval){
+    state.animAccum -= interval;
+    state.current = Math.min(state.n, state.current + 1);
+  }
+
+  document.getElementById("sN").value = state.n;
+  document.getElementById("vN").textContent = state.n;
+
+  redraw();
+
+  if (state.current >= state.n){
+    state.playing = false;
+    return;
+  }
+  if (state.playing) requestAnimationFrame(frame);
+}
+
+function play(){
+  state.playing = true;
+  state.current = 0;
+  state.animAccum = 0;
+  state.lastTs = 0;
+  requestAnimationFrame(frame);
+}
+
+function pause(){
+  state.playing = false;
+}
+
+function step(){
+  state.playing = false;
+  state.current = Math.min(state.n, state.current + 1);
+  document.getElementById("sN").value = state.n;
+  document.getElementById("vN").textContent = state.n;
+  redraw();
+}
+
+function resetAll(){
+  state.playing = false;
+  state.current = 0;
+  state.animAccum = 0;
+  document.getElementById("sN").value = state.n;
+  document.getElementById("vN").textContent = state.n;
+  document.getElementById("sF").value = state.freq;
+  document.getElementById("vF").textContent = state.freq;
+  redraw();
+}
+
+function reverse(){
+  state.playing = false;
+  state.current = Math.max(0, state.current - 1);
+  redraw();
+}
+
+/* ---------- SciDemo 接口 ---------- */
+function setParams(p){
+  if (p.n !== undefined){
+    state.n = Math.max(1, Math.min(30, Math.round(p.n)));
+  }
+  if (p.freq !== undefined){
+    state.freq = Math.max(1, Math.min(5, Math.round(p.freq)));
+  }
+  state.current = state.n;
+  state.playing = false;
+  state.animAccum = 0;
+  document.getElementById("sN").value = state.n;
+  document.getElementById("vN").textContent = state.n;
+  document.getElementById("sF").value = state.freq;
+  document.getElementById("vF").textContent = state.freq;
+  redraw();
+}
+
+function verify(){
+  var results = [];
+  var prevRms = Infinity;
+  var monotonically = true;
+  for (var i = 1; i <= 30; i++){
+    var r = rmsError(i, state.freq);
+    if (r > prevRms + 1e-9) monotonically = false;
+    results.push({ n: i, rms: r });
+    prevRms = r;
+  }
+  var currentRms = rmsError(state.current, state.freq);
+  var expectedApprox = state.current > 0 ? 0.5 / Math.sqrt(state.current) : 1;
+  return {
+    mode: "fourier",
+    n: state.current,
+    freq: state.freq,
+    rmsError: currentRms,
+    monotonicallyDecreasing: monotonically,
+    gibbsPresent: state.current >= 2 && rmsError(state.current, state.freq) > 0.01,
+    expectedConvergence: expectedApprox,
+    allRms: results
+  };
+}
+
+window.SciDemo = {
+  setParams: setParams,
+  play: play,
+  pause: pause,
+  step: step,
+  reset: resetAll,
+  reverse: reverse,
+  verify: verify,
+  state: function(){ return { n: state.current, targetN: state.n, freq: state.freq, playing: state.playing }; }
+};
+Object.defineProperty(window.SciDemo, "isReady", { get: function(){ return true; } });
+
+/* ---------- 事件绑定 ---------- */
+var sN = document.getElementById("sN"), vN = document.getElementById("vN");
+var sF = document.getElementById("sF"), vF = document.getElementById("vF");
+
+sN.oninput = function(){
+  state.n = +sN.value; vN.textContent = state.n;
+  state.playing = false; state.current = state.n; redraw();
+};
+sF.oninput = function(){
+  state.freq = +sF.value; vF.textContent = state.freq;
+  state.playing = false; state.current = state.n; redraw();
+};
+
+document.getElementById("btnPlay").onclick = play;
+document.getElementById("btnPause").onclick = pause;
+document.getElementById("btnStep").onclick = step;
+document.getElementById("btnReset").onclick = resetAll;
+document.getElementById("btnCopy").onclick = function(){
+  var u = new URL(location.href);
+  u.searchParams.set("n", state.n);
+  u.searchParams.set("freq", state.freq);
+  var s = u.href;
+  if (navigator.clipboard) navigator.clipboard.writeText(s).then(function(){ alert("链接已复制"); });
+  else { prompt("复制链接", s); }
+};
+
+document.addEventListener("keydown", function(e){
+  if (e.key === " ") { e.preventDefault(); if (state.playing) state.playing = false; else play(); }
+  else if (e.key === "ArrowRight") { step(); }
+  else if (e.key === "r" || e.key === "R") { resetAll(); }
+});
+
+/* ---------- 初始化 + URL ---------- */
+(function init(){
+  var q = new URLSearchParams(location.search);
+  var n = parseInt(q.get("n"), 10);
+  var freq = parseInt(q.get("freq"), 10);
+  if (Number.isInteger(n) && n >= 1 && n <= 30) state.n = n;
+  if (Number.isInteger(freq) && freq >= 1 && freq <= 5) state.freq = freq;
+  state.current = state.n;
+  sN.value = state.n; vN.textContent = state.n;
+  sF.value = state.freq; vF.textContent = state.freq;
+  redraw();
+})();
+
+})();
+</script>
+</body>
+</html>

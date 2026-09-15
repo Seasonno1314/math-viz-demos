@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-B02 Taylor 展开 · 大数学交互交付</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#f8fafc;color:#1e293b;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%);color:#fff;padding:14px 28px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.header .badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 10px;font-size:12px;letter-spacing:.5px;font-weight:600}
+.header h1{font-size:18px;font-weight:700;letter-spacing:.3px}
+.header .sub{font-size:12px;opacity:.75;margin-left:auto}
+.main{max-width:1180px;margin:0 auto;padding:16px;display:grid;grid-template-columns:1fr 310px;gap:16px}
+@media(max-width:880px){.main{grid-template-columns:1fr}.right-panel{order:-1}}
+.svg-wrap{background:#fff;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.08);overflow:hidden;position:relative}
+.svg-wrap svg{display:block;width:100%;height:auto}
+.right-panel{display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border-radius:10px;box-shadow:0 1px 5px rgba(0,0,0,.07);padding:16px}
+.card h3{font-size:13px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;border-bottom:2px solid #e2e8f0;padding-bottom:6px}
+.ctrl-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ctrl-row label{font-size:13px;font-weight:600;color:#334155;min-width:70px}
+.ctrl-row input[type=range]{flex:1;height:6px;-webkit-appearance:none;appearance:none;background:#cbd5e1;border-radius:3px;outline:none}
+.ctrl-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#2563eb;cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ctrl-row .val{font-size:14px;font-weight:700;color:#2563eb;min-width:28px;text-align:right}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.btn{border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:4px}
+.btn:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.btn-play{background:#2563eb;color:#fff}.btn-play.active{background:#dc2626}
+.btn-step{background:#059669;color:#fff}
+.btn-reset{background:#64748b;color:#fff}
+.btn-copy{background:#7c3aed;color:#fff}
+.readout{font-size:12px;line-height:1.7;color:#475569}
+.readout .formula{font-family:'Cambria Math','Times New Roman',serif;font-size:13.5px;color:#1e293b;background:#f1f5f9;padding:6px 10px;border-radius:6px;border:1px solid #e2e8f0;margin:6px 0;word-break:break-all}
+.readout .error-val{font-weight:700;font-size:14px}
+.readout .error-good{color:#059669}
+.readout .error-warn{color:#dc2626}
+.questions{font-size:12.5px;line-height:1.65;color:#475569}
+.questions .q{background:#f0f9ff;border-left:3px solid #2563eb;padding:8px 10px;border-radius:0 6px 6px 0;margin-bottom:8px}
+.questions .q::before{content:'Q';display:inline-block;background:#2563eb;color:#fff;width:18px;height:18px;border-radius:50%;text-align:center;line-height:18px;font-size:10px;font-weight:700;margin-right:6px;vertical-align:middle}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;margin-top:6px}
+.legend span{display:flex;align-items:center;gap:4px}
+.legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.footer-note{text-align:center;font-size:11px;color:#94a3b8;padding:8px 16px 16px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="badge">本科 · C-B02</span>
+  <h1>Taylor 展开 · 大数学交互交付</h1>
+  <span class="sub">Sin(x) Taylor Polynomial Approximation</span>
+</div>
+
+<div class="main">
+  <div class="svg-wrap">
+    <svg id="canvas" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="plotClip"><rect id="clipRect" x="80" y="30" width="880" height="640"/></clipPath>
+        <pattern id="gridMinor" width="22" height="40" patternUnits="userSpaceOnUse">
+          <line x1="0" y1="0" x2="0" y2="40" stroke="#e8ecf0" stroke-width=".5"/>
+          <line x1="0" y1="0" x2="22" y2="0" stroke="#e8ecf0" stroke-width=".5"/>
+        </pattern>
+      </defs>
+      <rect width="1000" height="720" fill="#f8fafc"/>
+      <rect id="gridBg" x="80" y="30" width="880" height="640" fill="url(#gridMinor)"/>
+      <g id="gridMajor" clip-path="url(#plotClip)"></g>
+      <g id="axesGroup" clip-path="url(#plotClip)"></g>
+      <g id="errorPath" clip-path="url(#plotClip)"></g>
+      <g id="curvesGroup" clip-path="url(#plotClip)"></g>
+      <g id="crosshairGroup"></g>
+      <g id="labelsGroup"></g>
+      <g id="tooltipGroup" style="pointer-events:none"></g>
+    </svg>
+    <div class="legend" style="position:absolute;bottom:8px;left:90px">
+      <span><span class="dot" style="background:#2563eb"></span>sin(x) 目标函数</span>
+      <span><span class="dot" style="background:#E8B964"></span>Taylor 多项式</span>
+      <span><span class="dot" style="background:rgba(220,38,38,.25)"></span>误差区域</span>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="card">
+      <h3>参数控制</h3>
+      <div class="ctrl-row">
+        <label>项数 N</label>
+        <input type="range" id="sliderN" min="1" max="20" value="5">
+        <span class="val" id="valN">5</span>
+      </div>
+      <div class="ctrl-row">
+        <label>展开点 x₀</label>
+        <input type="range" id="sliderX0" min="-3" max="3" value="0" step="0.1">
+        <span class="val" id="valX0" style="min-width:42px">0.0</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-play" id="btnPlay" onclick="togglePlay()">▶ 播放</button>
+        <button class="btn btn-step" onclick="SciDemo.step()">⏭ 单步</button>
+        <button class="btn btn-reset" onclick="SciDemo.reset()">↺ 重置</button>
+        <button class="btn btn-copy" onclick="copyLink()">🔗 链接</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>实时读数</h3>
+      <div class="readout">
+        <div>当前多项式：</div>
+        <div class="formula" id="formulaText">T₅(x) = x − x³/3! + x⁵/5!</div>
+        <div>展开点 x₀ = <span id="readX0">0</span></div>
+        <div style="margin-top:4px">可见区间最大误差：</div>
+        <div class="error-val error-good" id="errorVal">0.0018</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>课堂思考</h3>
+      <div class="questions">
+        <div class="q">先猜：展开到第 5 项，sin(0.5) 的近似误差有多大？</div>
+        <div class="q">验证：为什么 x₀=0 时 Taylor 展开叫 Maclaurin 展开？</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-note">键盘快捷键：Space 播放/暂停 · → 单步 · R 重置 · 拖动滑块调参</div>
+
+<script>
+(function(){
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  const PLOT = { xMin:-6, xMax:6, yMin:-3, yMax:3, l:80, r:960, t:30, b:670 };
+  const W = PLOT.r - PLOT.l;
+  const H = PLOT.b - PLOT.t;
+  const THRESH = 0.001;
+
+  let state = { n:5, x0:0, playing:false, animId:null };
+
+  const svg = document.getElementById('canvas');
+  const sliderN = document.getElementById('sliderN');
+  const sliderX0 = document.getElementById('sliderX0');
+  const valN = document.getElementById('valN');
+  const valX0 = document.getElementById('valX0');
+  const formulaText = document.getElementById('formulaText');
+  const errorValEl = document.getElementById('errorVal');
+  const readX0 = document.getElementById('readX0');
+  const btnPlay = document.getElementById('btnPlay');
+
+  function toSX(x){ return PLOT.l + (x - PLOT.xMin)/(PLOT.xMax - PLOT.xMin)*W; }
+  function toSY(y){ return PLOT.t + (PLOT.yMax - y)/(PLOT.yMax - PLOT.yMin)*H; }
+  function fromSX(sx){ return PLOT.xMin + (sx - PLOT.l)/W*(PLOT.xMax - PLOT.xMin); }
+
+  function sinX(x){ return Math.sin(x); }
+
+  function taylorCoeffs(n, x0){
+    const c = [];
+    let cv = Math.sin(x0), sv = Math.cos(x0);
+    for(let k=0;k<n;k++){
+      c.push(cv / factorial(k));
+      const nv = cv*0 - sv*(-1);
+      const ns = sv*0 + cv*(-1);
+      cv = nv; sv = ns;
+    }
+    return c;
+  }
+  function factorial(k){ let r=1; for(let i=2;i<=k;i++) r*=i; return r; }
+
+  function taylorEval(coeffs, x0, x){
+    let sum=0, dx=x-x0;
+    for(let k=coeffs.length-1;k>=0;k--) sum = sum*dx + coeffs[k];
+    return sum;
+  }
+
+  function maxError(coeffs, x0){
+    const steps=500;
+    let maxE=0;
+    for(let i=0;i<=steps;i++){
+      const x = PLOT.xMin + i/steps*(PLOT.xMax-PLOT.xMin);
+      const e = Math.abs(taylorEval(coeffs,x0,x) - sinX(x));
+      if(e>maxE) maxE=e;
+    }
+    return maxE;
+  }
+
+  function clearEl(el){ while(el.firstChild) el.removeChild(el.firstChild); }
+
+  function drawGrid(){
+    const gMaj = document.getElementById('gridMajor');
+    const axesG = document.getElementById('axesGroup');
+    const labG = document.getElementById('labelsGroup');
+    clearEl(gMaj); clearEl(axesG); clearEl(labG);
+
+    for(let x=Math.ceil(PLOT.xMin);x<=PLOT.xMax;x++){
+      const sx = toSX(x);
+      const line = document.createElementNS(SVG_NS,'line');
+      Object.entries({x1:sx,y1:PLOT.t,x2:sx,y2:PLOT.b,stroke:'#d0d7de','stroke-width':1}).forEach(([k,v])=>line.setAttribute(k,v));
+      gMaj.appendChild(line);
+      const t = document.createElementNS(SVG_NS,'text');
+      t.setAttribute('x',sx); t.setAttribute('y',PLOT.b+18);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','12'); t.setAttribute('fill','#64748b');
+      t.textContent = x===0?'':x;
+      labG.appendChild(t);
+    }
+    for(let y=Math.ceil(PLOT.yMin*2)/2;y<=PLOT.yMax;y+=0.5){
+      const sy = toSY(y);
+      if(Math.abs(y)%1 < 0.01 || Math.abs(y)%1 > 0.99){
+        const line = document.createElementNS(SVG_NS,'line');
+        Object.entries({x1:PLOT.l,y1:sy,x2:PLOT.r,y2:sy,stroke:'#d0d7de','stroke-width':1}).forEach(([k,v])=>line.setAttribute(k,v));
+        gMaj.appendChild(line);
+        const t = document.createElementNS(SVG_NS,'text');
+        t.setAttribute('x',PLOT.l-10); t.setAttribute('y',sy+4);
+        t.setAttribute('text-anchor','end'); t.setAttribute('font-size','12'); t.setAttribute('fill','#64748b');
+        t.textContent = Math.abs(y)<0.01?'':y;
+        labG.appendChild(t);
+      }
+    }
+
+    const axH = document.createElementNS(SVG_NS,'line');
+    Object.entries({x1:PLOT.l,y1:toSY(0),x2:PLOT.r,y2:toSY(0),stroke:'#334155','stroke-width':1.5}).forEach(([k,v])=>axH.setAttribute(k,v));
+    axesG.appendChild(axH);
+    const axV = document.createElementNS(SVG_NS,'line');
+    Object.entries({x1:toSX(0),y1:PLOT.t,x2:toSX(0),y2:PLOT.b,stroke:'#334155','stroke-width':1.5}).forEach(([k,v])=>axV.setAttribute(k,v));
+    axesG.appendChild(axV);
+
+    for(const [label,px,py] of [['x',PLOT.r+10,toSY(0)-8],['y',toSX(0)+10,PLOT.t-8]]){
+      const t = document.createElementNS(SVG_NS,'text');
+      t.setAttribute('x',px); t.setAttribute('y',py);
+      t.setAttribute('font-size','14'); t.setAttribute('font-style','italic'); t.setAttribute('fill','#334155');
+      t.setAttribute('font-weight','600');
+      t.textContent=label;
+      axesG.appendChild(t);
+    }
+  }
+
+  function drawCurves(){
+    const cG = document.getElementById('curvesGroup');
+    const eG = document.getElementById('errorPath');
+    clearEl(cG); clearEl(eG);
+
+    const coeffs = taylorCoeffs(state.n, state.x0);
+    const steps = 600;
+
+    let sinPts = '', tayPts = '';
+    for(let i=0;i<=steps;i++){
+      const x = PLOT.xMin + i/steps*(PLOT.xMax - PLOT.xMin);
+      const sx = toSX(x);
+      const sySin = toSY(sinX(x));
+      const syTay = toSY(taylorEval(coeffs, state.x0, x));
+      const clampSin = Math.max(PLOT.t-5, Math.min(PLOT.b+5, sySin));
+      const clampTay = Math.max(PLOT.t-50, Math.min(PLOT.b+50, syTay));
+      sinPts += sx.toFixed(2)+','+clampSin.toFixed(2)+' ';
+      tayPts += sx.toFixed(2)+','+clampTay.toFixed(2)+' ';
+    }
+
+    const sinPath = document.createElementNS(SVG_NS,'polyline');
+    Object.entries({points:sinPts.trim(),fill:'none',stroke:'#2563eb','stroke-width':2.5,'stroke-linejoin':'round'}).forEach(([k,v])=>sinPath.setAttribute(k,v));
+    cG.appendChild(sinPath);
+
+    const tayPath = document.createElementNS(SVG_NS,'polyline');
+    Object.entries({points:tayPts.trim(),fill:'none',stroke:'#E8B964','stroke-width':2.5,'stroke-linejoin':'round','stroke-dasharray':'none'}).forEach(([k,v])=>tayPath.setAttribute(k,v));
+    cG.appendChild(tayPath);
+
+    const errPts = [];
+    for(let i=0;i<=steps;i++){
+      const x = PLOT.xMin + i/steps*(PLOT.xMax - PLOT.xMin);
+      const sySin = toSY(sinX(x));
+      const syTay = toSY(taylorEval(coeffs, state.x0, x));
+      const clamped = Math.max(PLOT.t-5, Math.min(PLOT.b+5, sySin));
+      const clamped2 = Math.max(PLOT.t-50, Math.min(PLOT.b+50, syTay));
+      errPts.push({sx:toSX(x),sy1:clamped,sy2:clamped2});
+    }
+
+    const topPts = errPts.map(p=>p.sx.toFixed(2)+','+Math.min(p.sy1,p.sy2).toFixed(2)).join(' ');
+    const botPts = [...errPts].reverse().map(p=>p.sx.toFixed(2)+','+Math.max(p.sy1,p.sy2).toFixed(2)).join(' ');
+    const errPoly = document.createElementNS(SVG_NS,'polygon');
+    Object.entries({points:topPts+' '+botPts,fill:'rgba(220,38,38,0.15)',stroke:'none'}).forEach(([k,v])=>errPoly.setAttribute(k,v));
+    eG.appendChild(errPoly);
+
+    const err = maxError(coeffs, state.x0);
+    errorValEl.textContent = err < 0.00001 ? err.toExponential(2) : err.toFixed(6);
+    if(err < THRESH){ errorValEl.className = 'error-val error-good'; }
+    else { errorValEl.className = 'error-val error-warn'; }
+
+    readX0.textContent = state.x0.toFixed(1);
+    formulaText.innerHTML = buildFormulaHTML(state.n, state.x0);
+  }
+
+  function buildFormulaHTML(n, x0){
+    const c = taylorCoeffs(n, x0);
+    let terms = [];
+    for(let k=0;k<n;k++){
+      const coeff = c[k];
+      if(Math.abs(coeff) < 1e-12) continue;
+      const frac = rationalCoeff(coeff, k);
+      if(k===0){ terms.push(frac); }
+      else if(k===1){
+        if(Math.abs(coeff-1)<1e-9) terms.push('(x'+signStr(-x0)+')');
+        else if(Math.abs(coeff+1)<1e-9) terms.push('−(x'+signStr(-x0)+')');
+        else terms.push(frac+'·(x'+signStr(-x0)+')');
+      }
+      else {
+        let part = '';
+        if(Math.abs(Math.abs(coeff)-1)<1e-9) part = '';
+        else part = frac+'·';
+        const dx = x0===0 ? 'x' : '(x'+signStr(-x0)+')';
+        part += dx+'<sup>' + k + '</sup>';
+        if(terms.length>0 && coeff>0) part = ' + ' + part;
+        else if(terms.length>0 && coeff<0) part = ' − ' + part.substring(3);
+        else if(coeff<0) part = '−' + part;
+        terms.push(part);
+        continue;
+      }
+      if(terms.length>1){ /* handled above */ }
+    }
+    let html = 'T<sub>' + n + '</sub>(x) = ';
+    if(terms.length===0) return html + '0';
+    let first = true;
+    for(let k=0;k<n;k++){
+      const coeff = c[k];
+      if(Math.abs(coeff)<1e-12) continue;
+      if(first){ first = false; }
+      let termStr = '';
+      if(k===0){
+        termStr = rationalCoeff(coeff, k);
+      } else {
+        const dx = x0===0 ? 'x' : '(x'+signStr(-x0)+')';
+        const absC = Math.abs(coeff);
+        if(Math.abs(absC-1/factorial(k))<1e-9){
+          termStr = dx + '<sup>' + k + '</sup>/' + factorial(k);
+        } else {
+          termStr = rationalCoeff(coeff, k) + '·' + dx + '<sup>' + k + '</sup>';
+        }
+        if(coeff > 0) termStr = ' + ' + termStr;
+        else termStr = ' − ' + termStr.substring(3);
+      }
+      html += termStr;
+    }
+    return html;
+  }
+
+  function rationalCoeff(coeff, k){
+    const f = factorial(k);
+    let num = Math.round(coeff * f);
+    let den = f;
+    const g = gcd(Math.abs(num), den);
+    num /= g; den /= g;
+    if(den===1) return ''+num;
+    return num + '/' + den;
+  }
+
+  function gcd(a,b){ return b===0?a:gcd(b,a%b); }
+
+  function signStr(v){ return v>=0?'+'+fmt(v):fmt(v); }
+  function fmt(v){
+    if(Math.abs(v)<1e-9) return '';
+    const s = v.toFixed(1);
+    return s==='.0'?'':s.replace(/\.0$/,'');
+  }
+
+  function updateSliderLabels(){
+    valN.textContent = state.n;
+    valX0.textContent = state.x0.toFixed(1);
+  }
+
+  function setParams(p){
+    if(p.n!==undefined) state.n = Math.max(1,Math.min(20,Math.round(p.n)));
+    if(p.x0!==undefined) state.x0 = Math.max(-3,Math.min(3,Math.round(p.x0*10)/10));
+    sliderN.value = state.n;
+    sliderX0.value = state.x0;
+    updateSliderLabels();
+    drawCurves();
+  }
+
+  function readURL(){
+    const params = new URLSearchParams(location.search);
+    if(params.has('n')) state.n = Math.max(1,Math.min(20,parseInt(params.get('n'))||5));
+    if(params.has('x0')) state.x0 = Math.max(-3,Math.min(3,parseFloat(params.get('x0'))||0));
+    sliderN.value = state.n;
+    sliderX0.value = state.x0;
+    updateSliderLabels();
+  }
+
+  function togglePlay(){
+    if(state.playing){ pause(); }
+    else { play(); }
+  }
+
+  function play(){
+    state.playing = true;
+    btnPlay.textContent = '⏸ 暂停';
+    btnPlay.classList.add('active');
+    stepAnim();
+  }
+
+  function pause(){
+    state.playing = false;
+    btnPlay.textContent = '▶ 播放';
+    btnPlay.classList.remove('active');
+    if(state.animId) cancelAnimationFrame(state.animId);
+    state.animId = null;
+  }
+
+  let animStepTimer = 0;
+  function stepAnim(ts){
+    if(!state.playing) return;
+    if(!ts) ts = performance.now();
+    if(ts - animStepTimer > 700){
+      animStepTimer = ts;
+      if(state.n < 20){
+        state.n++;
+        sliderN.value = state.n;
+        valN.textContent = state.n;
+        drawCurves();
+      } else {
+        pause();
+        return;
+      }
+    }
+    state.animId = requestAnimationFrame(stepAnim);
+  }
+
+  function copyLink(){
+    const url = new URL(location.href);
+    url.searchParams.set('n', state.n);
+    url.searchParams.set('x0', state.x0.toFixed(1));
+    navigator.clipboard.writeText(url.toString()).then(()=>{
+      const btn = document.querySelector('.btn-copy');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✓ 已复制';
+      setTimeout(()=>btn.innerHTML=orig, 1200);
+    }).catch(()=>{
+      prompt('复制链接：', url.toString());
+    });
+  }
+
+  sliderN.addEventListener('input', ()=>{
+    state.n = parseInt(sliderN.value);
+    valN.textContent = state.n;
+    drawCurves();
+  });
+  sliderX0.addEventListener('input', ()=>{
+    state.x0 = parseFloat(sliderX0.value);
+    valX0.textContent = state.x0.toFixed(1);
+    drawCurves();
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.target.tagName==='INPUT') return;
+    if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+    else if(e.code==='ArrowRight'){ e.preventDefault(); SciDemo.step(); }
+    else if(e.code==='KeyR'){ e.preventDefault(); SciDemo.reset(); }
+  });
+
+  function tooltipSetup(){
+    const tg = document.getElementById('tooltipGroup');
+    const ch = document.getElementById('crosshairGroup');
+    const ttBg = document.createElementNS(SVG_NS,'rect');
+    const ttText = document.createElementNS(SVG_NS,'text');
+    const chLine = document.createElementNS(SVG_NS,'line');
+
+    Object.entries({rx:0,fill:'rgba(30,41,59,.92)',rx:5,ry:5}).forEach(([k,v])=>ttBg.setAttribute(k,v));
+    ttBg.setAttribute('x','0'); ttBg.setAttribute('y','0');
+    ttBg.setAttribute('width','180'); ttBg.setAttribute('height','68');
+    ttBg.setAttribute('display','none');
+    ttBg.style.pointerEvents='none';
+    ttText.setAttribute('font-size','12'); ttText.setAttribute('fill','#e2e8f0');
+    ttText.setAttribute('font-family','monospace'); ttText.setAttribute('display','none');
+    ttText.style.pointerEvents='none';
+    chLine.setAttribute('stroke','rgba(100,116,139,.4)'); chLine.setAttribute('stroke-width','1');
+    chLine.setAttribute('stroke-dasharray','4,4'); chLine.setAttribute('display','none');
+    chLine.style.pointerEvents='none';
+
+    tg.appendChild(ttBg); tg.appendChild(ttText); ch.appendChild(chLine);
+
+    const coeffs = taylorCoeffs(state.n, state.x0);
+
+    svg.addEventListener('mousemove', (e)=>{
+      const rect = svg.getBoundingClientRect();
+      const sx = (e.clientX - rect.left)/rect.width * 1000;
+      const sy = (e.clientY - rect.top)/rect.height * 720;
+      if(sx < PLOT.l || sx > PLOT.r || sy < PLOT.t || sy > PLOT.b){
+        ttBg.setAttribute('display','none'); ttText.setAttribute('display','none'); chLine.setAttribute('display','none');
+        return;
+      }
+      const x = fromSX(sx);
+      const ySin = sinX(x);
+      const yTay = taylorEval(coeffs, state.x0, x);
+      const err = Math.abs(ySin - yTay);
+
+      chLine.setAttribute('x1',sx); chLine.setAttribute('x2',sx);
+      chLine.setAttribute('y1',PLOT.t); chLine.setAttribute('y2',PLOT.b);
+      chLine.setAttribute('display','');
+
+      const tx = sx+15, ty = Math.max(40, Math.min(sy-10, PLOT.b-80));
+      ttBg.setAttribute('x',tx); ttBg.setAttribute('y',ty);
+      ttBg.setAttribute('display','');
+      ttText.setAttribute('x',tx+8); ttText.setAttribute('y',ty+18);
+      ttText.setAttribute('display','');
+
+      const lines = [
+        'x = '+x.toFixed(3),
+        'sin(x) = '+ySin.toFixed(6),
+        'T('+state.n+') = '+yTay.toFixed(6),
+        'error = '+err.toExponential(2)
+      ];
+      clearEl(ttText);
+      lines.forEach((line,i)=>{
+        const tspan = document.createElementNS(SVG_NS,'tspan');
+        tspan.setAttribute('x',tx+8);
+        tspan.setAttribute('y',ty+18+i*17);
+        tspan.textContent = line;
+        if(i===3) tspan.setAttribute('fill', err<THRESH?'#059669':'#fbbf24');
+        ttText.appendChild(tspan);
+      });
+    });
+
+    svg.addEventListener('mouseleave', ()=>{
+      ttBg.setAttribute('display','none'); ttText.setAttribute('display','none'); chLine.setAttribute('display','none');
+    });
+  }
+
+  window.togglePlay = togglePlay;
+
+  window.SciDemo = {
+    setParams,
+    play, pause,
+    step(){ if(state.n<20){state.n++;sliderN.value=state.n;valN.textContent=state.n;drawCurves();} },
+    reset(){ pause(); state.n=1; state.x0=0; sliderN.value=1; sliderX0.value=0; updateSliderLabels(); drawCurves(); },
+    reverse(){ if(state.n>1){state.n--;sliderN.value=state.n;valN.textContent=state.n;drawCurves();} },
+    verify(){
+      const c = taylorCoeffs(state.n, state.x0);
+      const e = maxError(c, state.x0);
+      const cPrev = taylorCoeffs(Math.max(1,state.n-1), state.x0);
+      const ePrev = maxError(cPrev, state.x0);
+      const ok = state.n===1 || e <= ePrev;
+      return { n:state.n, x0:state.x0, maxError:e, errorDecreases:ok,
+               msg:ok?'✓ 第'+state.n+'项误差 '+e.toFixed(6)+' ≤ 前一项误差 '+ePrev.toFixed(6)
+                     :'✗ 误差未随项数增加而减小' };
+    },
+    get state(){ return {n:state.n, x0:state.x0}; },
+    get isReady(){ return true; }
+  };
+
+  readURL();
+  drawGrid();
+  drawCurves();
+  tooltipSetup();
+})();
+</script>
+</body>
+</html>

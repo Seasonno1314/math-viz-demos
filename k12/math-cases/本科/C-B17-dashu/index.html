@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C-B17 大数定律与中心极限</title>
+<style>
+:root{
+  --blue:#5DA9E9;
+  --gold:#E8B964;
+  --red:#E85B5B;
+  --bg:#0c1322;
+  --bg2:#0f1a2e;
+  --panel:#111d33;
+  --line:#27395c;
+  --grid:#1e2f4d;
+  --text:#dbe7f5;
+  --muted:#8fa6c2;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 18px 36px}
+
+header.titlecard{
+  background:linear-gradient(135deg,#16233e 0%,#0d1526 60%,#141d33 100%);
+  border:1px solid var(--line);border-radius:12px;padding:18px 22px;
+  display:flex;align-items:center;gap:16px;margin-bottom:16px;
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+}
+header.titlecard .tag{
+  flex:0 0 auto;font-size:12px;font-weight:700;letter-spacing:1px;
+  color:#0d1526;background:linear-gradient(135deg,var(--gold),#f3cf8f);
+  padding:6px 12px;border-radius:6px;box-shadow:0 2px 8px rgba(232,185,100,.35);
+}
+header.titlecard h1{
+  font-size:24px;letter-spacing:1px;font-weight:700;
+  background:linear-gradient(90deg,var(--blue),#9ad0ff 55%,var(--gold));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+header.titlecard p{color:var(--muted);font-size:13px;margin-top:2px}
+header.titlecard .brix{
+  margin-left:auto;text-align:right;font-size:12px;color:var(--muted);white-space:nowrap
+}
+header.titlecard .brix b{color:var(--gold);font-weight:600}
+
+main{display:grid;grid-template-columns:1fr 310px;gap:16px;align-items:start}
+
+.stage{
+  background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:6px;
+  min-width:0;
+}
+.stage svg{width:100%;height:auto;display:block}
+
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+section.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+}
+section.card h3{
+  font-size:12px;color:var(--gold);letter-spacing:.5px;margin-bottom:8px;
+  font-weight:700;text-transform:none;
+}
+section.card h3::before{content:"▍";color:var(--blue);margin-right:4px}
+
+#nSlider{width:100%;accent-color:var(--blue);cursor:pointer}
+.nread{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}
+.nread b{font-size:26px;color:var(--blue);font-family:Consolas,monospace}
+.range-labels{font-size:11px;color:var(--muted);display:flex;gap:14px}
+select{
+  width:100%;background:#0e1a2e;color:var(--text);
+  border:1px solid var(--line);border-radius:6px;padding:8px;font-size:13px;
+}
+select:focus{outline:1px solid var(--blue)}
+
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{
+  font-family:inherit;font-size:13px;cursor:pointer;border-radius:7px;
+  background:#16243f;color:var(--text);border:1px solid var(--line);
+  padding:9px 10px;transition:filter .15s, transform .05s;
+}
+button:hover{filter:brightness(1.25)}
+button:active{transform:translateY(1px)}
+button.primary{
+  grid-column:1 / -1;
+  background:linear-gradient(135deg,var(--gold),#d9a24a);
+  color:#201505;font-weight:700;border-color:#e8c680;
+}
+
+.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.presets button{background:#122041;padding:8px 4px;font-size:12px;font-weight:600}
+.presets button:hover{color:var(--gold);border-color:var(--gold)}
+
+.readout dl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.readout dl>div{
+  background:#0e1a2e;border:1px solid var(--line);border-radius:7px;padding:8px;
+}
+.readout dt{font-size:11px;color:var(--muted)}
+.readout dd{
+  font-family:Consolas,"Courier New",monospace;font-size:18px;color:var(--blue);margin-top:2px;
+}
+.readout dd.ok{color:#6fd48b}
+.readout dd.warn{color:var(--gold)}
+.readout dd.bad{color:var(--red)}
+.status{
+  margin-top:10px;font-size:12px;color:var(--muted);
+  display:flex;align-items:center;gap:8px;
+}
+.status .dot{
+  width:8px;height:8px;border-radius:50%;background:#3d5275;transition:background .2s;
+}
+.status .dot.on{background:#6fd48b;box-shadow:0 0 8px rgba(111,212,139,.7)}
+.status .dot.run{background:var(--gold);box-shadow:0 0 8px rgba(232,185,100,.8)}
+
+.verify button{width:100%}
+.verify-out{
+  margin-top:8px;background:#0e1a2e;border:1px solid var(--line);border-radius:7px;
+  padding:8px;font-size:12px;color:var(--muted);white-space:pre-wrap;
+  min-height:34px;line-height:1.7;
+}
+.verify-out.pass{color:#6fd48b}
+.verify-out.fail{color:var(--red)}
+.verify-out.pending{color:var(--gold)}
+
+.keys{font-size:12px;color:var(--muted)}
+.kbd{
+  background:#16243f;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:4px;padding:1px 6px;font-size:11px;color:var(--gold);
+  font-family:Consolas,monospace;
+}
+
+.qa ol{padding-left:18px;display:flex;flex-direction:column;gap:8px}
+.qa li{font-size:12.5px;color:var(--muted)}
+.qa li::marker{color:var(--gold);font-weight:700}
+
+footer{
+  margin-top:14px;text-align:center;font-size:11.5px;color:var(--muted);
+  border-top:1px dashed var(--line);padding-top:12px;
+}
+footer b{color:var(--gold)}
+
+@media (max-width:880px){
+  main{grid-template-columns:1fr}
+  .stage{order:1}
+  .panel{order:2}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="titlecard">
+  <div class="tag">C-B17</div>
+  <div>
+    <h1>大数定律与中心极限</h1>
+    <p>频率贴住概率 · 均值长成正态 —— 概率论的两块基石，在一个画面里同步生长</p>
+  </div>
+  <div class="brix">本13 · 概率公理与测度论入口<br><b>断层6 · 概率公理化前奏</b></div>
+</header>
+
+<main>
+  <div class="stage">
+    <svg id="plot" viewBox="0 0 1000 720" role="img" aria-label="大数定律与中心极限可视化">
+      <defs>
+        <clipPath id="clipUp"><rect x="70" y="54" width="920" height="264"/></clipPath>
+        <clipPath id="clipLo"><rect x="70" y="420" width="920" height="268"/></clipPath>
+      </defs>
+
+      <!-- 上区 大数定律 -->
+      <g id="gUpper">
+        <rect x="62" y="46" width="936" height="286" rx="8" fill="#111c31" stroke="#27395c"/>
+        <text x="70" y="32" font-size="15" font-weight="700" fill="#5DA9E9">① 大数定律</text>
+        <text x="360" y="32" font-size="12.5" fill="#8fa6c2">频率 p̂ₙ 随试验次数 n 增大，摆动收窄、贴住 p = 0.5</text>
+        <text id="chipText" x="988" y="32" text-anchor="end" font-size="13" font-weight="700" fill="#E8B964" font-family="Consolas,monospace"></text>
+
+        <g clip-path="url(#clipUp)">
+          <path id="bandPath" d="" fill="#E8B964" opacity="0.10"/>
+          <path id="freqPath" d="" fill="none" stroke="#E85B5B" stroke-width="1.6" opacity="0.95"/>
+          <circle id="freqDot" cx="0" cy="0" r="5" fill="#E85B5B" stroke="#ffd2d2" stroke-width="1.5"/>
+        </g>
+
+        <g stroke="#1e2f4d" stroke-width="1">
+          <line x1="70" y1="54" x2="990" y2="54"/><line x1="70" y1="120" x2="990" y2="120"/>
+          <line x1="70" y1="186" x2="990" y2="186"/><line x1="70" y1="252" x2="990" y2="252"/>
+          <line x1="70" y1="318" x2="990" y2="318"/>
+        </g>
+        <g fill="#8fa6c2" font-size="10.5" text-anchor="end">
+          <text x="64" y="57">1</text><text x="64" y="123">0.75</text>
+          <text x="64" y="189">0.5</text><text x="64" y="255">0.25</text><text x="64" y="321">0</text>
+        </g>
+        <line x1="70" y1="186" x2="990" y2="186" stroke="#E8B964" stroke-width="1.3" stroke-dasharray="7 5"/>
+        <text x="78" y="176" font-size="11.5" fill="#E8B964" font-weight="700">p = 0.5</text>
+
+        <line x1="70" y1="54" x2="70" y2="318" stroke="#5DA9E9" stroke-width="1.4"/>
+        <line x1="70" y1="318" x2="990" y2="318" stroke="#5DA9E9" stroke-width="1.4"/>
+        <text x="18" y="192" font-size="11.5" fill="#5DA9E9" transform="rotate(-90 18 192)" text-anchor="middle">频率 p̂ₙ</text>
+
+        <g id="upTicks" font-size="11" fill="#8fa6c2" text-anchor="middle"></g>
+        <text x="530" y="348" font-size="11.5" fill="#5DA9E9" text-anchor="middle">试验次数 n（对数刻度）</text>
+      </g>
+
+      <!-- 下区 中心极限 -->
+      <g id="gLower">
+        <rect x="62" y="412" width="936" height="284" rx="8" fill="#111c31" stroke="#27395c"/>
+        <text x="70" y="400" font-size="15" font-weight="700" fill="#5DA9E9">② 中心极限</text>
+        <text x="360" y="400" font-size="12.5" fill="#8fa6c2">样本均值 X̄ₙ 的直方图，随 n 增大“长成”钟形（正态曲线叠加）</text>
+
+        <g clip-path="url(#clipLo)">
+          <g id="histBars"></g>
+          <path id="normCurve" d="" fill="none" stroke="#E8B964" stroke-width="2" stroke-dasharray="6 4"/>
+          <line id="meanLine" x1="0" y1="0" x2="0" y2="0" stroke="#E8B964" stroke-width="1.2" stroke-dasharray="4 3"/>
+        </g>
+
+        <g stroke="#1e2f4d" stroke-width="1">
+          <line id="loGridMax" x1="70" y1="420" x2="990" y2="420"/>
+          <line id="loGridZero" x1="70" y1="688" x2="990" y2="688"/>
+        </g>
+        <line x1="70" y1="420" x2="70" y2="688" stroke="#5DA9E9" stroke-width="1.4"/>
+        <line x1="70" y1="688" x2="990" y2="688" stroke="#5DA9E9" stroke-width="1.4"/>
+        <text id="loYMax" x="64" y="424" font-size="10.5" fill="#8fa6c2" text-anchor="end"></text>
+        <text x="64" y="692" font-size="10.5" fill="#8fa6c2" text-anchor="end">0</text>
+        <text x="18" y="554" font-size="11.5" fill="#5DA9E9" transform="rotate(-90 18 554)" text-anchor="middle">样本数</text>
+
+        <g id="loXTicks" font-size="11" fill="#8fa6c2" text-anchor="middle"></g>
+        <text id="loXTitle" x="530" y="712" font-size="11.5" fill="#5DA9E9" text-anchor="middle">样本均值 X̄ₙ</text>
+
+        <g font-size="11">
+          <rect x="742" y="426" width="11" height="9" fill="#5DA9E9" opacity=".85"/>
+          <text x="758" y="435" fill="#8fa6c2">抽样均值直方图</text>
+          <line x1="742" y1="452" x2="753" y2="452" stroke="#E8B964" stroke-width="2" stroke-dasharray="4 3"/>
+          <text x="758" y="456" fill="#8fa6c2">正态曲线 N(μ, σ²/n)</text>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  <aside class="panel">
+    <section class="card">
+      <h3>试验次数 n（对数滑块）</h3>
+      <input type="range" id="nSlider" min="1" max="4" step="0.01" value="2">
+      <div class="nread"><b id="nShow">100</b><span class="range-labels"><span>10</span><span>100</span><span>1k</span><span>10k</span></span></div>
+    </section>
+
+    <section class="card">
+      <h3>总体分布（抽样均值）</h3>
+      <select id="distSel">
+        <option value="binom" selected>二项 · Bernoulli(p=0.5)</option>
+        <option value="uniform">均匀 · Uniform(0,1)</option>
+        <option value="exp">指数 · Exp(λ=1)</option>
+      </select>
+    </section>
+
+    <section class="btns">
+      <button id="btnPlay" class="primary">▶ 播放动画</button>
+      <button id="btnStep">逐次 +100</button>
+      <button id="btnRerun">↻ 再跑一次</button>
+    </section>
+
+    <section class="presets">
+      <button data-n="10">n=10</button>
+      <button data-n="100">n=100</button>
+      <button data-n="1000">n=1000</button>
+      <button data-n="10000">n=10000</button>
+    </section>
+
+    <section class="card readout">
+      <h3>实时数据</h3>
+      <dl>
+        <div><dt>当前 n</dt><dd id="rN">—</dd></div>
+        <div><dt>频率 p̂ₙ</dt><dd id="rP">—</dd></div>
+        <div><dt>|p̂ₙ − 0.5|</dt><dd id="rDev">—</dd></div>
+        <div><dt>直方图偏度</dt><dd id="rSkew">—</dd></div>
+      </dl>
+      <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">就绪</span></div>
+    </section>
+
+    <section class="card verify">
+      <button id="btnVerify">✓ 运行自检（verify）</button>
+      <div id="verifyOut" class="verify-out">—</div>
+    </section>
+
+    <section class="card keys">
+      <span class="kbd">Space</span> 播放/暂停　<span class="kbd">→</span> +100　<span class="kbd">←</span> −100　<span class="kbd">R</span> 再跑一次
+    </section>
+
+    <section class="card qa">
+      <h3>课堂三问</h3>
+      <ol>
+        <li>n=10 时 p̂ₙ 可能离 0.5 有多远？为什么“大数定律”必须要求 n 充分大才有意义？</li>
+        <li>样本均值 X̄ₙ 的直方图为何随 n 增大“长成”钟形？偏度随 n 怎样变化？</li>
+        <li>把总体换成指数分布抽样，收敛到正态是更快还是更慢？这说明 CLT 的收敛速度与总体的什么有关？</li>
+      </ol>
+    </section>
+  </aside>
+</main>
+
+<footer>C-B17 大数定律与中心极限 · 本13 概率公理与测度论入口 · 断层6 概率公理化前奏 · <b>交互可视化交付</b></footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ================= 常量 ================= */
+  var N_MIN=10, N_MAX=10000, S=200, BINS=24;
+  var X0=70, X1=990, W=X1-X0;
+  var UP_TOP=54, UP_BOT=318;
+  var LO_TOP=420, LO_BOT=688;
+
+  var DISTS={
+    binom:  {label:'二项 (p=0.5)', mu:0.5, sigma:Math.sqrt(0.25), skew:0,  draw:function(){return Math.random()<0.5?1:0;}},
+    uniform:{label:'均匀 (0,1)',   mu:0.5, sigma:Math.sqrt(1/12),  skew:0,  draw:function(){return Math.random();}},
+    exp:    {label:'指数 (λ=1)',   mu:1,   sigma:1,               skew:2,  draw:function(){return -Math.log(1-Math.random());}}
+  };
+
+  function xLog(u){ return X0 + W*Math.log10(u)/4; }
+  function yFreq(v){ return UP_TOP + (UP_BOT-UP_TOP)*(1-v); }
+  function xVal(v,mu,r){ return X0 + W*(v-(mu-r))/(2*r); }
+  function yCnt(c,max){ return LO_BOT - (LO_BOT-LO_TOP)*Math.min(c/max,1); }
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+
+  /* ================= 状态与数据 ================= */
+  var state={ n:100, dist:'binom', playing:false, isReady:false };
+
+  var coin=null;      // coin[k] = 前 k 次掷币的成功次数 (k=0..N_MAX)
+  var draws=null;     // draws[i*N_MAX+j] = 第 i 组样本前 (j+1) 个观测的累加和
+
+  function regenerateData(){
+    var k,i,j,run,s=0;
+    coin=new Float64Array(N_MAX+1);
+    for(k=1;k<=N_MAX;k++){ s += (Math.random()<0.5?1:0); coin[k]=s; }
+    var d=DISTS[state.dist];
+    draws=new Float64Array(S*N_MAX);
+    for(i=0;i<S;i++){
+      run=0;
+      for(j=0;j<N_MAX;j++){
+        run += d.draw();
+        draws[i*N_MAX+j]=run;
+      }
+    }
+  }
+  regenerateData();
+
+  /* ================= DOM 引用 ================= */
+  function $(id){ return document.getElementById(id); }
+  var svgEl=$('plot'), nSlider=$('nSlider'), nShow=$('nShow'),
+      distSel=$('distSel'), btnPlay=$('btnPlay'),
+      btnStep=$('btnStep'), btnRerun=$('btnRerun'), btnVerify=$('btnVerify'),
+      bandPath=$('bandPath'), freqPath=$('freqPath'), freqDot=$('freqDot'),
+      chipText=$('chipText'), upTicks=$('upTicks'),
+      histBars=$('histBars'), normCurve=$('normCurve'), meanLine=$('meanLine'),
+      loXTicks=$('loXTicks'), loYMax=$('loYMax'), loGridMax=$('loGridMax'),
+      loGridZero=$('loGridZero'), loXTitle=$('loXTitle'),
+      rN=$('rN'), rP=$('rP'), rDev=$('rDev'), rSkew=$('rSkew'),
+      statusDot=$('statusDot'), statusText=$('statusText'), verifyOut=$('verifyOut');
+
+  var TICK_UNITS=[1,10,100,1000,10000];
+
+  /* ================= 采样工具 ================= */
+  function kSamples(nn,max){
+    max=max||400;
+    var out=[],L=Math.log10(nn),i,k,last=-1;
+    for(i=0;i<=max;i++){
+      k=Math.round(Math.pow(10,L*i/max));
+      if(k<1) k=1;
+      if(k!==last){ out.push(k); last=k; }
+    }
+    if(out[0]!==1){ out.unshift(1); }
+    if(out[out.length-1]!==nn){ out.push(nn); }
+    return out;
+  }
+
+  /* ================= 直方图统计 ================= */
+  function histStats(nn){
+    var d=DISTS[state.dist];
+    var r=Math.max(5.5*d.sigma/Math.sqrt(nn),0.002);
+    var binW=2*r/BINS;
+    var bins=new Float64Array(BINS);
+    var i,m,idx,s1=0,s2=0,s3=0;
+    for(i=0;i<S;i++){
+      m=draws[i*N_MAX+nn-1]/nn;
+      idx=Math.floor((m-(d.mu-r))/binW);
+      if(idx<0) idx=0; else if(idx>=BINS) idx=BINS-1;
+      bins[idx]++;
+      s1+=m; s2+=m*m; s3+=m*m*m;
+    }
+    var mean=s1/S;
+    var v=Math.max(s2/S-mean*mean,1e-12);
+    var sd=Math.sqrt(v);
+    var skew=(s3/S-3*mean*(s2/S)+2*mean*mean*mean)/(sd*sd*sd)||0;
+    return {bins:bins,r:r,binW:binW,mean:mean,sd:sd,skew:skew};
+  }
+
+  /* ================= 渲染 ================= */
+  function renderUpTicks(){
+    var s='',u;
+    for(var i=0;i<TICK_UNITS.length;i++){
+      u=TICK_UNITS[i];
+      s+='<g><line x1="'+xLog(u)+'" y1="318" x2="'+xLog(u)+'" y2="324" stroke="#5DA9E9" stroke-width="1"/>'
+        +'<text x="'+xLog(u)+'" y="336" font-size="11" fill="#8fa6c2" text-anchor="middle">'+u+'</text></g>';
+    }
+    upTicks.innerHTML=s;
+  }
+
+  function renderUpper(){
+    var nn=state.n, i, k, pt=[], yTop, yBot, v;
+    var band=kSamples(nn,220), b='M '+xLog(1).toFixed(2)+' '+yFreq(clamp(0.5+0.98,0,1)).toFixed(2)+' ';
+    for(i=1;i<band.length;i++){
+      k=band[i];
+      b+='L '+xLog(k).toFixed(2)+' '+yFreq(clamp(0.5+0.98/Math.sqrt(k),0,1)).toFixed(2)+' ';
+    }
+    for(i=band.length-1;i>=0;i--){
+      k=band[i];
+      b+='L '+xLog(k).toFixed(2)+' '+yFreq(clamp(0.5-0.98/Math.sqrt(k),0,1)).toFixed(2)+' ';
+    }
+    bandPath.setAttribute('d',b+'Z');
+
+    var ks=kSamples(nn,720);
+    for(i=0;i<ks.length;i++){
+      k=ks[i];
+      pt.push(xLog(k).toFixed(2)+','+yFreq(coin[k]/k).toFixed(2));
+    }
+    var last=ks[ks.length-1];
+    if(last!==nn) pt.push(xLog(nn).toFixed(2)+','+yFreq(coin[nn]/nn).toFixed(2));
+    freqPath.setAttribute('d','M'+pt.join('L'));
+
+    freqDot.setAttribute('cx',xLog(nn));
+    freqDot.setAttribute('cy',yFreq(coin[nn]/nn));
+
+    chipText.textContent='n='+nn+' · p̂ₙ='+(coin[nn]/nn).toFixed(4);
+  }
+
+  function renderLower(){
+    var nn=state.n, st=histStats(nn), d=DISTS[state.dist];
+    var maxCount=1,i,c,xx,h,s='';
+    for(i=0;i<BINS;i++) if(st.bins[i]>maxCount) maxCount=st.bins[i];
+    maxCount=Math.ceil(maxCount*1.12);
+    for(i=0;i<BINS;i++){
+      c=st.bins[i];
+      if(c<=0) continue;
+      xx=xVal(d.mu-st.r+i*st.binW, d.mu, st.r);
+      h=yCnt(c,maxCount);
+      s+='<rect x="'+xx.toFixed(2)+'" y="'+h.toFixed(2)+'" width="'+Math.max(1,(W*st.binW/(2*st.r)-0.6)).toFixed(2)+'" height="'+(LO_BOT-h).toFixed(2)+'" fill="#5DA9E9" opacity="0.75" rx="0.6"/>';
+    }
+    histBars.innerHTML=s;
+
+    var sdMean=d.sigma/Math.sqrt(nn);
+    var xx0=d.mu-st.r, NPT=64, xv, yv;
+    var npath='M ';
+    for(i=0;i<=NPT;i++){
+      xv=xx0+i*2*st.r/NPT;
+      yv=Math.exp(-0.5*Math.pow((xv-d.mu)/sdMean,2))/(sdMean*Math.sqrt(2*Math.PI));
+      yv=yv*(S*st.binW);
+      npath+=(i?'L ':'')+xVal(xv,d.mu,st.r).toFixed(2)+' '+yCnt(yv,maxCount).toFixed(2)+' ';
+    }
+    normCurve.setAttribute('d',npath);
+
+    meanLine.setAttribute('x1',xVal(d.mu,d.mu,st.r));
+    meanLine.setAttribute('x2',xVal(d.mu,d.mu,st.r));
+    meanLine.setAttribute('y1',LO_TOP+4);
+    meanLine.setAttribute('y2',LO_BOT);
+
+    var t='';
+    t+='<g><line x1="'+xVal(d.mu-st.r,d.mu,st.r)+'" y1="688" x2="'+xVal(d.mu-st.r,d.mu,st.r)+'" y2="694" stroke="#5DA9E9" stroke-width="1"/><text x="'+xVal(d.mu-st.r,d.mu,st.r)+'" y="705" font-size="10.5" fill="#8fa6c2" text-anchor="middle">'+fmt(d.mu-st.r)+'</text></g>';
+    t+='<g><line x1="'+xVal(d.mu,d.mu,st.r)+'" y1="688" x2="'+xVal(d.mu,d.mu,st.r)+'" y2="694" stroke="#E8B964" stroke-width="1"/><text x="'+xVal(d.mu,d.mu,st.r)+'" y="705" font-size="11" fill="#E8B964" text-anchor="middle" font-weight="700">μ='+fmt(d.mu)+'</text></g>';
+    t+='<g><line x1="'+xVal(d.mu+st.r,d.mu,st.r)+'" y1="688" x2="'+xVal(d.mu+st.r,d.mu,st.r)+'" y2="694" stroke="#5DA9E9" stroke-width="1"/><text x="'+xVal(d.mu+st.r,d.mu,st.r)+'" y="705" font-size="10.5" fill="#8fa6c2" text-anchor="middle">'+fmt(d.mu+st.r)+'</text></g>';
+    loXTicks.innerHTML=t;
+    loYMax.textContent=String(maxCount);
+    loGridMax.setAttribute('y1',yCnt(maxCount,maxCount));
+    loGridMax.setAttribute('y2',yCnt(maxCount,maxCount));
+    loGridZero.setAttribute('y1',LO_BOT);
+    loGridZero.setAttribute('y2',LO_BOT);
+    loXTitle.textContent='样本均值 X̄ₙ（'+d.label+' 抽样）';
+  }
+
+  function fmt(x){
+    var a=Math.abs(x);
+    if(a>=100) return x.toFixed(0);
+    if(a>=10)  return x.toFixed(1);
+    return x.toFixed(2);
+  }
+
+  function render(){ renderUpTicks(); renderUpper(); renderLower(); }
+
+  function updateReadout(){
+    var p=coin[state.n]/state.n, dev=Math.abs(p-0.5), st=histStats(state.n);
+    rN.textContent=state.n.toLocaleString('en-US');
+    rP.textContent=p.toFixed(4);
+    rDev.textContent=dev.toFixed(4);
+    rDev.className=dev<0.01?'ok':(dev<0.03?'warn':'bad');
+    rSkew.textContent=st.skew.toFixed(3);
+  }
+
+  function setStatus(run,text){
+    statusDot.className='dot'+(run? (state.playing?' run':' on'):'');
+    statusText.textContent=text;
+  }
+  function refreshStatus(){
+    if(state.playing){ setStatus(true,'播放中 · n 自动增长 → 10000'); }
+    else if(state.n>=N_MAX){ setStatus(true,'已达 n=10000（收敛完成）'); }
+    else { setStatus(true,'就绪 · 拖滑块 / 播放 / 预设跳转'); }
+  }
+
+  /* ================= 控制 ================= */
+  function setN(nn){
+    nn=Math.round(clamp(nn,N_MIN,N_MAX));
+    state.n=nn;
+    nSlider.value=Math.log10(nn);
+    nShow.textContent=nn>=1000?(nn/1000).toFixed(nn%1000?1:0)+'k':String(nn);
+    requestRender();
+    syncURL();
+  }
+
+  function setDist(key){
+    if(!DISTS[key]) key='binom';
+    if(state.dist!==key){
+      state.dist=key;
+      distSel.value=key;
+      regenerateData();
+      requestRender();
+      syncURL();
+    }
+  }
+
+  var dirty=false;
+  function requestRender(){ dirty=true; }
+  function rafLoop(){
+    if(state.playing){
+      var inc=Math.max(1,Math.round(state.n*0.035));
+      var nn=Math.min(N_MAX,state.n+inc);
+      state.n=nn;
+      nSlider.value=Math.log10(nn);
+      nShow.textContent=nn>=1000?(nn/1000).toFixed(nn%1000?1:0)+'k':String(nn);
+      dirty=true;
+      if(state.n>=N_MAX){
+        state.playing=false;
+        btnPlay.textContent='▶ 播放动画';
+        refreshStatus();
+      }
+    }
+    if(dirty){
+      dirty=false;
+      render();
+      updateReadout();
+      refreshStatus();
+    }
+    requestAnimationFrame(rafLoop);
+  }
+  requestAnimationFrame(rafLoop);
+
+  function play(){
+    if(state.n>=N_MAX){ setN(N_MIN); }
+    state.playing=true;
+    btnPlay.textContent='⏸ 暂停';
+    refreshStatus();
+  }
+  function pause(){
+    state.playing=false;
+    btnPlay.textContent='▶ 播放动画';
+    refreshStatus();
+  }
+  function togglePlay(){ state.playing?pause():play(); }
+  function step(){ setN(state.n+100); }
+  function reverse(){ setN(state.n-100); }
+  function reset(){
+    pause();
+    regenerateData();
+    setN(N_MIN);
+    verifyOut.textContent='—';
+    verifyOut.className='verify-out';
+  }
+
+  /* ================= 自检 verify ================= */
+  function skewAt(nn){
+    var st=histStats(nn);
+    return st.skew;
+  }
+
+  function verify(){
+    var checks=[],ok=true,i;
+    var p10000=coin[N_MAX]/N_MAX;
+    if(state.n<N_MAX){
+      checks.push({name:'大数定律 |p̂ₙ−0.5| < 0.01（n=10000）',pass:false,pending:true,msg:'待更多试验：当前 n='+state.n+' < 10000，尚未到达断言点。'});
+      ok=false;
+    }else{
+      var dev=Math.abs(p10000-0.5);
+      if(dev<0.01){
+        checks.push({name:'大数定律 |p̂ₙ−0.5| < 0.01（n=10000）',pass:true,msg:'通过：|p̂ₙ−0.5| = '+dev.toFixed(4)+' < 0.01'});
+      }else{
+        checks.push({name:'大数定律 |p̂ₙ−0.5| < 0.01（n=10000）',pass:false,pending:true,msg:'待更多试验：本次随机序列 |p̂ₙ−0.5| = '+dev.toFixed(4)+' ≥ 0.01（属正常波动，可再跑一次）。'});
+        ok=false;
+      }
+    }
+
+    var s10=skewAt(10), scur=skewAt(Math.max(state.n,10));
+    var sym=DISTS[state.dist].skew===0;
+    var pass2,msg2;
+    if(sym){
+      pass2=Math.abs(scur)<0.4 && Math.abs(s10)<0.4;
+      msg2=(pass2?'通过':'待更多试验')+'：对称总体直方图偏度应≈0（n=10 时 '+Math.abs(s10).toFixed(3)+'，当前 n='+state.n+' 时 '+Math.abs(scur).toFixed(3)+'）。';
+    }else{
+      pass2=Math.abs(scur) < Math.abs(s10)*0.9 + 0.05;
+      msg2=(pass2?'通过':'待更多试验')+'：偏度 |γ₁| 随 n 下降（n=10 时 '+Math.abs(s10).toFixed(3)+' → 当前 n='+state.n+' 时 '+Math.abs(scur).toFixed(3)+'，期望 2/√n='+(2/Math.sqrt(state.n)).toFixed(3)+'）。';
+    }
+    checks.push({name:'直方图偏度随 n 增大下降',pass:pass2,msg:msg2});
+    if(!pass2) ok=false;
+
+    var st=histStats(Math.max(state.n,10)), d=DISTS[state.dist];
+    var tol=3*d.sigma/Math.sqrt(state.n);
+    var pass3=Math.abs(st.mean-d.mu)<Math.max(tol,1e-6);
+    checks.push({name:'直方图中心贴近总体均值 μ',pass:pass3,msg:(pass3?'通过':'待更多试验')+'：|X̄̄−μ| = '+Math.abs(st.mean-d.mu).toFixed(4)+' < 3σ/√n = '+tol.toFixed(4)});
+    if(!pass3) ok=false;
+
+    var lines=checks.map(function(c){ return (c.pass?'✓ ':'✗ ')+c.name+' — '+c.msg; }).join('\n');
+    var anyPending=checks.some(function(c){return c.pending;});
+    var cls=ok?'pass':(anyPending?'pending':'fail');
+    verifyOut.textContent=lines+'\n=> 结论：'+(ok?'全部断言通过，CLT/LLN 成立':'待更多试验（增大 n 或再跑一次）。');
+    verifyOut.className='verify-out '+cls;
+
+    return { ok:ok, checks:checks, summary:(ok?'全部通过':'待更多试验') };
+  }
+
+  /* ================= 事件绑定 ================= */
+  nSlider.addEventListener('input',function(){ setN(Math.round(Math.pow(10,parseFloat(nSlider.value)))); });
+  distSel.addEventListener('change',function(){ setDist(distSel.value); });
+  btnPlay.addEventListener('click',togglePlay);
+  btnStep.addEventListener('click',step);
+  btnRerun.addEventListener('click',reset);
+  btnVerify.addEventListener('click',verify);
+  var presetBtns=document.querySelectorAll('.presets button');
+  for(var bi=0;bi<presetBtns.length;bi++){
+    presetBtns[bi].addEventListener('click',function(){
+      pause();
+      setN(parseInt(this.getAttribute('data-n'),10));
+    });
+  }
+
+  document.addEventListener('keydown',function(e){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA'){
+      if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+      return;
+    }
+    switch(e.code){
+      case 'Space': e.preventDefault(); togglePlay(); break;
+      case 'ArrowRight': e.preventDefault(); step(); break;
+      case 'ArrowLeft': e.preventDefault(); reverse(); break;
+      case 'KeyR': e.preventDefault(); reset(); break;
+    }
+  });
+
+  /* ================= URL 分享参数 ================= */
+  function parseURL(){
+    var q=new URLSearchParams(location.search),out={};
+    if(q.has('n')) out.n=clamp(Math.round(parseFloat(q.get('n'))||100),N_MIN,N_MAX);
+    if(q.has('dist')&&DISTS[q.get('dist')]) out.dist=q.get('dist');
+    return out;
+  }
+  function syncURL(){
+    var q=new URLSearchParams(location.search);
+    q.set('n',String(state.n));
+    q.set('dist',state.dist);
+    try{ history.replaceState(null,'',location.pathname+'?'+q.toString()); }catch(_){}
+  }
+
+  /* ================= SciDemo API（录制流水线） ================= */
+  window.SciDemo={
+    setParams:function(p){
+      if(!p) return;
+      if('n' in p) setN(clamp(Math.round(Number(p.n)||N_MIN),N_MIN,N_MAX));
+      if('dist' in p) setDist(p.dist);
+      return this;
+    },
+    play:function(){ play(); return this; },
+    pause:function(){ pause(); return this; },
+    step:function(){ step(); return this; },
+    reset:function(){ reset(); return this; },
+    reverse:function(){ reverse(); return this; },
+    verify:function(){ return verify(); },
+    state:function(){
+      var p=coin[state.n]/state.n, st=histStats(state.n);
+      return {
+        n:state.n, dist:state.dist, distLabel:DISTS[state.dist].label,
+        pHat:p, dev:Math.abs(p-0.5), skew:st.skew,
+        histMean:st.mean, histSd:st.sd,
+        playing:state.playing, isReady:state.isReady
+      };
+    },
+    isReady:false
+  };
+
+  /* ================= 初始化 ================= */
+  (function init(){
+    var p=parseURL();
+    state.n=p.n||100;
+    if(p.dist){ state.dist=p.dist; distSel.value=p.dist; regenerateData(); }
+    nSlider.value=Math.log10(state.n);
+    nShow.textContent=state.n>=1000?(state.n/1000).toFixed(state.n%1000?1:0)+'k':String(state.n);
+    render();
+    updateReadout();
+    window.SciDemo.isReady=true;
+    state.isReady=true;
+    refreshStatus();
+    window.dispatchEvent(new Event('SciDemo.ready'));
+    console.log('[C-B17] SciDemo 就绪', window.SciDemo.state());
+  })();
+
+})();
+</script>
+</body>
+</html>

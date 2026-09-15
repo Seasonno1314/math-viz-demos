@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-B05 线性变换 · 大数学交互交付</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f6f7f9; color:#1f2430; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; min-height:100vh; }
+  .wrap { max-width:1180px; margin:0 auto; padding:18px 16px 30px; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:14px; }
+  .layout { display:grid; grid-template-columns:1fr 310px; gap:16px; }
+  .stage { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  svg { width:100%; height:auto; display:block; }
+  .panel { display:flex; flex-direction:column; gap:12px; }
+  .box { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:12px 14px; }
+  .box h3 { font-size:14px; margin-bottom:8px; color:#374151; }
+  .ctl { margin-bottom:10px; }
+  .ctl label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px; }
+  .ctl label b { color:#2563eb; }
+  .ctl input[type=range] { width:100%; }
+  .btnrow { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+  button { border:none; border-radius:8px; padding:9px 0; font-size:14px; cursor:pointer; background:#eef1f6; color:#1f2430; }
+  button:hover { background:#e2e8f0; }
+  button.pri { background:#2563eb; color:#fff; }
+  button.pri:hover { background:#1d4ed8; }
+  button.on { background:#2563eb; color:#fff; }
+  .readout { font-size:13px; line-height:1.75; }
+  .readout .big { font-size:15px; font-weight:700; color:#1f2430; }
+  .ok { color:#059669; font-weight:700; }
+  .det-pos { color:#059669; }
+  .det-neg { color:#dc2626; }
+  .det-zero { color:#6b7280; }
+  .msg { font-size:12px; color:#6b7280; line-height:1.6; }
+  .q { font-size:12px; color:#6b7280; border-top:1px dashed #e3e6ec; padding-top:8px; margin-top:4px; }
+  .q b { color:#374151; }
+  .presets { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:10px; }
+  .presets button { font-size:12px; padding:7px 0; }
+  .matrix-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+  .matrix-grid input { width:100%; text-align:center; border:1px solid #d1d5db; border-radius:6px; padding:6px 4px; font-size:14px; font-family:monospace; }
+  .matrix-grid input:focus { outline:none; border-color:#2563eb; }
+  .matrix-label { font-family:monospace; font-size:13px; color:#6b7280; display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+  .matrix-label span { text-align:center; padding:2px 0; }
+  .hidden { display:none; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>C-B05 · 线性变换</h1>
+  <p class="sub">2×2 矩阵将平面上每一点线性映射到新位置。单位正方形变为平行四边形，ê₁、ê₂ 分别沿列向量方向伸缩旋转。<b>行列式 = 面积缩放因子</b>，负值表示方向翻转。</p>
+  <div class="layout">
+    <div class="stage">
+      <svg id="scene" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="线性变换可视化"></svg>
+    </div>
+    <div class="panel">
+      <div class="box">
+        <h3>变换预设</h3>
+        <div class="presets" id="presets">
+          <button id="btnRot" class="on">旋转</button>
+          <button id="btnScl">缩放</button>
+          <button id="btnShr">剪切</button>
+          <button id="btnRef">镜像</button>
+          <button id="btnCus">自定义</button>
+        </div>
+        <div id="angleCtl" class="ctl"><label>旋转角度 θ <b id="vAngle">45°</b></label><input type="range" id="sAngle" min="-180" max="180" step="1" value="45"></div>
+        <div id="scaleCtl" class="ctl hidden"><label>缩放因子 k <b id="vScale">1.5</b></label><input type="range" id="sScale" min="-3" max="3" step="0.05" value="1.5"></div>
+        <div id="shearCtl" class="ctl hidden"><label>剪切因子 s <b id="vShear">1.0</b></label><input type="range" id="sShear" min="-3" max="3" step="0.05" value="1.0"></div>
+        <div id="customCtl" class="hidden">
+          <div class="matrix-label"><span>a</span><span>b</span><span>c</span><span>d</span></div>
+          <div class="matrix-grid">
+            <input id="ma" type="number" step="0.1" value="1">
+            <input id="mb" type="number" step="0.1" value="0">
+            <input id="mc" type="number" step="0.1" value="0">
+            <input id="md" type="number" step="0.1" value="1">
+          </div>
+        </div>
+        <div class="btnrow" style="margin-top:7px">
+          <button class="pri" id="btnPlay">▶ 演示变换</button>
+          <button id="btnStep">⏭ 单步</button>
+          <button id="btnReset">↺ 复位</button>
+        </div>
+        <div class="btnrow" style="margin-top:7px">
+          <button id="btnPause">⏸ 暂停</button>
+          <button id="btnReverse">⏪ 逆向</button>
+          <button id="btnCopy">🔗 复制链接</button>
+        </div>
+      </div>
+      <div class="box">
+        <h3>实时数据</h3>
+        <div class="readout" id="readout"></div>
+      </div>
+      <div class="box">
+        <h3>课堂提问</h3>
+        <div class="q">
+          <b>先猜</b>：旋转 90° 的矩阵是什么？<br>
+          <b>验证</b>：剪切变换改变面积吗？行列式说明了什么？
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+
+var SVG_NS = "http://www.w3.org/2000/svg";
+var W = 1000, H = 720, CX = W/2, CY = H/2, SCALE = 100;
+var XMIN = -3, XMAX = 3, YMIN = -3, YMAX = 3;
+var svg = document.getElementById("scene");
+
+var state = {
+  preset: "rotate",
+  angle: 45,
+  scaleFactor: 1.5,
+  shearFactor: 1.0,
+  custom: [1, 0, 0, 1],
+  current: [1, 0, 0, 1],
+  animating: false,
+  animDir: 1,
+  lastTs: 0,
+  t: 1
+};
+
+var presets = {
+  rotate:  function(){ var r = state.angle * Math.PI / 180; return [Math.cos(r), -Math.sin(r), Math.sin(r), Math.cos(r)]; },
+  scale:   function(){ return [state.scaleFactor, 0, 0, state.scaleFactor]; },
+  shear:   function(){ return [1, state.shearFactor, 0, 1]; },
+  reflect: function(){ return [1, 0, 0, -1]; },
+  custom:  function(){ return state.custom.slice(); }
+};
+
+function getTarget(){ return presets[state.preset](); }
+
+function el(tag, attrs){
+  var e = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function clearSvg(){ while (svg.firstChild) svg.removeChild(svg.firstChild); }
+function txt(x, y, text, color, size, weight, anchor){
+  var t = el("text", { x:x, y:y, fill:color||"#374151", "font-size":size||13,
+    "text-anchor":anchor||"middle", "font-weight":weight||"normal",
+    "font-family":"'Microsoft YaHei','PingFang SC',sans-serif" });
+  t.textContent = text;
+  svg.appendChild(t);
+  return t;
+}
+
+function tx(x, y, mat){
+  var m = mat || state.current;
+  return [ m[0]*x + m[1]*y, m[2]*x + m[3]*y ];
+}
+function sx(v){ return CX + v * SCALE; }
+function sy(v){ return CY - v * SCALE; }
+
+function lerp(a, b, t){ return a + (b - a) * t; }
+function lerpMatrix(a, b, t){ return [lerp(a[0],b[0],t), lerp(a[1],b[1],t), lerp(a[2],b[2],t), lerp(a[3],b[3],t)]; }
+function computeInterpolatedMatrix(t){
+  if (state.preset === "rotate"){
+    var r = lerp(0, state.angle * Math.PI / 180, t);
+    return [Math.cos(r), -Math.sin(r), Math.sin(r), Math.cos(r)];
+  }
+  return lerpMatrix([1,0,0,1], getTarget(), t);
+}
+function fnum(x, d){ return x.toFixed(d === undefined ? 4 : d).replace(/0+$/, "").replace(/\.$/, ""); }
+
+function polygonPoints(corners, mat){
+  var pts = [];
+  for (var i = 0; i < corners.length; i++){
+    var p = tx(corners[i][0], corners[i][1], mat);
+    pts.push(sx(p[0]) + "," + sy(p[1]));
+  }
+  return pts.join(" ");
+}
+
+function drawGrid(){
+  for (var g = XMIN; g <= XMAX; g++){
+    svg.appendChild(el("line", { x1:sx(g), y1:sy(YMIN), x2:sx(g), y2:sy(YMAX), stroke:"#eef0f4", "stroke-width":1 }));
+    if (g !== 0) txt(sx(g), sy(0) + 16, String(g), "#94a3b8", 11, "normal", "middle");
+  }
+  for (var g2 = YMIN; g2 <= YMAX; g2++){
+    svg.appendChild(el("line", { x1:sx(XMIN), y1:sy(g2), x2:sx(XMAX), y2:sy(g2), stroke:"#eef0f4", "stroke-width":1 }));
+    if (g2 !== 0) txt(sx(0) - 14, sy(g2) + 4, String(g2), "#94a3b8", 11, "normal", "end");
+  }
+}
+
+function drawAxes(){
+  svg.appendChild(el("line", { x1:sx(XMIN)-15, y1:sy(0), x2:sx(XMAX)+15, y2:sy(0), stroke:"#94a3b8", "stroke-width":1.8 }));
+  svg.appendChild(el("line", { x1:sx(0), y1:sy(YMIN)-15, x2:sx(0), y2:sy(YMAX)+15, stroke:"#94a3b8", "stroke-width":1.8 }));
+  txt(sx(XMAX)+15, sy(0)+16, "x", "#6b7280", 12, "bold", "start");
+  txt(sx(0)+14, sy(YMAX)-8, "y", "#6b7280", 12, "bold", "start");
+  txt(sx(0)-10, sy(0)+16, "O", "#6b7280", 11, "normal", "end");
+}
+
+function drawArrow(x1, y1, x2, y2, color, label, dashed){
+  var attrs = { x1:x1, y1:y1, x2:x2, y2:y2, stroke:color, "stroke-width":2.5, "stroke-linecap":"round", "marker-end":"url(#ah"+color.replace("#","")+")" };
+  if (dashed) attrs["stroke-dasharray"] = "6,4";
+  svg.appendChild(el("line", attrs));
+  var dx = x2 - x1, dy = y2 - y1;
+  var len = Math.sqrt(dx*dx + dy*dy);
+  var lx, ly;
+  if (len > 1){
+    lx = x2 + (-dy/len) * 14;
+    ly = y2 + (dx/len) * 14;
+  } else {
+    lx = x2 + 14; ly = y2;
+  }
+  txt(lx, ly, label, color, 13, "bold");
+}
+
+function drawArrowMarker(color){
+  var c = color.replace("#","");
+  var defs = svg.querySelector("defs") || svg.insertBefore(el("defs",{}), svg.firstChild);
+  var marker = el("marker", { id:"ah"+c, viewBox:"0 0 10 10", refX:9, refY:5, markerWidth:6, markerHeight:6, orient:"auto-start-reverse" });
+  marker.appendChild(el("path", { d:"M 0 0 L 10 5 L 0 10 z", fill:color }));
+  defs.appendChild(marker);
+}
+
+function redraw(){
+  clearSvg();
+  var m = state.current;
+  var corners = [[0,0],[1,0],[1,1],[0,1]];
+  var target = getTarget();
+  var det = m[0]*m[3] - m[1]*m[2];
+
+  drawGrid();
+  drawAxes();
+  drawArrowMarker("#dc2626");
+  drawArrowMarker("#E8B964");
+  drawArrowMarker("#2563eb");
+
+  // Transformed unit square
+  var tPts = polygonPoints(corners, m);
+  svg.appendChild(el("polygon", { points:tPts, fill:"#2563eb", "fill-opacity":0.18, stroke:"#2563eb", "stroke-width":2.2, "stroke-linejoin":"round" }));
+
+  // Original unit square
+  var oPts = polygonPoints(corners, [1,0,0,1]);
+  svg.appendChild(el("polygon", { points:oPts, fill:"none", stroke:"#9CA8C0", "stroke-width":1.8, "stroke-dasharray":"6,4", "stroke-linejoin":"round" }));
+
+  // Original basis vectors
+  drawArrow(sx(0), sy(0), sx(1), sy(0), "#dc2626", "ê₁");
+  drawArrow(sx(0), sy(0), sx(0), sy(1), "#E8B964", "ê₂");
+
+  // Transformed basis vectors
+  var t1 = tx(1, 0, m), t2 = tx(0, 1, m);
+  drawArrow(sx(0), sy(0), sx(t1[0]), sy(t1[1]), "#dc2626", "Aê₁", true);
+  drawArrow(sx(0), sy(0), sx(t2[0]), sy(t2[1]), "#E8B964", "Aê₂", true);
+
+  // Corner labels on transformed shape
+  var cornersL = [[0,0],[1,0],[1,1],[0,1]];
+  for (var i = 0; i < cornersL.length; i++){
+    var p = tx(cornersL[i][0], cornersL[i][1], m);
+    svg.appendChild(el("circle", { cx:sx(p[0]), cy:sy(p[1]), r:3.5, fill:"#2563eb" }));
+  }
+
+  // Determinant banner
+  var detClass = det > 0.001 ? "det-pos" : (det < -0.001 ? "det-neg" : "det-zero");
+  var banner = el("g", {});
+  banner.appendChild(el("rect", { x:W-340, y:12, width:320, height:44, rx:8, fill:"#111827", opacity:0.88 }));
+  var detText = el("text", { x:W-180, y:40, fill:"#f8fafc", "font-size":16, "text-anchor":"middle",
+    "font-weight":"700", "font-family":"monospace" });
+  detText.textContent = "det(A) = " + fnum(det, 4) + "  (面积×" + fnum(Math.abs(det), 3) + ")";
+  banner.appendChild(detText);
+  svg.appendChild(banner);
+
+  // Top-left matrix display
+  var matBox = el("g", {});
+  matBox.appendChild(el("rect", { x:12, y:12, width:140, height:52, rx:8, fill:"#f8fafc", stroke:"#e3e6ec", "stroke-width":1 }));
+  var matText = el("text", { x:82, y:36, fill:"#1f2430", "font-size":14, "text-anchor":"middle", "font-family":"monospace" });
+  matText.textContent = "[" + fnum(m[0],2) + "  " + fnum(m[1],2) + "]";
+  matBox.appendChild(matText);
+  var matText2 = el("text", { x:82, y:56, fill:"#1f2430", "font-size":14, "text-anchor":"middle", "font-family":"monospace" });
+  matText2.textContent = "[" + fnum(m[2],2) + "  " + fnum(m[3],2) + "]";
+  matBox.appendChild(matText2);
+  svg.appendChild(matBox);
+
+  updateReadout();
+}
+
+function updateReadout(){
+  var m = state.current;
+  var det = m[0]*m[3] - m[1]*m[2];
+  var trace = m[0] + m[3];
+  var disc = trace*trace - 4*det;
+  var e1, e2, eigStr;
+  if (disc >= 0){
+    e1 = (trace + Math.sqrt(disc)) / 2;
+    e2 = (trace - Math.sqrt(disc)) / 2;
+    eigStr = fnum(e1, 3) + ", " + fnum(e2, 3);
+  } else {
+    var re = trace / 2, im = Math.sqrt(-disc) / 2;
+    eigStr = fnum(re,3) + " ± " + fnum(im,3) + "i";
+  }
+  var detClass = det > 0.001 ? "det-pos" : (det < -0.001 ? "det-neg" : "det-zero");
+
+  document.getElementById("readout").innerHTML =
+    '<div class="big">A = [' + fnum(m[0],3) + ', ' + fnum(m[1],3) + '; ' + fnum(m[2],3) + ', ' + fnum(m[3],3) + ']</div>' +
+    '<div>tr(A) = <b>' + fnum(trace, 4) + '</b></div>' +
+    '<div>det(A) = <b class="' + detClass + '">' + fnum(det, 6) + '</b> = 面积缩放 ×' + fnum(Math.abs(det), 4) + '</div>' +
+    '<div>特征值 λ = ' + eigStr + '</div>' +
+    '<div class="msg">ê₁=(1,0) → (' + fnum(m[0],2) + ', ' + fnum(m[2],2) + ')，ê₂=(0,1) → (' + fnum(m[1],2) + ', ' + fnum(m[3],2) + ')</div>';
+}
+
+/* ---------- Animation ---------- */
+function frame(ts){
+  if (!state.animating) return;
+  if (state.lastTs < 0) { state.lastTs = ts; requestAnimationFrame(frame); return; }
+  var dt = (ts - state.lastTs) / 1000;
+  state.lastTs = ts;
+  var speed = 0.8;
+  state.t += dt * speed * state.animDir;
+  if (state.t >= 1){ state.t = 1; state.animating = false; }
+  if (state.t <= 0){ state.t = 0; state.animating = false; }
+  state.current = computeInterpolatedMatrix(state.t);
+  redraw();
+  if (state.animating) requestAnimationFrame(frame);
+}
+
+function play(){
+  state.animating = true;
+  state.animDir = 1;
+  state.lastTs = -1;
+  if (state.t >= 1) state.t = 0;
+  requestAnimationFrame(frame);
+}
+
+function pause(){ state.animating = false; }
+
+function step(){
+  state.animating = false;
+  state.t = Math.min(1, state.t + 0.1);
+  state.current = computeInterpolatedMatrix(state.t);
+  redraw();
+}
+
+function resetAll(){
+  state.animating = false;
+  state.t = 0;
+  state.current = [1,0,0,1];
+  redraw();
+}
+
+function reverse(){
+  state.animating = true;
+  state.animDir = -1;
+  state.lastTs = -1;
+  if (state.t <= 0) state.t = 1;
+  requestAnimationFrame(frame);
+}
+
+function setParams(p){
+  if (p.preset !== undefined && presets[p.preset] !== undefined){
+    state.preset = p.preset;
+    syncPresetButtons();
+    syncControls();
+  }
+  if (p.angle !== undefined){
+    state.angle = Math.max(-180, Math.min(180, Number(p.angle)));
+    document.getElementById("sAngle").value = state.angle;
+    document.getElementById("vAngle").textContent = state.angle + "°";
+  }
+  if (p.scale !== undefined){
+    state.scaleFactor = Math.max(-3, Math.min(3, Number(p.scale)));
+    document.getElementById("sScale").value = state.scaleFactor;
+    document.getElementById("vScale").textContent = fnum(state.scaleFactor, 2);
+  }
+  if (p.shear !== undefined){
+    state.shearFactor = Math.max(-3, Math.min(3, Number(p.shear)));
+    document.getElementById("sShear").value = state.shearFactor;
+    document.getElementById("vShear").textContent = fnum(state.shearFactor, 2);
+  }
+  if (p.a !== undefined) state.custom[0] = Number(p.a);
+  if (p.b !== undefined) state.custom[1] = Number(p.b);
+  if (p.c !== undefined) state.custom[2] = Number(p.c);
+  if (p.d !== undefined) state.custom[3] = Number(p.d);
+  if (p.t !== undefined){
+    state.t = Math.max(0, Math.min(1, Number(p.t)));
+    state.current = computeInterpolatedMatrix(state.t);
+  }
+  document.getElementById("ma").value = state.custom[0];
+  document.getElementById("mb").value = state.custom[1];
+  document.getElementById("mc").value = state.custom[2];
+  document.getElementById("md").value = state.custom[3];
+  redraw();
+}
+
+/* ---------- Preset UI ---------- */
+function syncPresetButtons(){
+  var ids = { rotate:"btnRot", scale:"btnScl", shear:"btnShr", reflect:"btnRef", custom:"btnCus" };
+  for (var k in ids){
+    document.getElementById(ids[k]).className = k === state.preset ? "on" : "";
+  }
+}
+
+function syncControls(){
+  document.getElementById("angleCtl").className = state.preset === "rotate" ? "ctl" : "ctl hidden";
+  document.getElementById("scaleCtl").className = state.preset === "scale" ? "ctl" : "ctl hidden";
+  document.getElementById("shearCtl").className = state.preset === "shear" ? "ctl" : "ctl hidden";
+  document.getElementById("customCtl").className = state.preset === "custom" ? "" : "hidden";
+}
+
+function setPreset(name){
+  state.preset = name;
+  syncPresetButtons();
+  syncControls();
+  resetAll();
+}
+
+document.getElementById("btnRot").onclick = function(){ setPreset("rotate"); };
+document.getElementById("btnScl").onclick = function(){ setPreset("scale"); };
+document.getElementById("btnShr").onclick = function(){ setPreset("shear"); };
+document.getElementById("btnRef").onclick = function(){ setPreset("reflect"); };
+document.getElementById("btnCus").onclick = function(){ setPreset("custom"); };
+
+var sAngle = document.getElementById("sAngle"), vAngle = document.getElementById("vAngle");
+sAngle.oninput = function(){ state.angle = +sAngle.value; vAngle.textContent = state.angle + "°"; resetAll(); };
+
+var sScale = document.getElementById("sScale"), vScale = document.getElementById("vScale");
+sScale.oninput = function(){ state.scaleFactor = +sScale.value; vScale.textContent = fnum(state.scaleFactor, 2); resetAll(); };
+
+var sShear = document.getElementById("sShear"), vShear = document.getElementById("vShear");
+sShear.oninput = function(){ state.shearFactor = +sShear.value; vShear.textContent = fnum(state.shearFactor, 2); resetAll(); };
+
+["ma","mb","mc","md"].forEach(function(id, i){
+  document.getElementById(id).oninput = function(){
+    state.custom[i] = Number(document.getElementById(id).value) || 0;
+    resetAll();
+  };
+});
+
+document.getElementById("btnPlay").onclick = play;
+document.getElementById("btnPause").onclick = pause;
+document.getElementById("btnStep").onclick = step;
+document.getElementById("btnReset").onclick = resetAll;
+document.getElementById("btnReverse").onclick = reverse;
+
+document.getElementById("btnCopy").onclick = function(){
+  var u = new URL(location.href);
+  u.searchParams.set("preset", state.preset);
+  if (state.preset === "rotate") u.searchParams.set("angle", state.angle);
+  if (state.preset === "scale") u.searchParams.set("scale", state.scaleFactor);
+  if (state.preset === "shear") u.searchParams.set("shear", state.shearFactor);
+  if (state.preset === "custom"){
+    u.searchParams.set("a", state.custom[0]);
+    u.searchParams.set("b", state.custom[1]);
+    u.searchParams.set("c", state.custom[2]);
+    u.searchParams.set("d", state.custom[3]);
+  }
+  var s = u.href;
+  if (navigator.clipboard) navigator.clipboard.writeText(s).then(function(){ alert("链接已复制"); });
+  else { prompt("复制链接", s); }
+};
+
+document.addEventListener("keydown", function(e){
+  if (e.key === " "){ e.preventDefault(); if (state.animating) pause(); else play(); }
+  else if (e.key === "ArrowRight"){ step(); }
+  else if (e.key === "r" || e.key === "R"){ resetAll(); }
+});
+
+/* ---------- Init ---------- */
+(function init(){
+  var q = new URLSearchParams(location.search);
+  var preset = q.get("preset");
+  if (preset && presets[preset]) state.preset = preset;
+  if (q.has("angle")) state.angle = Number(q.get("angle"));
+  if (q.has("scale")) state.scaleFactor = Number(q.get("scale"));
+  if (q.has("shear")) state.shearFactor = Number(q.get("shear"));
+  if (q.has("a")) state.custom[0] = Number(q.get("a"));
+  if (q.has("b")) state.custom[1] = Number(q.get("b"));
+  if (q.has("c")) state.custom[2] = Number(q.get("c"));
+  if (q.has("d")) state.custom[3] = Number(q.get("d"));
+  document.getElementById("sAngle").value = state.angle;
+  document.getElementById("vAngle").textContent = state.angle + "°";
+  document.getElementById("sScale").value = state.scaleFactor;
+  document.getElementById("vScale").textContent = fnum(state.scaleFactor, 2);
+  document.getElementById("sShear").value = state.shearFactor;
+  document.getElementById("vShear").textContent = fnum(state.shearFactor, 2);
+  document.getElementById("ma").value = state.custom[0];
+  document.getElementById("mb").value = state.custom[1];
+  document.getElementById("mc").value = state.custom[2];
+  document.getElementById("md").value = state.custom[3];
+  syncPresetButtons();
+  syncControls();
+  resetAll();
+})();
+
+/* ---------- SciDemo ---------- */
+function verify(){
+  var m = state.current;
+  var det = m[0]*m[3] - m[1]*m[2];
+  var corners = [[0,0],[1,0],[1,1],[0,1]];
+  var transformed = [];
+  for (var i = 0; i < corners.length; i++) transformed.push(tx(corners[i][0], corners[i][1], m));
+  // Compute area via shoelace
+  var area = 0;
+  for (var j = 0; j < transformed.length; j++){
+    var k = (j + 1) % transformed.length;
+    area += transformed[j][0] * transformed[k][1];
+    area -= transformed[k][0] * transformed[j][1];
+  }
+  area = Math.abs(area) / 2;
+  return {
+    matrix: m.slice(),
+    det: det,
+    detMatchesArea: Math.abs(Math.abs(det) - area) < 0.001,
+    transformedArea: area,
+    originalArea: 1,
+    eigenvalues: (function(){
+      var tr = m[0]+m[3], disc = tr*tr - 4*det;
+      if (disc >= 0) return [(tr+Math.sqrt(disc))/2, (tr-Math.sqrt(disc))/2];
+      return [tr/2, Math.sqrt(-disc)/2];
+    })()
+  };
+}
+
+window.SciDemo = {
+  setParams: setParams,
+  play: play,
+  pause: pause,
+  step: step,
+  reset: resetAll,
+  reverse: reverse,
+  verify: verify,
+  state: function(){ return { preset: state.preset, angle: state.angle, scaleFactor: state.scaleFactor, shearFactor: state.shearFactor, custom: state.custom.slice(), t: state.t, animating: state.animating }; }
+};
+Object.defineProperty(window.SciDemo, "isReady", { get: function(){ return true; } });
+
+})();
+</script>
+</body>
+</html>

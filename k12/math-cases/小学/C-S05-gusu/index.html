@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>C-S05 估算·取整策略</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#f8f9fa;font-family:system-ui,-apple-system,sans-serif;color:#1e293b;display:flex;flex-direction:column;align-items:center;padding:16px 16px 80px}
+    h1{font-size:1.5rem;font-weight:700;margin-bottom:2px}
+    .sub{font-size:.85rem;color:#64748b;margin-bottom:12px}
+    .num-wrap{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:16px}
+    .btns{display:flex;gap:8px;margin-top:12px;justify-content:center;flex-wrap:wrap}
+    .btns button{background:#e2e8f0;color:#475569;border:none;border-radius:6px;padding:8px 14px;font-size:.85rem;cursor:pointer;font-weight:600;transition:all .2s}
+    .btns button:hover{background:#cbd5e1}
+    .btns button.active[data-s="round"]{background:#22c55e;color:#fff}
+    .btns button.active[data-s="floor"]{background:#ef4444;color:#fff}
+    .btns button.active[data-s="ceil"]{background:#3b82f6;color:#fff}
+    .controls{margin-top:12px;display:flex;gap:12px;align-items:center;justify-content:center}
+    .sg{display:flex;flex-direction:column;align-items:center;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.06);padding:8px 16px}
+    .sg label{font-size:.8rem;color:#64748b}
+    .sg .v{font-size:1.5rem;font-weight:700;color:#f59e0b}
+    input[type=range]{width:280px;accent-color:#f59e0b}
+    .insight{background:#fef9c3;border-radius:8px;padding:8px 12px;font-size:.85rem;color:#854d0e;margin-top:12px;text-align:center;min-height:2em}
+    svg{user-select:none;-webkit-user-select:none}
+  </style>
+</head>
+<body>
+  <h1>估算·取整策略</h1>
+  <p class="sub">拖动数值，切换取整策略，看箭头指向哪里</p>
+  <div class="num-wrap">
+    <svg id="nls" width="720" height="180" viewBox="0 0 720 180"></svg>
+  </div>
+  <div class="btns" id="stratBtns">
+    <button class="active" data-s="round">四舍五入</button>
+    <button data-s="floor">去尾法</button>
+    <button data-s="ceil">进一法</button>
+  </div>
+  <div class="controls">
+    <div class="sg">
+      <label>数值</label>
+      <div class="v" id="valV">486</div>
+      <input type="range" id="valSlider" min="1" max="999" value="486">
+    </div>
+  </div>
+  <div class="insight" id="insight">486 四舍五入到百位 = 500（十位8≥5，进1）</div>
+
+  <script>
+  window.SciDemo = (function(){
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.getElementById('nls');
+    var valSlider = document.getElementById('valSlider');
+    var valV = document.getElementById('valV');
+    var insightEl = document.getElementById('insight');
+    var stratBtns = document.getElementById('stratBtns');
+
+    var LINE_Y = 120;
+    var X_LEFT = 40;
+    var X_RIGHT = 680;
+    var RANGE = X_RIGHT - X_LEFT;
+    var UNITS = 1000;
+    var PX_PER_UNIT = RANGE / UNITS;
+
+    var state = { val: 486, strategy: 'round' };
+    var dragging = false;
+
+    function valToX(v) { return X_LEFT + v * PX_PER_UNIT; }
+    function xToVal(x) {
+      var v = Math.round((x - X_LEFT) / PX_PER_UNIT);
+      return Math.max(1, Math.min(999, v));
+    }
+
+    function roundHundred(v) { return Math.round(v / 100) * 100; }
+    function floorHundred(v) { return Math.floor(v / 100) * 100; }
+    function ceilHundred(v) { return Math.ceil(v / 100) * 100; }
+
+    function getResult(v, s) {
+      if (s === 'round') return roundHundred(v);
+      if (s === 'floor') return floorHundred(v);
+      return ceilHundred(v);
+    }
+
+    function strategyLabel(s) {
+      if (s === 'round') return '四舍五入';
+      if (s === 'floor') return '去尾法';
+      return '进一法';
+    }
+
+    function strategyColor(s) {
+      if (s === 'round') return '#22c55e';
+      if (s === 'floor') return '#ef4444';
+      return '#3b82f6';
+    }
+
+    function buildInsight(v, s) {
+      var res = getResult(v, s);
+      var tens = Math.floor((v % 100) / 10);
+      var label = strategyLabel(s);
+      var reason = '';
+      if (s === 'round') {
+        if (tens >= 5) {
+          reason = '十位' + tens + '≥5，进1';
+        } else {
+          reason = '十位' + tens + '<5，舍去';
+        }
+      } else if (s === 'floor') {
+        if (res === v) {
+          reason = '恰好是百的倍数，不变';
+        } else {
+          reason = '直接舍去尾数';
+        }
+      } else {
+        if (res === v) {
+          reason = '恰好是百的倍数，不变';
+        } else {
+          reason = '有余数则进1';
+        }
+      }
+      return v + ' ' + label + '到百位 = ' + res + '（' + reason + '）';
+    }
+
+    function buildSvg() {
+      svg.innerHTML = '';
+
+      function el(tag, attrs) {
+        var e = document.createElementNS(svgNS, tag);
+        for (var k in attrs) e.setAttribute(k, attrs[k]);
+        return e;
+      }
+
+      // main line
+      svg.appendChild(el('line', {
+        x1: X_LEFT, y1: LINE_Y, x2: X_RIGHT, y2: LINE_Y,
+        stroke: '#cbd5e1', 'stroke-width': 2
+      }));
+
+      // ticks
+      for (var i = 0; i <= 1000; i += 50) {
+        var x = valToX(i);
+        var isMajor = (i % 100 === 0);
+        var tickH = isMajor ? 14 : 8;
+        var tickW = isMajor ? 2 : 1;
+        svg.appendChild(el('line', {
+          x1: x, y1: LINE_Y - tickH / 2, x2: x, y2: LINE_Y + tickH / 2,
+          stroke: isMajor ? '#475569' : '#94a3b8', 'stroke-width': tickW
+        }));
+        if (isMajor) {
+          var txt = el('text', {
+            x: x, y: LINE_Y + 30,
+            'text-anchor': 'middle', 'font-size': '11', fill: '#475569',
+            'font-family': 'system-ui,-apple-system,sans-serif'
+          });
+          txt.textContent = i;
+          svg.appendChild(txt);
+        }
+      }
+
+      // label "百"
+      var unitLabel = el('text', {
+        x: X_RIGHT + 2, y: LINE_Y + 5,
+        'text-anchor': 'start', 'font-size': '10', fill: '#94a3b8',
+        'font-family': 'system-ui,-apple-system,sans-serif'
+      });
+      unitLabel.textContent = '百';
+      svg.appendChild(unitLabel);
+
+      // three strategy arrows group
+      ['ceil', 'floor', 'round'].forEach(function(s) {
+        var g = el('g', { id: 'arrow-' + s, opacity: '0.25' });
+        // arrow path
+        g.appendChild(el('path', {
+          id: 'path-' + s,
+          d: '', fill: 'none',
+          stroke: strategyColor(s),
+          'stroke-width': '1',
+          'stroke-linecap': 'round',
+          'marker-end': ''
+        }));
+        // target marker
+        g.appendChild(el('circle', {
+          id: 'target-' + s, cx: 0, cy: 0, r: 6,
+          fill: strategyColor(s), opacity: '0.5'
+        }));
+        // target label
+        var tlabel = el('text', {
+          id: 'tlabel-' + s, x: 0, y: 0,
+          'text-anchor': 'middle', 'font-size': '11', fill: strategyColor(s),
+          'font-weight': '600',
+          'font-family': 'system-ui,-apple-system,sans-serif'
+        });
+        tlabel.textContent = '';
+        g.appendChild(tlabel);
+        svg.appendChild(g);
+      });
+
+      // arrow markers for each color
+      ['round', 'floor', 'ceil'].forEach(function(s) {
+        var defs = svg.querySelector('defs') || svg.insertBefore(el('defs', {}), svg.firstChild);
+        var marker = el('marker', {
+          id: 'marker-' + s,
+          viewBox: '0 0 10 10', refX: 9, refY: 5,
+          markerWidth: 8, markerHeight: 8, orient: 'auto-start-reverse'
+        });
+        marker.appendChild(el('path', {
+          d: 'M 0 1 L 10 5 L 0 9 z', fill: strategyColor(s)
+        }));
+        defs.appendChild(marker);
+      });
+
+      // draggable point (on top)
+      var pointGroup = el('g', { id: 'pointGroup', style: 'cursor:grab' });
+      pointGroup.appendChild(el('circle', {
+        id: 'point', cx: 0, cy: LINE_Y, r: 9,
+        fill: '#f59e0b', stroke: '#fff', 'stroke-width': 3,
+        style: 'filter:drop-shadow(0 2px 4px rgba(245,158,11,.4))'
+      }));
+      var valLabel = el('text', {
+        id: 'pointLabel', x: 0, y: LINE_Y - 16,
+        'text-anchor': 'middle', 'font-size': '13', 'font-weight': '700',
+        fill: '#f59e0b',
+        'font-family': 'system-ui,-apple-system,sans-serif'
+      });
+      valLabel.textContent = state.val;
+      pointGroup.appendChild(valLabel);
+      svg.appendChild(pointGroup);
+
+      // transparent hit area for dragging
+      var hitArea = el('rect', {
+        id: 'hitArea',
+        x: X_LEFT - 10, y: LINE_Y - 30, width: RANGE + 20, height: 60,
+        fill: 'transparent', style: 'cursor:ew-resize'
+      });
+      svg.appendChild(hitArea);
+    }
+
+    function updateView() {
+      var v = state.val;
+      var s = state.strategy;
+      var x = valToX(v);
+
+      // point
+      var point = document.getElementById('point');
+      if (point) point.setAttribute('cx', x);
+      var pl = document.getElementById('pointLabel');
+      if (pl) { pl.setAttribute('x', x); pl.textContent = v; }
+      valV.textContent = v;
+      valSlider.value = v;
+
+      // update each strategy arrow
+      ['round', 'floor', 'ceil'].forEach(function(st) {
+        var res = getResult(v, st);
+        var tx = valToX(res);
+        var g = document.getElementById('arrow-' + st);
+        var path = document.getElementById('path-' + st);
+        var target = document.getElementById('target-' + st);
+        var tlabel = document.getElementById('tlabel-' + st);
+
+        if (!g || !path || !target || !tlabel) return;
+
+        var isActive = (st === s);
+        var color = strategyColor(st);
+        var arrowY = st === 'round' ? LINE_Y - 45 : (st === 'floor' ? LINE_Y - 70 : LINE_Y - 95);
+        var midX = (x + tx) / 2;
+        var midY = Math.min(arrowY - 15, LINE_Y - 50);
+
+        var d;
+        if (Math.abs(x - tx) < 3) {
+          d = 'M ' + x + ' ' + (LINE_Y - 14) + ' L ' + tx + ' ' + (arrowY + 10);
+        } else {
+          d = 'M ' + x + ' ' + (LINE_Y - 14) +
+              ' Q ' + midX + ' ' + midY + ' ' + tx + ' ' + (arrowY + 10);
+        }
+        path.setAttribute('d', d);
+        path.setAttribute('stroke-width', isActive ? '3' : '1');
+        path.setAttribute('stroke', color);
+        path.setAttribute('marker-end', 'url(#marker-' + st + ')');
+
+        target.setAttribute('cx', tx);
+        target.setAttribute('cy', arrowY);
+        target.setAttribute('r', isActive ? '7' : '5');
+        target.setAttribute('opacity', isActive ? '1' : '0.4');
+
+        tlabel.setAttribute('x', tx);
+        tlabel.setAttribute('y', arrowY - 10);
+        tlabel.textContent = res;
+        tlabel.setAttribute('font-size', isActive ? '14' : '11');
+        tlabel.setAttribute('fill', color);
+        tlabel.setAttribute('font-weight', isActive ? '700' : '400');
+
+        g.setAttribute('opacity', isActive ? '1' : '0.2');
+      });
+
+      insightEl.textContent = buildInsight(v, s);
+    }
+
+    // dragging
+    function getSvgX(clientX) {
+      var rect = svg.getBoundingClientRect();
+      var scaleX = 720 / rect.width;
+      return (clientX - rect.left) * scaleX;
+    }
+
+    function onDragStart(ex) {
+      var sx = getSvgX(ex);
+      if (sx < X_LEFT - 20 || sx > X_RIGHT + 20) return;
+      dragging = true;
+      svg.querySelector('#pointGroup').style.cursor = 'grabbing';
+      onDragMove(ex);
+    }
+
+    function onDragMove(ex) {
+      if (!dragging) return;
+      var sx = getSvgX(ex);
+      state.val = xToVal(sx);
+      updateView();
+    }
+
+    function onDragEnd() {
+      dragging = false;
+      svg.querySelector('#pointGroup').style.cursor = 'grab';
+    }
+
+    svg.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      onDragStart(e.clientX);
+    });
+    window.addEventListener('mousemove', function(e) {
+      onDragMove(e.clientX);
+    });
+    window.addEventListener('mouseup', onDragEnd);
+
+    svg.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      onDragStart(e.touches[0].clientX);
+    }, { passive: false });
+    window.addEventListener('touchmove', function(e) {
+      if (dragging) e.preventDefault();
+      onDragMove(e.touches[0].clientX);
+    }, { passive: false });
+    window.addEventListener('touchend', onDragEnd);
+
+    // slider
+    valSlider.addEventListener('input', function() {
+      state.val = parseInt(this.value);
+      updateView();
+    });
+
+    // strategy buttons
+    stratBtns.addEventListener('click', function(e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      stratBtns.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      state.strategy = btn.getAttribute('data-s');
+      updateView();
+    });
+
+    // SciDemo API
+    var animId = null;
+
+    function setParams(params) {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      if (params.val !== undefined) state.val = Math.max(1, Math.min(999, Math.round(params.val)));
+      if (params.mode !== undefined) {
+        state.strategy = params.mode;
+        stratBtns.querySelectorAll('button').forEach(function(b) {
+          b.classList.toggle('active', b.getAttribute('data-s') === state.strategy);
+        });
+      }
+      updateView();
+    }
+
+    function play(targetVal, targetStrategy, duration) {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      var tv = targetVal !== undefined ? Math.max(1, Math.min(999, Math.round(targetVal))) : state.val;
+      var ts = targetStrategy || state.strategy;
+      var dur = duration || 1500;
+      var startVal = state.val;
+      var startTime = null;
+
+      state.strategy = ts;
+      stratBtns.querySelectorAll('button').forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-s') === ts);
+      });
+
+      function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+      function frame(ts2) {
+        if (!startTime) startTime = ts2;
+        var t = Math.min(1, (ts2 - startTime) / dur);
+        state.val = Math.round(startVal + (tv - startVal) * easeOut(t));
+        updateView();
+        if (t < 1) {
+          animId = requestAnimationFrame(frame);
+        } else {
+          animId = null;
+          state.val = tv;
+          updateView();
+        }
+      }
+
+      animId = requestAnimationFrame(frame);
+    }
+
+    function reset() {
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+      state.val = 486;
+      state.strategy = 'round';
+      stratBtns.querySelectorAll('button').forEach(function(b) {
+        b.classList.toggle('active', b.getAttribute('data-s') === 'round');
+      });
+      updateView();
+    }
+
+    function getState() {
+      return {
+        val: state.val,
+        strategy: state.strategy,
+        result: getResult(state.val, state.strategy),
+        label: strategyLabel(state.strategy)
+      };
+    }
+
+    function verify(params) {
+      params = params || {};
+      var v = params.val !== undefined ? params.val : state.val;
+      var s = params.strategy || state.strategy;
+      var expected = params.result;
+      var actual = getResult(v, s);
+      return {
+        mode: 'estimate',
+        val: v,
+        strategy: s,
+        result: actual,
+        correctOk: actual === expected
+      };
+    }
+
+    function isReady() { return true; }
+
+    // init
+    buildSvg();
+    updateView();
+
+    return {
+      setParams: setParams,
+      play: play,
+      reset: reset,
+      state: getState,
+      verify: verify,
+      isReady: isReady
+    };
+  })();
+  </script>
+</body>
+</html>

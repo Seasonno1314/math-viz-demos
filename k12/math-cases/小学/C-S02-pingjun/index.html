@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>C-S02 平均数·移多补少</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#f8f9fa;font-family:system-ui,-apple-system,sans-serif;color:#1e293b;display:flex;flex-direction:column;align-items:center;padding:16px 16px 80px}
+    h1{font-size:1.5rem;font-weight:700;margin-bottom:2px}
+    .sub{font-size:.85rem;color:#64748b;margin-bottom:12px}
+    .chart-wrap{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:16px}
+    .controls{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+    .sg{display:flex;flex-direction:column;align-items:center;background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.06);padding:8px 10px}
+    .sg label{font-size:.75rem;color:#64748b}
+    .sg .v{font-size:1rem;font-weight:700}
+    input[type=range]{width:80px;accent-color:#3b82f6}
+    .btns{display:flex;gap:8px;margin-top:12px}
+    button{background:#3b82f6;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.85rem;font-weight:600;cursor:pointer}
+    button:hover{background:#2563eb}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .stat{background:#f1f5f9;border-radius:8px;padding:8px 12px;font-size:.85rem;color:#475569;text-align:center;margin-top:8px}
+  </style>
+</head>
+<body>
+  <h1>平均数·移多补少</h1>
+  <p class="sub">点击"移多补少"，看多余的量如何补到矮柱上</p>
+  <div class="chart-wrap">
+    <svg id="chart" width="520" height="300" viewBox="0 0 520 300"></svg>
+  </div>
+  <div class="controls" id="sliders"></div>
+  <div class="btns">
+    <button id="levelBtn">移多补少</button>
+    <button id="resetBtn" style="background:#64748b">重置</button>
+  </div>
+  <div class="stat" id="stat"></div>
+
+<script>
+window.SciDemo = (function(){
+  var svg = document.getElementById('chart');
+  var NS = 'http://www.w3.org/2000/svg';
+  var ORIG = [5,6,7,8,9];
+  var data = ORIG.slice();
+  var currentHeights = ORIG.slice();
+  var animating = false;
+  var levelDone = false;
+
+  var CHART_LEFT = 60, CHART_RIGHT = 480, CHART_TOP = 20, CHART_BOTTOM = 260;
+  var CHART_H = CHART_BOTTOM - CHART_TOP;
+  var PX_PER_UNIT = CHART_H / 12;
+  var BAR_W = 60, GAP = 24;
+  var BAR_COLOR = '#3b82f6';
+  var AVG_COLOR = '#ef4444';
+  var EXCESS_COLOR = '#f59e0b';
+  var LABELS = ['第1组','第2组','第3组','第4组','第5组'];
+
+  function barX(i){
+    var totalW = 5 * BAR_W + 4 * GAP;
+    var startX = (520 - totalW) / 2;
+    return startX + i * (BAR_W + GAP);
+  }
+
+  function valToY(v){ return CHART_BOTTOM - v * PX_PER_UNIT; }
+
+  var els = {};
+
+  function createSVG(){
+    svg.innerHTML = '';
+
+    // grid lines & y-axis labels
+    for(var g = 0; g <= 12; g++){
+      var yy = valToY(g);
+      var line = document.createElementNS(NS,'line');
+      line.setAttribute('x1', CHART_LEFT);
+      line.setAttribute('x2', CHART_RIGHT);
+      line.setAttribute('y1', yy);
+      line.setAttribute('y2', yy);
+      line.setAttribute('stroke','#e2e8f0');
+      line.setAttribute('stroke-width', g % 3 === 0 ? '1' : '0.5');
+      if(g % 3 === 0){
+        var txt = document.createElementNS(NS,'text');
+        txt.setAttribute('x', CHART_LEFT - 8);
+        txt.setAttribute('y', yy + 4);
+        txt.setAttribute('text-anchor','end');
+        txt.setAttribute('font-size','12');
+        txt.setAttribute('fill','#94a3b8');
+        txt.textContent = g;
+        svg.appendChild(txt);
+      }
+      svg.appendChild(line);
+    }
+
+    // y-axis line
+    var yaxis = document.createElementNS(NS,'line');
+    yaxis.setAttribute('x1', CHART_LEFT);
+    yaxis.setAttribute('x2', CHART_LEFT);
+    yaxis.setAttribute('y1', CHART_TOP);
+    yaxis.setAttribute('y2', CHART_BOTTOM);
+    yaxis.setAttribute('stroke','#94a3b8');
+    yaxis.setAttribute('stroke-width','1.5');
+    svg.appendChild(yaxis);
+
+    // bottom axis
+    var xaxis = document.createElementNS(NS,'line');
+    xaxis.setAttribute('x1', CHART_LEFT);
+    xaxis.setAttribute('x2', CHART_RIGHT);
+    xaxis.setAttribute('y1', CHART_BOTTOM);
+    xaxis.setAttribute('y2', CHART_BOTTOM);
+    xaxis.setAttribute('stroke','#94a3b8');
+    xaxis.setAttribute('stroke-width','1.5');
+    svg.appendChild(xaxis);
+
+    // bars group
+    els.bars = [];
+    els.barVals = [];
+    els.labels = [];
+    for(var i = 0; i < 5; i++){
+      var bx = barX(i);
+
+      var rect = document.createElementNS(NS,'rect');
+      rect.setAttribute('x', bx);
+      rect.setAttribute('width', BAR_W);
+      rect.setAttribute('rx','4');
+      rect.setAttribute('fill', BAR_COLOR);
+      rect.setAttribute('y', valToY(data[i]));
+      rect.setAttribute('height', data[i] * PX_PER_UNIT);
+      svg.appendChild(rect);
+      els.bars.push(rect);
+
+      var vtxt = document.createElementNS(NS,'text');
+      vtxt.setAttribute('x', bx + BAR_W/2);
+      vtxt.setAttribute('y', valToY(data[i]) - 6);
+      vtxt.setAttribute('text-anchor','middle');
+      vtxt.setAttribute('font-size','14');
+      vtxt.setAttribute('font-weight','700');
+      vtxt.setAttribute('fill', BAR_COLOR);
+      vtxt.textContent = data[i];
+      svg.appendChild(vtxt);
+      els.barVals.push(vtxt);
+
+      var ltxt = document.createElementNS(NS,'text');
+      ltxt.setAttribute('x', bx + BAR_W/2);
+      ltxt.setAttribute('y', CHART_BOTTOM + 18);
+      ltxt.setAttribute('text-anchor','middle');
+      ltxt.setAttribute('font-size','12');
+      ltxt.setAttribute('fill','#64748b');
+      ltxt.textContent = LABELS[i];
+      svg.appendChild(ltxt);
+      els.labels.push(ltxt);
+    }
+
+    // average line
+    var avg = getAvg();
+    els.avgLine = document.createElementNS(NS,'line');
+    els.avgLine.setAttribute('x1', CHART_LEFT - 10);
+    els.avgLine.setAttribute('x2', CHART_RIGHT);
+    els.avgLine.setAttribute('y1', valToY(avg));
+    els.avgLine.setAttribute('y2', valToY(avg));
+    els.avgLine.setAttribute('stroke', AVG_COLOR);
+    els.avgLine.setAttribute('stroke-width','2');
+    els.avgLine.setAttribute('stroke-dasharray','8,4');
+    svg.appendChild(els.avgLine);
+
+    els.avgLabel = document.createElementNS(NS,'text');
+    els.avgLabel.setAttribute('x', CHART_RIGHT + 4);
+    els.avgLabel.setAttribute('y', valToY(avg) + 4);
+    els.avgLabel.setAttribute('font-size','12');
+    els.avgLabel.setAttribute('font-weight','700');
+    els.avgLabel.setAttribute('fill', AVG_COLOR);
+    els.avgLabel.textContent = '平均数=' + avg;
+    svg.appendChild(els.avgLabel);
+
+    // excess/deficit overlay group (for animation blocks)
+    els.overlay = document.createElementNS(NS,'g');
+    svg.appendChild(els.overlay);
+  }
+
+  function getSum(){ return data.reduce(function(a,b){return a+b},0); }
+  function getCount(){ return data.length; }
+  function getAvg(){ return getSum() / getCount(); }
+
+  function updateChart(){
+    var avg = getAvg();
+    for(var i = 0; i < 5; i++){
+      els.bars[i].setAttribute('y', valToY(data[i]));
+      els.bars[i].setAttribute('height', data[i] * PX_PER_UNIT);
+      els.bars[i].setAttribute('fill', BAR_COLOR);
+      els.barVals[i].setAttribute('y', valToY(data[i]) - 6);
+      els.barVals[i].textContent = data[i];
+    }
+    els.avgLine.setAttribute('y1', valToY(avg));
+    els.avgLine.setAttribute('y2', valToY(avg));
+    els.avgLabel.setAttribute('y', valToY(avg) + 4);
+    els.avgLabel.textContent = '平均数=' + (Number.isInteger(avg) ? avg : avg.toFixed(1));
+    updateStat();
+  }
+
+  function updateStat(){
+    var s = getSum(), c = getCount(), a = getAvg();
+    var avgStr = Number.isInteger(a) ? a : a.toFixed(2);
+    document.getElementById('stat').textContent =
+      '数据: ' + data.join(',') + ' | 总和:' + s + ' | 个数:' + c + ' | 平均:' + avgStr;
+  }
+
+  // sliders
+  function buildSliders(){
+    var container = document.getElementById('sliders');
+    container.innerHTML = '';
+    for(var i = 0; i < 5; i++){
+      (function(idx){
+        var g = document.createElement('div');
+        g.className = 'sg';
+        var lbl = document.createElement('label');
+        lbl.textContent = LABELS[idx];
+        g.appendChild(lbl);
+        var valSpan = document.createElement('div');
+        valSpan.className = 'v';
+        valSpan.id = 'sv' + idx;
+        valSpan.textContent = data[idx];
+        g.appendChild(valSpan);
+        var inp = document.createElement('input');
+        inp.type = 'range';
+        inp.min = 1;
+        inp.max = 12;
+        inp.value = data[idx];
+        inp.addEventListener('input', function(){
+          if(animating) return;
+          data[idx] = parseInt(this.value);
+          valSpan.textContent = data[idx];
+          levelDone = false;
+          updateChart();
+        });
+        g.appendChild(inp);
+        container.appendChild(g);
+      })(i);
+    }
+  }
+
+  function syncSliders(){
+    for(var i = 0; i < 5; i++){
+      document.getElementById('sv' + i).textContent = data[i];
+      var inputs = document.querySelectorAll('#sliders input[type=range]');
+      inputs[i].value = data[i];
+    }
+  }
+
+  // level animation
+  function playLevel(){
+    if(animating) return;
+    animating = true;
+    document.getElementById('levelBtn').disabled = true;
+    document.getElementById('resetBtn').disabled = true;
+
+    var avg = getAvg();
+    var srcBars = []; // bars above avg: {idx, excess}
+    var dstBars = []; // bars below avg: {idx, deficit}
+
+    for(var i = 0; i < 5; i++){
+      var diff = data[i] - avg;
+      if(diff > 0.001) srcBars.push({idx:i, excess:diff});
+      else if(diff < -0.001) dstBars.push({idx:i, deficit:-diff});
+    }
+
+    if(srcBars.length === 0 || dstBars.length === 0){
+      animating = false;
+      document.getElementById('levelBtn').disabled = false;
+      document.getElementById('resetBtn').disabled = false;
+      return;
+    }
+
+    // Create animation blocks: pair up excess → deficit
+    // Each block: {srcIdx, dstIdx, amount, srcX, srcY, dstX, dstY, peakY}
+    var blocks = [];
+    var si = 0, di = 0;
+    var srcRemain = srcBars[0].excess;
+    var dstRemain = dstBars[0].deficit;
+
+    while(si < srcBars.length && di < dstBars.length){
+      var amt = Math.min(srcRemain, dstRemain);
+      var srcIdx = srcBars[si].idx;
+      var dstIdx = dstBars[di].idx;
+      var blockH = amt * PX_PER_UNIT;
+
+      var srcBX = barX(srcIdx);
+      var dstBX = barX(dstIdx);
+      var srcTopY = valToY(data[srcIdx]);
+      var dstTopY = valToY(data[dstIdx]);
+
+      // Block starts at top of src bar
+      var startX = srcBX + BAR_W/2 - 15;
+      var startY = srcTopY;
+
+      // Block flies to dst bar top
+      var endX = dstBX + BAR_W/2 - 15;
+      var endY = dstTopY;
+
+      // Peak height: go above both bars
+      var peakY = Math.min(startY, endY) - 40;
+
+      blocks.push({
+        srcIdx: srcIdx,
+        dstIdx: dstIdx,
+        amount: amt,
+        blockH: blockH,
+        startX: startX, startY: startY,
+        endX: endX, endY: endY,
+        peakY: peakY,
+        srcBarStartH: data[srcIdx] * PX_PER_UNIT,
+        dstBarStartH: data[dstIdx] * PX_PER_UNIT,
+      });
+
+      srcRemain -= amt;
+      dstRemain -= amt;
+      if(srcRemain < 0.001){ si++; if(si < srcBars.length) srcRemain = srcBars[si].excess; }
+      if(dstRemain < 0.001){ di++; if(di < dstBars.length) dstRemain = dstBars[di].deficit; }
+    }
+
+    // Clear overlay
+    els.overlay.innerHTML = '';
+
+    // Create block rects
+    var blockEls = [];
+    for(var b = 0; b < blocks.length; b++){
+      var bk = blocks[b];
+      var rect = document.createElementNS(NS,'rect');
+      rect.setAttribute('x', bk.startX);
+      rect.setAttribute('y', bk.startY);
+      rect.setAttribute('width', 30);
+      rect.setAttribute('height', Math.max(bk.blockH, 8));
+      rect.setAttribute('rx','3');
+      rect.setAttribute('fill', EXCESS_COLOR);
+      rect.setAttribute('opacity','0.9');
+      els.overlay.appendChild(rect);
+      blockEls.push(rect);
+    }
+
+    var DURATION = 1500;
+    var startT = null;
+
+    function easeInOut(t){ return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+    function step(ts){
+      if(!startT) startT = ts;
+      var progress = Math.min((ts - startT) / DURATION, 1);
+
+      for(var b = 0; b < blocks.length; b++){
+        var bk = blocks[b];
+        var el = blockEls[b];
+
+        // Each block: rise → slide → sink
+        // Phase 1: rise (0 - 0.3)
+        // Phase 2: slide (0.3 - 0.7)
+        // Phase 3: sink (0.7 - 1.0)
+        var px, py;
+
+        if(progress < 0.3){
+          // Rise from src bar top upward
+          var t = progress / 0.3;
+          var et = easeInOut(t);
+          px = bk.startX;
+          py = bk.startY - (bk.startY - bk.peakY) * et;
+        } else if(progress < 0.7){
+          // Slide horizontally at peak
+          var t = (progress - 0.3) / 0.4;
+          var et = easeInOut(t);
+          px = bk.startX + (bk.endX - bk.startX) * et;
+          py = bk.peakY;
+        } else {
+          // Sink to dst bar top
+          var t = (progress - 0.7) / 0.3;
+          var et = easeInOut(t);
+          px = bk.endX;
+          py = bk.peakY + (bk.endY - bk.peakY) * et;
+        }
+
+        el.setAttribute('x', px);
+        el.setAttribute('y', py);
+      }
+
+      // Shrink source bars and grow dest bars gradually
+      var avgVal = getAvg();
+      if(progress < 0.3){
+        // Shrink sources slightly
+      } else if(progress < 0.7){
+        var t = (progress - 0.3) / 0.4;
+        for(var b = 0; b < blocks.length; b++){
+          var bk = blocks[b];
+          var srcVal = data[bk.srcIdx];
+          var dstVal = data[bk.dstIdx];
+          var intermediateSrc = srcVal - bk.amount * easeInOut(t);
+          var intermediateDst = dstVal + bk.amount * easeInOut(t);
+          els.bars[bk.srcIdx].setAttribute('y', valToY(intermediateSrc));
+          els.bars[bk.srcIdx].setAttribute('height', intermediateSrc * PX_PER_UNIT);
+          els.barVals[bk.srcIdx].setAttribute('y', valToY(intermediateSrc) - 6);
+          els.barVals[bk.srcIdx].textContent = intermediateSrc.toFixed(1);
+
+          els.bars[bk.dstIdx].setAttribute('y', valToY(intermediateDst));
+          els.bars[bk.dstIdx].setAttribute('height', intermediateDst * PX_PER_UNIT);
+          els.barVals[bk.dstIdx].setAttribute('y', valToY(intermediateDst) - 6);
+          els.barVals[bk.dstIdx].textContent = intermediateDst.toFixed(1);
+        }
+      } else {
+        var t = (progress - 0.7) / 0.3;
+        for(var b = 0; b < blocks.length; b++){
+          var bk = blocks[b];
+          var srcVal = data[bk.srcIdx] - bk.amount * easeInOut(1);
+          var dstVal = data[bk.dstIdx] + bk.amount * easeInOut(1);
+          // Already at final state, just hold
+          els.bars[bk.srcIdx].setAttribute('y', valToY(avgVal));
+          els.bars[bk.srcIdx].setAttribute('height', avgVal * PX_PER_UNIT);
+          els.barVals[bk.srcIdx].setAttribute('y', valToY(avgVal) - 6);
+          els.barVals[bk.srcIdx].textContent = avgVal;
+
+          els.bars[bk.dstIdx].setAttribute('y', valToY(avgVal));
+          els.bars[bk.dstIdx].setAttribute('height', avgVal * PX_PER_UNIT);
+          els.barVals[bk.dstIdx].setAttribute('y', valToY(avgVal) - 6);
+          els.barVals[bk.dstIdx].textContent = avgVal;
+        }
+      }
+
+      // Also update bars that don't participate (already at avg)
+      if(progress > 0.3){
+        for(var i = 0; i < 5; i++){
+          var participates = false;
+          for(var b = 0; b < blocks.length; b++){
+            if(blocks[b].srcIdx === i || blocks[b].dstIdx === i){ participates = true; break; }
+          }
+          if(!participates){
+            els.bars[i].setAttribute('y', valToY(avgVal));
+            els.bars[i].setAttribute('height', avgVal * PX_PER_UNIT);
+            els.barVals[i].setAttribute('y', valToY(avgVal) - 6);
+            els.barVals[i].textContent = avgVal;
+          }
+        }
+      }
+
+      if(progress < 1){
+        requestAnimationFrame(step);
+      } else {
+        // Animation complete: set all bars to average
+        for(var i = 0; i < 5; i++){
+          data[i] = avgVal;
+          els.bars[i].setAttribute('y', valToY(avgVal));
+          els.bars[i].setAttribute('height', avgVal * PX_PER_UNIT);
+          els.barVals[i].setAttribute('y', valToY(avgVal) - 6);
+          els.barVals[i].textContent = avgVal;
+        }
+        syncSliders();
+        updateStat();
+
+        // Fade out blocks
+        setTimeout(function(){
+          els.overlay.innerHTML = '';
+        }, 300);
+
+        animating = false;
+        levelDone = true;
+        document.getElementById('levelBtn').disabled = false;
+        document.getElementById('resetBtn').disabled = false;
+      }
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  function resetData(){
+    if(animating) return;
+    data = ORIG.slice();
+    currentHeights = ORIG.slice();
+    levelDone = false;
+    syncSliders();
+    updateChart();
+    els.overlay.innerHTML = '';
+  }
+
+  function setParams(obj){
+    if(obj.d0 !== undefined) data[0] = obj.d0;
+    if(obj.d1 !== undefined) data[1] = obj.d1;
+    if(obj.d2 !== undefined) data[2] = obj.d2;
+    if(obj.d3 !== undefined) data[3] = obj.d3;
+    if(obj.d4 !== undefined) data[4] = obj.d4;
+    levelDone = false;
+    syncSliders();
+    updateChart();
+  }
+
+  function state(){
+    var a = getAvg();
+    return {
+      mode: 'average',
+      data: data.slice(),
+      sum: getSum(),
+      count: getCount(),
+      average: a,
+      levelOk: levelDone
+    };
+  }
+
+  function verify(){
+    var s = state();
+    var avg = s.average;
+    var allEqual = data.every(function(v){ return Math.abs(v - avg) < 0.01; });
+    return {
+      mode: s.mode,
+      data: s.data,
+      sum: s.sum,
+      count: s.count,
+      average: s.average,
+      levelOk: allEqual
+    };
+  }
+
+  // init
+  document.getElementById('levelBtn').addEventListener('click', playLevel);
+  document.getElementById('resetBtn').addEventListener('click', resetData);
+
+  createSVG();
+  buildSliders();
+  updateChart();
+
+  return {
+    setParams: setParams,
+    play: playLevel,
+    reset: resetData,
+    state: state,
+    verify: verify,
+    isReady: true
+  };
+})();
+</script>
+</body>
+</html>

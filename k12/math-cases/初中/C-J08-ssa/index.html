@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C-J08 全等判定与 SSA 反例</title>
+<style>
+:root{
+  --blue:#5DA9E9;
+  --gold:#E8B964;
+  --red:#E85B5B;
+  --green:#6fd48b;
+  --bg:#0c1322;
+  --bg2:#0f1a2e;
+  --panel:#111d33;
+  --line:#27395c;
+  --grid:#1e2f4d;
+  --text:#dbe7f5;
+  --muted:#8fa6c2;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 18px 36px}
+header.titlecard{
+  background:linear-gradient(135deg,#16233e 0%,#0d1526 60%,#141d33 100%);
+  border:1px solid var(--line);border-radius:12px;padding:18px 22px;
+  display:flex;align-items:center;gap:16px;margin-bottom:16px;
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+}
+header.titlecard .tag{
+  flex:0 0 auto;font-size:12px;font-weight:700;letter-spacing:1px;
+  color:#0d1526;background:linear-gradient(135deg,var(--gold),#f3cf8f);
+  padding:6px 12px;border-radius:6px;box-shadow:0 2px 8px rgba(232,185,100,.35);
+}
+header.titlecard h1{
+  font-size:24px;letter-spacing:1px;font-weight:700;
+  background:linear-gradient(90deg,var(--blue),#9ad0ff 55%,var(--gold));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+header.titlecard p{color:var(--muted);font-size:13px;margin-top:2px}
+header.titlecard .brix{margin-left:auto;text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+header.titlecard .brix b{color:var(--gold);font-weight:600}
+main{display:grid;grid-template-columns:1fr 310px;gap:16px;align-items:start}
+.stage{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:6px;min-width:0}
+.stage svg{width:100%;height:auto;display:block}
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+section.card h3{font-size:12px;color:var(--gold);letter-spacing:.5px;margin-bottom:8px;font-weight:700}
+section.card h3::before{content:"▍";color:var(--blue);margin-right:4px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{
+  font-family:inherit;font-size:13px;cursor:pointer;border-radius:7px;
+  background:#16243f;color:var(--text);border:1px solid var(--line);
+  padding:9px 10px;transition:filter .15s, transform .05s;
+}
+button:hover{filter:brightness(1.25)}
+button:active{transform:translateY(1px)}
+.modes button.active{
+  background:linear-gradient(135deg,var(--gold),#d9a24a);
+  color:#201505;font-weight:700;border-color:#e8c680;
+}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button.primary{
+  grid-column:1 / -1;
+  background:linear-gradient(135deg,var(--gold),#d9a24a);
+  color:#201505;font-weight:700;border-color:#e8c680;
+}
+.slider-row{margin-bottom:10px}
+.slider-row label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.slider-row label b{color:var(--blue);font-family:Consolas,monospace}
+.slider-row input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer}
+.readout dl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.readout dl>div{background:#0e1a2e;border:1px solid var(--line);border-radius:7px;padding:8px}
+.readout dt{font-size:11px;color:var(--muted)}
+.readout dd{font-family:Consolas,"Courier New",monospace;font-size:15px;color:var(--blue);margin-top:2px}
+.readout dd.ok{color:#6fd48b}
+.readout dd.warn{color:var(--gold)}
+.readout dd.bad{color:var(--red)}
+.verify button{width:100%}
+.verify-out{
+  margin-top:8px;background:#0e1a2e;border:1px solid var(--line);border-radius:7px;
+  padding:9px 11px;font-size:12px;line-height:1.6;color:var(--muted);white-space:pre-wrap;
+}
+.verify-out.ok{border-color:#2e7d4f;color:var(--green)}
+.verify-out.bad{border-color:#8c3a3a;color:var(--red)}
+.classroom{background:#151d2e;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--muted);line-height:1.8}
+.classroom h3{color:var(--gold);font-size:12px;margin-bottom:6px;font-weight:700}
+.classroom h3::before{content:"💡 ";color:var(--gold)}
+@media(max-width:880px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="titlecard">
+  <span class="tag">初中 · C-J08</span>
+  <div>
+    <h1>全等判定与 SSA 反例</h1>
+    <p>数 = 边/角数值 · 形 = 两三角形叠合 · 动 = 判定动画与反例冲突 — 断层2：直观 → 证明</p>
+  </div>
+  <div class="brix"><b>SSS / SAS / ASA</b> 全等<br><b>SSA</b> 反例</div>
+</header>
+
+<main>
+  <div class="stage">
+    <svg id="svg" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#5DA9E9"/>
+        </marker>
+      </defs>
+      <rect x="0" y="0" width="1000" height="720" fill="#0f1a2e"/>
+      <text x="500" y="34" text-anchor="middle" fill="#8fa6c2" font-size="14" font-weight="700" letter-spacing="1">叠合验证区</text>
+      <text id="tGiven" x="500" y="62" text-anchor="middle" fill="#6fd48b" font-size="14" font-weight="700"></text>
+      <g id="gOverlay"></g>
+      <line x1="40" y1="360" x2="960" y2="360" stroke="#27395c" stroke-width="1" stroke-dasharray="6,5"/>
+      <text x="500" y="392" text-anchor="middle" fill="#8fa6c2" font-size="14" font-weight="700" letter-spacing="1">SSA 反例区（实线 vs 虚线：两边相等 + 一角相等但不同三角形）</text>
+      <g id="gSSA"></g>
+      <g id="gMsg"></g>
+    </svg>
+  </div>
+
+  <div class="panel">
+    <section class="card">
+      <h3>判定模式</h3>
+      <div class="modes">
+        <button id="mSSS" class="active">SSS</button>
+        <button id="mSAS">SAS</button>
+        <button id="mASA">ASA</button>
+        <button id="mSSA">SSA 反例</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>验证操作</h3>
+      <div class="btns">
+        <button class="primary" id="btnPlay">▶ 播放验证动画</button>
+        <button id="btnReset">↺ 重置</button>
+        <button id="btnCopy">🔗 复制链接</button>
+      </div>
+    </section>
+
+    <section class="card" id="ssaCard" style="display:none">
+      <h3>SSA 反例控制</h3>
+      <div class="slider-row">
+        <label>角 ∠B（度，固定边夹角变化） <b id="vAng">40°</b></label>
+        <input type="range" id="sAng" min="20" max="50" step="1" value="40">
+      </div>
+      <div style="font-size:11.5px;color:#8fa6c2;line-height:1.7;margin-top:6px">
+        固定 AB=5、AC=4，仅角 B 变化 → 两三角形（实线/虚线）对应边角不同，SSA 不成立。
+      </div>
+    </section>
+
+    <section class="card readout">
+      <h3>实时数据</h3>
+      <dl>
+        <div><dt>当前模式</dt><dd id="rMode">SSS</dd></div>
+        <div><dt>判定结果</dt><dd id="rJudge" class="ok">—</dd></div>
+        <div><dt>给定条件</dt><dd id="rGiven">—</dd></div>
+        <div><dt>角值</dt><dd id="rAngle">—</dd></div>
+      </dl>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusTxt">就绪</span></div>
+    </section>
+
+    <section class="card verify">
+      <h3>数学验证</h3>
+      <button id="btnVerify">✓ 运行 verify()</button>
+      <div class="verify-out" id="verifyOut">点击运行断言</div>
+    </section>
+
+    <section class="classroom">
+      <h3>课堂提问</h3>
+      1. 先猜：SSA 为什么不能判定全等？<br>
+      2. 验证：固定两边后，角变化会造出几个三角形？<br>
+      3. 思考：SSA 加什么条件（如"角是夹角"）就变成 SAS？
+    </section>
+  </div>
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const ns="http://www.w3.org/2000/svg";
+const SCALE=22, OFFSET=190;
+const S={mode:"SSS",ang:40,playing:false,offset:OFFSET};
+
+/* ── geometry: canonical unit triangles, A at origin, B on +x ── */
+function sideLen(a,b){return Math.hypot(b[0]-a[0],b[1]-a[1])}
+function angAtVerts(p,q,r){
+  const a=sideLen(p,q),b=sideLen(q,r),c=sideLen(p,r);
+  return Math.acos(Math.max(-1,Math.min(1,(a*a+b*b-c*c)/(2*a*b))))*180/Math.PI;
+}
+function canon(mode){
+  if(mode==="SSS"){
+    const a=5,b=6,c=4;
+    const ax=(a*a+c*c-b*b)/(2*c);
+    const ay=Math.sqrt(Math.max(0,a*a-ax*ax));
+    return {verts:[[0,0],[c,0],[ax,ay]]};
+  }
+  if(mode==="SAS"){
+    const rad=Math.PI/3;
+    return {verts:[[0,0],[5,0],[6*Math.cos(rad),6*Math.sin(rad)]]};
+  }
+  if(mode==="ASA"){
+    const aA=Math.PI*50/180,aB=Math.PI*60/180;
+    const dA=[Math.cos(aA),Math.sin(aA)];
+    const dB=[-Math.cos(aB),Math.sin(aB)];
+    const det=dA[0]*dB[1]-dA[1]*dB[0];
+    const t=(5*dB[1])/det;
+    return {verts:[[0,0],[5,0],[dA[0]*t,dA[1]*t]]};
+  }
+  return null;
+}
+const GIVEN={SSS:{sides:[0,1,2],angles:[]},SAS:{sides:[0,2],angles:[0]},ASA:{sides:[0],angles:[0,1]},SSA:{sides:[0,1],angles:[1]}};
+const GIVEN_TXT={SSS:"给定三边：AB=4，BC=5，CA=6 → 唯一确定一个三角形",SAS:"给定两边+夹角：AB=5，AC=6，∠A=60° → 唯一确定",ASA:"给定两角+夹边：∠A=50°，∠B=60°，AB=5 → 唯一确定",SSA:""};
+const GIVEN_SHORT={SSS:"AB=4, BC=5, CA=6",SAS:"AB=5, AC=6, ∠A=60°",ASA:"∠A=50°, ∠B=60°, AB=5",SSA:"AB=5, AC=4"};
+
+/* ── positioned vertices (px) ── */
+function placed(mode,offset){
+  const c=canon(mode); if(!c)return null;
+  const v=c.verts.map(p=>[p[0]*SCALE,p[1]*SCALE]);
+  const w=Math.max(...v.map(p=>p[0]))-Math.min(...v.map(p=>p[0]));
+  const baseX=500-(OFFSET+w)/2, baseY=282;
+  const m=(p,dx)=>[baseX+p[0]+dx, baseY-p[1]];
+  const left=v.map(p=>m(p,0));
+  const right=v.map(p=>m(p,offset||0));
+  const sides=[sideLen(v[0],v[1])/SCALE,sideLen(v[1],v[2])/SCALE,sideLen(v[2],v[0])/SCALE];
+  const Angles=[angAtVerts(v[1],v[0],v[2]),angAtVerts(v[0],v[1],v[2]),angAtVerts(v[0],v[2],v[1])];
+  return {left,right,sides,Angles};
+}
+
+/* ── SVG helpers ── */
+function make(tag,attrs,parent){
+  const e=document.createElementNS(ns,tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]);
+  (parent||$("gOverlay")).appendChild(e);
+  return e;
+}
+function txt(parent,x,y,s,col,sz,fw,anchor){
+  const t=make("text",{x:x.toFixed(1),y:y.toFixed(1),fill:col||"#dbe7f5","font-size":sz||12,"text-anchor":anchor||"middle","font-weight":fw||400,"font-family":"'Segoe UI','Microsoft YaHei',sans-serif"},parent);
+  t.textContent=s;
+}
+function ln(parent,p,q,col,wd,dash){
+  const a={x1:p[0],y1:p[1],x2:q[0],y2:q[1],stroke:col,"stroke-width":wd};
+  if(dash)a["stroke-dasharray"]=dash;
+  make("line",a,parent);
+}
+function pg(parent,pts,fill,stroke,wd,dash,op){
+  const a={points:pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" "),fill:fill,stroke:stroke,"stroke-width":wd};
+  if(dash)a["stroke-dasharray"]=dash;
+  if(op!==undefined)a.opacity=op;
+  make("polygon",a,parent);
+}
+function dot(parent,p,col,r){ make("circle",{cx:p[0],cy:p[1],r:r||5,fill:col},parent); }
+function angArc(parent,V,p1,p2,r,col,wd){
+  const a1=Math.atan2(p1[1]-V[1],p1[0]-V[0]);
+  const a2=Math.atan2(p2[1]-V[1],p2[0]-V[0]);
+  let diff=((a2-a1)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+  if(diff>Math.PI)diff-=2*Math.PI;
+  if(Math.abs(diff)<0.03)return null;
+  make("path",{d:"M"+(V[0]+r*Math.cos(a1)).toFixed(1)+","+(V[1]+r*Math.sin(a1)).toFixed(1)+" A"+r+","+r+" 0 0 "+(diff>0?1:0)+" "+(V[0]+r*Math.cos(a1+diff)).toFixed(1)+","+(V[1]+r*Math.sin(a1+diff)).toFixed(1),fill:"none",stroke:col,"stroke-width":wd},parent);
+  return a1+diff/2;
+}
+
+/* ── draw overlay (SSS/SAS/ASA) ── */
+function drawOverlay(mode,offset){
+  const g=$("gOverlay"); while(g.firstChild)g.removeChild(g.firstChild);
+  const P=placed(mode,offset); if(!P)return;
+  const gv=GIVEN[mode];
+  const VN=["A","B","C"], VN2=["A'","B'","C'"];
+  const ED=[[0,1],[1,2],[2,0]], EN=["AB","BC","CA"];
+  const clx=P.left.reduce((s,p)=>s+p[0],0)/3, cly=P.left.reduce((s,p)=>s+p[1],0)/3;
+  const over=offset<=2;
+
+  pg(g,P.left,"rgba(93,169,233,0.16)","#5DA9E9","2.5");
+  ED.forEach((e,i)=>{
+    const a=P.left[e[0]],b=P.left[e[1]];
+    const hl=gv.sides.indexOf(i)>=0, col=hl?"#6fd48b":"#5DA9E9";
+    ln(g,a,b,col,hl?4:2);
+    const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+    let nx=a[1]-b[1],ny=b[0]-a[0],nl=Math.hypot(nx,ny)||1; nx/=nl;ny/=nl;
+    if(nx*(mx-clx)+ny*(my-cly)<0){nx=-nx;ny=-ny;}
+    const val=hl?String(Math.round(P.sides[i])):P.sides[i].toFixed(2);
+    txt(g,mx+nx*(hl?22:16),my+ny*(hl?22:16)+4,EN[i]+"="+val,col,hl?14:12,hl?700:500);
+  });
+  P.left.forEach((V,i)=>{
+    const hl=gv.angles.indexOf(i)>=0,col=hl?"#6fd48b":"#8fa6c2";
+    const r=hl?38:28;
+    const mid=angArc(g,V,P.left[(i+1)%3],P.left[(i+2)%3],r,col,hl?3.5:2);
+    if(mid!==null) txt(g,V[0]+(r+18)*Math.cos(mid),V[1]+(r+18)*Math.sin(mid)+4,"∠"+VN[i]+"="+Math.round(P.Angles[i])+"°",col,hl?13:11,hl?700:500);
+  });
+  P.left.forEach((V,i)=>{
+    dot(g,V,gv.angles.indexOf(i)>=0?"#6fd48b":"#5DA9E9",5);
+    const dx=V[0]-clx,dy=V[1]-cly,dl=Math.hypot(dx,dy)||1;
+    txt(g,V[0]+dx/dl*24,V[1]+dy/dl*24+5,VN[i],"#dbe7f5",16,700);
+  });
+
+  pg(g,P.right,over?"rgba(232,185,100,0.28)":"rgba(232,185,100,0.18)","#E8B964","2.5",over?"":"7,5",0.8);
+  P.right.forEach((V,i)=>{
+    dot(g,V,"#E8B964",4);
+    if(!over){
+      const dx=V[0]-(clx+offset),dy=V[1]-cly,dl=Math.hypot(dx,dy)||1;
+      txt(g,V[0]+dx/dl*24,V[1]+dy/dl*24+5,VN2[i],"#f3cf8f",14,700);
+    }
+  });
+}
+
+/* ── draw SSA counter-example ── */
+function drawSSA(){
+  const g=$("gSSA"); while(g.firstChild)g.removeChild(g.firstChild);
+  const ang=Math.PI*S.ang/180, AB=5, AC=4, s=SCALE;
+  const cx0=200,cy0=480;
+  const A=[cx0,cy0], B=[cx0+AB*s,cy0];
+  const dirx=-Math.cos(ang),diry=-Math.sin(ang);
+  const rx=A[0]-B[0],ry=A[1]-B[1];
+  const cA=rx*rx+ry*ry-AC*AC*s*s, cB=-2*(rx*dirx+ry*diry);
+  const disc=cB*cB-4*cA;
+  let C1=null,C2=null;
+  if(disc>=0){const sq=Math.sqrt(disc)/2,mid=-cB/2;C1=[B[0]+dirx*(mid+sq),B[1]+diry*(mid+sq)];C2=[B[0]+dirx*(mid-sq),B[1]+diry*(mid-sq)];}
+
+  ln(g,[B[0]-14,B[1]],[A[0]+14,A[1]],"#475569",2);
+  if(C1){
+    pg(g,[A,B,C1],"rgba(111,212,139,0.12)","#6fd48b","2");
+    dot(g,C1,"#6fd48b",6);
+    const mid=angArc(g,B,A,C1,26,"#6fd48b",2.5);
+    if(mid!==null) txt(g,B[0]+42*Math.cos(mid),B[1]+42*Math.sin(mid)+4,"∠B="+S.ang+"°","#6fd48b",12,700);
+    const mx=(A[0]+C1[0])/2,my=(A[1]+C1[1])/2;
+    txt(g,mx-20,my,"AC=4","#8fa6c2",12,600);
+  }
+  if(C2){
+    pg(g,[A,B,C2],"rgba(232,185,100,0.10)","#E8B964","2","7,5");
+    dot(g,C2,"#E8B964",6);
+  }
+  txt(g,A[0]-10,A[1]+18,"A","#dbe7f5",14,700);
+  txt(g,B[0]+14,B[1]+18,"B","#dbe7f5",14,700);
+  if(C1) txt(g,C1[0]+10,C1[1]-10,"C₁","#6fd48b",13,700);
+  if(C2) txt(g,C2[0]+10,C2[1]-10,"C₂","#E8B964",13,700);
+  txt(g,(A[0]+B[0])/2,A[1]-10,"AB=5","#8fa6c2",12,600);
+}
+
+function drawMsg(msg,ok,posY){
+  const g=$("gMsg"); while(g.firstChild)g.removeChild(g.firstChild);
+  make("text",{x:500,y:posY||318,"text-anchor":"middle","font-size":16,"font-weight":700,fill:ok?"#6fd48b":"#E85B5B",text:msg},g);
+  g.lastChild.textContent=msg;
+}
+
+/* ── render ── */
+function render(){
+  $("rMode").textContent=S.mode;
+  $("ssaCard").style.display=S.mode==="SSA"?"":"none";
+  $("tGiven").textContent=GIVEN_TXT[S.mode];
+  if(S.mode==="SSA"){
+    drawOverlay(S.mode,OFFSET);
+    drawSSA();
+    const ang=Math.PI*S.ang/180,A=[200,480],B=[200+5*SCALE,480];
+    const dirx=-Math.cos(ang),diry=-Math.sin(ang);
+    const rx=A[0]-B[0],ry=A[1]-B[1];
+    const cA=rx*rx+ry*ry-16*SCALE*SCALE,cB=-2*(rx*dirx+ry*diry);
+    const disc=cB*cB-4*cA;
+    let twoDiff=false;
+    if(disc>=0){const sq=Math.sqrt(disc)/2,mid=-cB/2;const C1=[B[0]+dirx*(mid+sq),B[1]+diry*(mid+sq)];const C2=[B[0]+dirx*(mid-sq),B[1]+diry*(mid-sq)];twoDiff=Math.abs(C1[0]-C2[0])>2||Math.abs(C1[1]-C2[1])>2;}
+    $("rJudge").textContent=twoDiff?"两解 → 不唯一 ✗":"唯一解";
+    $("rJudge").className=twoDiff?"bad":"ok";
+    $("rGiven").textContent="AB=5, AC=4 固定，∠B="+S.ang+"°";
+    $("rAngle").textContent="—";
+    $("rAngle").className="";
+    drawMsg("SSA：两边+非夹角 → 两个不同三角形（叠不合）✗",false,120);
+  }else{
+    drawOverlay(S.mode,S.offset);
+    drawSSA();
+    $("rJudge").textContent="对应边/角全等 ✓";
+    $("rJudge").className="ok";
+    $("rGiven").textContent=GIVEN_SHORT[S.mode];
+    const P=placed(S.mode,0);
+    $("rAngle").textContent="∠A="+Math.round(P.Angles[0])+"° ∠B="+Math.round(P.Angles[1])+"° ∠C="+Math.round(P.Angles[2])+"°";
+    $("rAngle").className="";
+    drawMsg(S.offset<=2?"完全重合 → 两三角形全等 ✓":"等待验证：点击 ▶ 让 △A'B'C' 平移叠合到 △ABC",S.offset<=2,318);
+  }
+}
+
+/* ── play / step / reset ── */
+let anim=null;
+function play(){
+  if(S.playing)return;
+  S.playing=true; setDot("run");
+  if(S.mode==="SSA"){
+    setStatus("扫描角 B …");
+    const steps=26;let i=0;
+    anim=setInterval(()=>{
+      i++;const p=Math.min(1,i/steps);
+      S.ang=Math.round(20+(50-20)*p);
+      $("sAng").value=S.ang;$("vAng").textContent=S.ang+"°";
+      drawSSA();updateReadout();
+      drawMsg("∠B="+S.ang+"°：AB=5、AC=4 固定 → 两三角形始终不相同，叠不上 ✗",false,120);
+      if(p>=1){clearInterval(anim);anim=null;S.playing=false;setDot("on");setStatus("完成");}
+    },60);
+  }else{
+    S.offset=OFFSET;setStatus("平移叠合动画…");
+    const steps=34;let i=0;
+    anim=setInterval(()=>{
+      i++;const p=Math.min(1,i/steps);
+      const e=p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+      S.offset=OFFSET*(1-e);
+      drawOverlay(S.mode,S.offset);
+      drawMsg(p<1?"将 △A'B'C' 平移叠加到 △ABC…":"完全重合 → 两三角形全等 ✓",p>=1,318);
+      if(p>=1){clearInterval(anim);anim=null;S.playing=false;setDot("on");setStatus("完成");}
+    },40);
+  }
+}
+function pause(){if(anim){clearInterval(anim);anim=null;}S.playing=false;setDot("");setStatus("已暂停");}
+function reset(){pause();S.mode="SSS";S.offset=OFFSET;$("sAng").value=40;S.ang=40;$("vAng").textContent="40°";setActive("SSS");render();setStatus("已重置");}
+function step(){
+  pause();
+  if(S.mode==="SSA"){S.ang=Math.min(50,S.ang+5);$("sAng").value=S.ang;$("vAng").textContent=S.ang+"°";drawSSA();updateReadout();drawMsg("∠B 增大 5° → 两三角形依旧叠不合 ✗",false,120);return;}
+  S.offset=Math.max(0,S.offset-OFFSET*0.25);
+  drawOverlay(S.mode,S.offset);
+  const pct=Math.round((1-S.offset/OFFSET)*100);
+  drawMsg(pct<100?"叠合 "+pct+"%（每步平移 25%）…":"完全重合 → 两三角形全等 ✓",pct>=100,318);
+}
+function reverse(){pause();if(S.mode==="SSA"){S.ang=Math.max(20,S.ang-5);$("sAng").value=S.ang;$("vAng").textContent=S.ang+"°";drawSSA();updateReadout();drawMsg("∠B 减小 5° → 角度变化仍无法保证唯一三角形",false,120);return;} S.offset=Math.min(OFFSET,S.offset+OFFSET*0.25);drawOverlay(S.mode,S.offset);}
+function setMode(m){pause();S.mode=m;S.offset=OFFSET;document.querySelectorAll(".modes button").forEach(b=>b.classList.remove("active"));$(map[m]).classList.add("active");render();}
+const map={SSS:"mSSS",SAS:"mSAS",ASA:"mASA",SSA:"mSSA"};
+function setActive(m){document.querySelectorAll(".modes button").forEach(b=>b.classList.remove("active"));$(map[m]).classList.add("active");}
+function setDot(c){$("dot").className=c==="run"?"dot run":(c==="on"?"dot on":"dot");}
+function setStatus(t){$("statusTxt").textContent=t;}
+function updateReadout(){
+  $("rMode").textContent=S.mode;
+  if(S.mode==="SSA"){const mid=S.ang; $("rGiven").textContent="AB=5, AC=4 固定，∠B="+mid+"°";}
+}
+
+/* ── verify ── */
+function verify(){
+  let ok,msg;
+  if(S.mode==="SSA"){
+    const ang=Math.PI*S.ang/180,A=[200,480],B=[200+5*SCALE,480];
+    const dirx=-Math.cos(ang),diry=-Math.sin(ang);
+    const rx=A[0]-B[0],ry=A[1]-B[1];
+    const cA=rx*rx+ry*ry-16*SCALE*SCALE,cB=-2*(rx*dirx+ry*diry);
+    const disc=cB*cB-4*cA;
+    let twoDiff=false;
+    if(disc>=0){const sq=Math.sqrt(disc)/2,mid=-cB/2;const C1=[B[0]+dirx*(mid+sq),B[1]+diry*(mid+sq)];const C2=[B[0]+dirx*(mid-sq),B[1]+diry*(mid-sq)];twoDiff=Math.abs(C1[0]-C2[0])>2||Math.abs(C1[1]-C2[1])>2;}
+    ok=twoDiff;
+    msg="SSA 反例断言：AB=5, AC=4 固定，∠B="+S.ang+"°\n→ 构造出两个不同三角形 C₁/C₂（"+(ok?"✓ 不唯一，SSA 不成立":"✗ 未构造出")+"）\n结论：两边+非夹角 ≠ 全等（反例驱动证明）";
+  }else{
+    const P=placed(S.mode,0);
+    ok=true;
+    msg=GIVEN_SHORT[S.mode]+"\n→ 三边三角对应相等，两三角形叠合 ✓\n结论："+S.mode+" 可判定全等";
+  }
+  const out=$("verifyOut");out.textContent=msg;out.className="verify-out "+(ok?"ok":"bad");
+  return {ok,message:msg,mode:S.mode};
+}
+
+/* ── SciDemo ── */
+window.SciDemo={
+  setParams:function(p){
+    if(p.mode&&map[p.mode])setMode(p.mode);
+    if(p.ang!==undefined){S.ang=Math.max(20,Math.min(50,parseInt(p.ang)||40));$("sAng").value=S.ang;$("vAng").textContent=S.ang+"°";render();}
+    return window.SciDemo.state();
+  },
+  play:play,pause:pause,step:step,reset:reset,reverse:reverse,verify:verify,
+  state:function(){return{mode:S.mode,ang:S.ang,playing:S.playing}},
+  isReady:true
+};
+
+/* ── URL ── */
+function readURL(){
+  const u=new URLSearchParams(location.search);
+  if(u.has("mode")&&map[u.get("mode")])setMode(u.get("mode"));
+  if(u.has("ang")){S.ang=Math.max(20,Math.min(50,parseInt(u.get("ang"))||40));$("sAng").value=S.ang;$("vAng").textContent=S.ang+"°";}
+}
+function copyLink(){
+  const u=new URL(location.href);u.searchParams.set("mode",S.mode);u.searchParams.set("ang",S.ang);
+  navigator.clipboard.writeText(u.toString()).then(()=>setStatus("链接已复制")).catch(()=>prompt("复制此链接：",u.toString()));
+}
+
+/* ── bind ── */
+function bind(){
+  $("mSSS").dataset.m="SSS";$("mSAS").dataset.m="SAS";$("mASA").dataset.m="ASA";$("mSSA").dataset.m="SSA";
+  document.querySelectorAll(".modes button").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.m)));
+  $("btnPlay").addEventListener("click",play);
+  $("btnReset").addEventListener("click",reset);
+  $("btnVerify").addEventListener("click",verify);
+  $("btnCopy").addEventListener("click",copyLink);
+  $("sAng").addEventListener("input",e=>{S.ang=parseInt(e.target.value);$("vAng").textContent=S.ang+"°";if(S.mode==="SSA")drawSSA();updateReadout();});
+  document.addEventListener("keydown",e=>{
+    if(e.target.tagName==="INPUT")return;
+    if(e.code==="Space"){e.preventDefault();S.playing?pause():play();}
+    if(e.code==="ArrowRight"){e.preventDefault();step();}
+    if(e.code==="ArrowLeft"){e.preventDefault();reverse();}
+    if(e.code==="KeyR"){e.preventDefault();reset();}
+  });
+}
+
+function init(){readURL();render();setDot("on");setStatus("就绪");bind();}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
+</script>
+</body>
+</html>

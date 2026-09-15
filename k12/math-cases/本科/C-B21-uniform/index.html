@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C-B21 连续与一致连续 · δ 依赖</title>
+<style>
+:root{
+  --blue:#5DA9E9;--gold:#E8B964;--red:#E85B5B;--green:#6fd48b;
+  --bg:#0c1322;--bg2:#0f1a2e;--panel:#111d33;--line:#27395c;
+  --text:#dbe7f5;--muted:#8fa6c2;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 18px 36px}
+header.titlecard{background:linear-gradient(135deg,#16233e 0%,#0d1526 60%,#141d33 100%);border:1px solid var(--line);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:16px;margin-bottom:16px;box-shadow:0 4px 18px rgba(0,0,0,.35)}
+header.titlecard .tag{flex:0 0 auto;font-size:12px;font-weight:700;letter-spacing:1px;color:#0d1526;background:linear-gradient(135deg,var(--gold),#f3cf8f);padding:6px 12px;border-radius:6px;box-shadow:0 2px 8px rgba(232,185,100,.35)}
+header.titlecard h1{font-size:24px;letter-spacing:1px;font-weight:700;background:linear-gradient(90deg,var(--blue),#9ad0ff 55%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+header.titlecard p{color:var(--muted);font-size:13px;margin-top:2px}
+header.titlecard .brix{margin-left:auto;text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+header.titlecard .brix b{color:var(--gold);font-weight:600}
+main{display:grid;grid-template-columns:1fr 310px;gap:16px;align-items:start}
+.stage{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:6px;min-width:0}
+.stage svg{width:100%;height:auto;display:block}
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+section.card h3{font-size:12px;color:var(--gold);letter-spacing:.5px;margin-bottom:8px;font-weight:700}
+section.card h3::before{content:"▍";color:var(--blue);margin-right:4px}
+button{font-family:inherit;font-size:13px;cursor:pointer;border-radius:7px;background:#16243f;color:var(--text);border:1px solid var(--line);padding:9px 10px;transition:filter .15s, transform .05s}
+button:hover{filter:brightness(1.25)}
+button:active{transform:translateY(1px)}
+button.primary{width:100%;background:linear-gradient(135deg,var(--gold),#d9a24a);color:#201505;font-weight:700;border-color:#e8c680}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.seg button.active{background:linear-gradient(135deg,var(--gold),#d9a24a);color:#201505;font-weight:700;border-color:#e8c680}
+.slider-row{margin-bottom:10px}
+.slider-row label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.slider-row label b{color:var(--blue);font-family:Consolas,monospace}
+.slider-row input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer}
+.readout dl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.readout dl>div{background:#0e1a2e;border:1px solid var(--line);border-radius:7px;padding:8px}
+.readout dt{font-size:11px;color:var(--muted)}
+.readout dd{font-family:Consolas,"Courier New",monospace;font-size:15px;color:var(--blue);margin-top:2px}
+.readout dd.ok{color:var(--green)}.readout dd.warn{color:var(--gold)}.readout dd.bad{color:var(--red)}
+.status{margin-top:10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.status .dot{width:8px;height:8px;border-radius:50%;background:#3d5275;transition:background .2s}
+.status .dot.on{background:var(--green);box-shadow:0 0 8px rgba(111,212,139,.7)}
+.status .dot.run{background:var(--gold);box-shadow:0 0 8px rgba(232,185,100,.8)}
+.verify-out{margin-top:8px;background:#0e1a2e;border:1px solid var(--line);border-radius:7px;padding:9px 11px;font-size:12px;line-height:1.6;color:var(--muted);white-space:pre-wrap}
+.verify-out.ok{border-color:#2e7d4f;color:var(--green)}
+.verify-out.bad{border-color:#8c3a3a;color:var(--red)}
+.classroom{background:#151d2e;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--muted);line-height:1.8}
+.classroom h3{color:var(--gold);font-size:12px;margin-bottom:6px;font-weight:700}
+@media(max-width:880px){main{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="titlecard">
+  <span class="tag">本科 · C-B21</span>
+  <div>
+    <h1>连续与一致连续 · δ 依赖</h1>
+    <p>数 = δ(x₀) 依赖 · 形 = 曲线 + ε 带 · 动 = x₀ 扫描看 δ — 断层5：极限严格化</p>
+  </div>
+  <div class="brix"><b>(0,1)</b> 非一致连续<br><b>[1,2]</b> 一致连续</div>
+</header>
+
+<main>
+  <div class="stage">
+    <svg id="svg" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="1000" height="720" fill="#0f1a2e"/>
+      <g id="gAxes"></g>
+      <g id="gCurve"></g>
+      <g id="gBand"></g>
+      <g id="gVline"></g>
+      <g id="gLabels"></g>
+    </svg>
+  </div>
+
+  <div class="panel">
+    <section class="card">
+      <h3>函数与区间</h3>
+      <div class="slider-row">
+        <label>函数 <b id="vFunc">f(x)=1/x</b></label>
+      </div>
+      <div class="seg">
+        <button id="f1" class="active">f(x)=1/x</button>
+        <button id="f2">f(x)=x²</button>
+      </div>
+      <div class="seg">
+        <button id="iv1" class="active">区间 (0,1) 开</button>
+        <button id="iv2">区间 [1,2] 闭</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>参数</h3>
+      <div class="slider-row">
+        <label>ε（带宽） <b id="vEps">0.20</b></label>
+        <input type="range" id="sEps" min="5" max="50" step="1" value="20">
+      </div>
+      <div class="slider-row">
+        <label>x₀（扫描点） <b id="vX0">0.60</b></label>
+        <input type="range" id="sX0" min="0" max="100" step="1" value="60">
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>操作</h3>
+      <button class="primary" id="btnPlay">▶ 播放 x₀ 扫描动画</button>
+      <div class="seg" style="margin-top:8px;margin-bottom:0">
+        <button id="btnStep">⏭ 步进</button>
+        <button id="btnReset">↺ 重置</button>
+      </div>
+    </section>
+
+    <section class="card readout">
+      <h3>实时数据</h3>
+      <dl>
+        <div><dt>x₀</dt><dd id="rX0">0.60</dd></div>
+        <div><dt>f(x₀)</dt><dd id="rFx">1.667</dd></div>
+        <div><dt>δ_min</dt><dd id="rDelta">—</dd></div>
+        <div><dt>判定</dt><dd id="rJudge">—</dd></div>
+      </dl>
+      <div class="status"><span class="dot" id="dot"></span><span id="statusTxt">就绪</span></div>
+    </section>
+
+    <section class="card">
+      <h3>数学验证</h3>
+      <button id="btnVerify">✓ 运行 verify()</button>
+      <div class="verify-out" id="verifyOut">点击运行断言</div>
+    </section>
+
+    <section class="classroom">
+      <h3>课堂提问</h3>
+      1. 为什么 (0,1) 中 x₀ 越靠近 0，需要的 δ 越小？<br>
+      2. [1,2] 闭区间为何能统一取一个 δ？<br>
+      3. 一致连续"一致"在哪？（紧致性从动画里长出来）
+    </section>
+  </div>
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const S={func:"inv",iv:"open",eps:0.20,x0:0.6,playing:false,timer:null};
+const ns="http://www.w3.org/2000/svg";
+
+function f(x){
+  if(S.func==="inv")return 1/x;
+  return x*x;
+}
+function fLabel(){
+  return S.func==="inv"?"f(x)=1/x":"f(x)=x²";
+}
+function ivRange(){
+  return S.iv==="open" ? [0.05,1.0] : [1.0,2.0];
+}
+function xMin(){return S.iv==="open"?0.05:1.0;}
+function xMax(){return S.iv==="open"?1.0:2.0;}
+
+/* mapping math -> svg: y range depends on func/interval */
+function mathToSvgX(x){ return 60 + (x - 0) / 2.2 * 880; }  /* 0..2.2 -> 60..940 */
+function mathToSvgY(y){
+  const yMax = S.func==="inv" ? 22 : 5;
+  return 660 - (y / yMax) * 560;   /* y 0..yMax -> 660..100 */
+}
+function svgToMathY(sy){ const yMax=S.func==="inv"?22:5; return (660-sy)/560*yMax; }
+
+function deltaMin(){
+  /* given eps, search largest delta s.t. |f(x)-f(x0)| < eps for |x-x0|<delta within interval */
+  const x0=S.x0, e=S.eps;
+  const lo=xMin(), hi=xMax();
+  let dlo=0, dhi=(hi-lo)/2;
+  const inBand=function(x){ return Math.abs(f(x)-f(x0)) < e; };
+  /* test delta */
+  const ok=function(d){
+    for(let k=0;k<=80;k++){
+      const t=(k/80)*2-1;
+      const x=x0+t*d;
+      if(x<lo||x>hi)continue;
+      if(!inBand(x))return false;
+    }
+    return true;
+  };
+  /* binary search */
+  for(let it=0; it<60; it++){
+    const mid=(dlo+dhi)/2;
+    if(ok(mid))dlo=mid; else dhi=mid;
+  }
+  return dlo;
+}
+
+function el(tag,attrs,parent){
+  const e=document.createElementNS(ns,tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]);
+  if(parent)parent.appendChild(e);
+  return e;
+}
+
+function drawAxes(){
+  const g=$("gAxes"); while(g.firstChild)g.removeChild(g.firstChild);
+  /* x axis */
+  el("line",{x1:60,y1:660,x2:940,y2:660,stroke:"#8fa6c2","stroke-width":1.5},g);
+  /* y axis */
+  el("line",{x1:60,y1:60,x2:60,y2:660,stroke:"#8fa6c2","stroke-width":1.5},g);
+  /* x ticks */
+  for(let x=0;x<=2;x+=0.5){
+    const px=mathToSvgX(x);
+    el("line",{x1:px,y1:658,x2:px,y2:662,stroke:"#8fa6c2","stroke-width":1},g);
+    const t=el("text",{x:px,y:678,"text-anchor":"middle",fill:"#8fa6c2","font-size":11},g);
+    t.textContent=x.toFixed(1);
+  }
+  /* interval highlight */
+  const xl=mathToSvgX(xMin()), xr=mathToSvgX(xMax());
+  el("rect",{x:xl,y:668,width:xr-xl,height:20,rx:3,fill:S.iv==="open"?"rgba(232,185,100,0.25)":"rgba(111,212,139,0.25)",stroke:S.iv==="open"?"#E8B964":"#6fd48b","stroke-width":1},g);
+  const t=el("text",{x:(xl+xr)/2,y:684,"text-anchor":"middle",fill:S.iv==="open"?"#E8B964":"#6fd48b","font-size":11},g);
+  t.textContent=S.iv==="open"?"区间 (0,1) 开":"区间 [1,2] 闭";
+}
+
+function drawCurve(){
+  const g=$("gCurve"); while(g.firstChild)g.removeChild(g.firstChild);
+  let d="";
+  const xlo=0.02, xhi=2.2, N=400;
+  for(let i=0;i<=N;i++){
+    const x=xlo+(xhi-xlo)*i/N;
+    const y=f(x);
+    const px=mathToSvgX(x), py=mathToSvgY(y);
+    if(py<20||py>680)continue;
+    d+=(d?"L":"M")+px.toFixed(1)+" "+py.toFixed(1);
+  }
+  el("path",{d,fill:"none",stroke:"#5DA9E9","stroke-width":2.5},g);
+  /* curve label */
+  const t=el("text",{x:mathToSvgX(1.7),y:mathToSvgY(f(1.7))-12,fill:"#9ad0ff","font-size":13},g);
+  t.textContent=fLabel();
+}
+
+function drawBandAndVline(){
+  const gb=$("gBand"); while(gb.firstChild)gb.removeChild(gb.firstChild);
+  const gv=$("gVline"); while(gv.firstChild)gv.removeChild(gv.firstChild);
+  const x0=S.x0, y0=f(x0);
+  const px=mathToSvgX(x0), py=mathToSvgY(y0);
+  /* eps band */
+  const pyTop=mathToSvgY(y0+S.eps), pyBot=mathToSvgY(y0-S.eps);
+  el("rect",{x:60,y:pyTop,width:880,height:pyBot-pyTop,fill:"rgba(111,212,139,0.12)",stroke:"rgba(111,212,139,0.35)","stroke-width":1,"stroke-dasharray":"5,4"},gb);
+  /* delta interval on x axis */
+  const dmin=deltaMin();
+  const pxL=mathToSvgX(x0-dmin), pxR=mathToSvgX(x0+dmin);
+  el("rect",{x:pxL,y:655,width:pxR-pxL,height:6,fill:"#E8B964",rx:3},gb);
+  /* x0 vertical */
+  el("line",{x1:px,y1:60,x2:px,y2:660,stroke:"#E8B964","stroke-width":2,"stroke-dasharray":"4,3"},gv);
+  /* point */
+  el("circle",{cx:px,cy:py,r:5,fill:"#E85B5B"},gv);
+}
+
+function drawLabels(){
+  const g=$("gLabels"); while(g.firstChild)g.removeChild(g.firstChild);
+  const x0=S.x0, y0=f(x0), dmin=deltaMin();
+  const px=mathToSvgX(x0), py=mathToSvgY(y0);
+  /* legend */
+  const lx=640, ly=30;
+  const items=[
+    ["曲线 "+fLabel(),"#5DA9E9"],
+    ["ε 带 (±"+S.eps.toFixed(2)+")","rgba(111,212,139,0.8)"],
+    ["δ 区间 (长 "+dmin.toFixed(3)+")","#E8B964"],
+    ["x₀ 处点","#E85B5B"]
+  ];
+  items.forEach((it,i)=>{
+    el("rect",{x:lx,y:ly+i*24,width:14,height:4,fill:it[1],rx:2},g);
+    const t=el("text",{x:lx+20,y:ly+i*24+5,fill:"#dbe7f5","font-size":12},g);
+    t.textContent=it[0];
+  });
+  /* verdict text */
+  const verdict = S.iv==="open"
+    ? "非一致连续：δ(x₀) 依赖 x₀（靠近 0 时 δ→0）"
+    : "一致连续：δ 有下界，可统一取 δ=δ_min(min)";
+  const t=el("text",{x:60,y:46,fill:S.iv==="open"?"#E85B5B":"#6fd48b","font-size":15,"font-weight":"bold"},g);
+  t.textContent=verdict;
+}
+
+function render(){
+  drawAxes(); drawCurve(); drawBandAndVline(); drawLabels();
+  const x0=S.x0, y0=f(x0), dmin=deltaMin();
+  $("rX0").textContent=x0.toFixed(3);
+  $("rFx").textContent=y0.toFixed(4);
+  $("rDelta").textContent=dmin.toFixed(4);
+  const isUni = S.iv==="closed";
+  $("rJudge").textContent=isUni?"一致连续 ✓":"非一致连续 ✗";
+  $("rJudge").className=isUni?"ok":"bad";
+}
+
+function play(){
+  if(S.playing)return;
+  S.playing=true;
+  $("dot").className="dot run";
+  $("statusTxt").textContent="扫描中…";
+  const from=S.x0, to=S.iv==="open"?xMin()+0.02:xMax();
+  const dur=3000, t0=performance.now();
+  const tick=now=>{
+    const p=Math.min(1,(now-t0)/dur);
+    S.x0=from+(to-from)*p;
+    $("sX0").value=Math.round((S.x0-xMin())/(xMax()-xMin())*100);
+    $("vX0").textContent=S.x0.toFixed(3);
+    render();
+    if(p<1){requestAnimationFrame(tick);}
+    else{S.playing=false;$("dot").className="dot on";$("statusTxt").textContent="完成";}
+  };
+  requestAnimationFrame(tick);
+}
+function pause(){S.playing=false;$("dot").className="dot";$("statusTxt").textContent="已暂停";}
+function reset(){pause();S.eps=0.20;S.x0=0.6;S.iv="open";S.func="inv";
+  $("sEps").value=20;$("vEps").textContent="0.20";
+  $("sX0").value=60;$("vX0").textContent="0.60";
+  $("f1").classList.add("active");$("f2").classList.remove("active");
+  $("iv1").classList.add("active");$("iv2").classList.remove("active");
+  render();$("statusTxt").textContent="已重置";}
+function step(){pause();
+  S.x0=Math.min(xMax()-0.02,S.x0+(xMax()-xMin())/20);
+  $("sX0").value=Math.round((S.x0-xMin())/(xMax()-xMin())*100);
+  $("vX0").textContent=S.x0.toFixed(3);render();}
+function reverse(){pause();
+  S.x0=Math.max(xMin()+0.02,S.x0-(xMax()-xMin())/20);
+  $("sX0").value=Math.round((S.x0-xMin())/(xMax()-xMin())*100);
+  $("vX0").textContent=S.x0.toFixed(3);render();}
+
+function verify(){
+  const dmin=deltaMin();
+  let ok,msg;
+  if(S.iv==="open"){
+    /* non-uniform: at x0 near 0, delta_min small; with fixed small delta some x0 escapes band */
+    const nearZero = S.x0 < xMin()+0.15;
+    const fixedD = 0.05; /* fixed delta */
+    let escaped=false;
+    const f0=f(S.x0);
+    for(let k=0;k<=100;k++){
+      const x=S.x0-fixedD+2*fixedD*k/100;
+      if(x<=xMin())continue;
+      if(Math.abs(f(x)-f0)>=S.eps){escaped=true;break;}
+    }
+    ok = dmin < S.eps*0.5;  /* delta_min shrinks -> cannot fix one delta */
+    msg="非一致连续断言（(0,1)）：\n· 当前 x₀="+S.x0.toFixed(3)+"，δ_min="+dmin.toFixed(4)+"\n"
+      +"· x₀ 靠近 0 时 δ_min→0（"+S.x0.toFixed(3)+" 处 "+dmin.toFixed(4)+"）\n"
+      +"· 固定 δ="+fixedD+" 检查带外：x₀="+S.x0.toFixed(3)+" "+(escaped?"穿出带 ✓（反例成立）":"在带内")+"\n"
+      +"结论：δ 依赖 x₀，无法统一 → 非一致连续"+(ok?" ✓":"（待进一步确认）");
+  }else{
+    /* uniform: delta_min has a lower bound on [1,2] */
+    let globalMin=Infinity;
+    for(let i=0;i<=100;i++){
+      const xx=1.0+i/100;
+      const oldX0=S.x0; S.x0=xx; const dd=deltaMin(); S.x0=oldX0;
+      if(dd<globalMin)globalMin=dd;
+    }
+    ok = globalMin>0;
+    msg="一致连续断言（[1,2]）：\n· 全区间扫描 δ_min 最小值 = "+globalMin.toFixed(4)+"\n"
+      +"· 可统一取 δ="+globalMin.toFixed(4)+"（不依赖 x₀）✓\n"
+      +"· 闭区间连续 → 一致连续（紧致性）"+(ok?" ✓":"✗");
+  }
+  const out=$("verifyOut");
+  out.textContent=msg; out.className="verify-out "+(ok?"ok":"bad");
+  return {ok, message:msg, interval:S.iv, deltaMin:dmin, func:S.func};
+}
+
+/* SciDemo */
+window.SciDemo={
+  setParams:function(p){
+    if(p.func&&["inv","quad"].includes(p.func))setFunc(p.func);
+    if(p.iv&&["open","closed"].includes(p.iv))setIv(p.iv);
+    if(p.eps!==undefined){S.eps=Math.max(0.05,Math.min(0.5,parseFloat(p.eps)||0.2));$("sEps").value=Math.round(S.eps*100);$("vEps").textContent=S.eps.toFixed(2);}
+    if(p.x0!==undefined){S.x0=Math.max(xMin()+0.02,Math.min(xMax()-0.02,parseFloat(p.x0)||xMin()));$("sX0").value=Math.round((S.x0-xMin())/(xMax()-xMin())*100);$("vX0").textContent=S.x0.toFixed(3);}
+    render();
+    return window.SciDemo.state();
+  },
+  play:play, pause:pause, step:step, reset:reset, reverse:reverse,
+  verify:verify,
+  state:function(){return {func:S.func,iv:S.iv,eps:S.eps,x0:S.x0,deltaMin:deltaMin(),playing:S.playing}},
+  isReady:true
+};
+function setFunc(k){pause();S.func=k;const on=k==="inv"?"f1":"f2";["f1","f2"].forEach(id=>$(id).classList.toggle("active",id===on));render();}
+function setIv(k){pause();S.iv=k;const on=k==="open"?"iv1":"iv2";["iv1","iv2"].forEach(id=>$(id).classList.toggle("active",id===on));
+  S.x0=(xMin()+xMax())/2; $("sX0").value=50; $("vX0").textContent=S.x0.toFixed(3); render();}
+
+function readURL(){
+  const u=new URLSearchParams(location.search);
+  if(u.has("func"))setFunc(u.get("func")==="quad"?"quad":"inv");
+  if(u.has("iv"))setIv(u.get("iv")==="closed"?"closed":"open");
+  if(u.has("eps")){S.eps=Math.max(0.05,Math.min(0.5,parseFloat(u.get("eps"))||0.2));$("sEps").value=Math.round(S.eps*100);$("vEps").textContent=S.eps.toFixed(2);}
+  if(u.has("x0")){S.x0=Math.max(xMin()+0.02,Math.min(xMax()-0.02,parseFloat(u.get("x0"))||0.6));$("sX0").value=Math.round((S.x0-xMin())/(xMax()-xMin())*100);$("vX0").textContent=S.x0.toFixed(3);}
+}
+function copyLink(){
+  const u=new URL(location.href);
+  u.searchParams.set("func",S.func); u.searchParams.set("iv",S.iv);
+  u.searchParams.set("eps",S.eps.toFixed(2)); u.searchParams.set("x0",S.x0.toFixed(3));
+  navigator.clipboard.writeText(u.toString()).then(()=>{ $("statusTxt").textContent="链接已复制"; }).catch(()=>prompt("复制此链接：",u.toString()));
+}
+
+function bind(){
+  $("f1").addEventListener("click",()=>setFunc("inv"));
+  $("f2").addEventListener("click",()=>setFunc("quad"));
+  $("iv1").addEventListener("click",()=>setIv("open"));
+  $("iv2").addEventListener("click",()=>setIv("closed"));
+  $("sEps").addEventListener("input",e=>{S.eps=parseInt(e.target.value)/100;$("vEps").textContent=S.eps.toFixed(2);render();});
+  $("sX0").addEventListener("input",e=>{S.x0=xMin()+(xMax()-xMin())*parseInt(e.target.value)/100;$("vX0").textContent=S.x0.toFixed(3);render();});
+  $("btnPlay").addEventListener("click",play);
+  $("btnStep").addEventListener("click",step);
+  $("btnReset").addEventListener("click",reset);
+  $("btnVerify").addEventListener("click",()=>verify());
+  document.addEventListener("keydown",e=>{
+    if(e.target.tagName==="INPUT")return;
+    if(e.code==="Space"){e.preventDefault();S.playing?pause():play();}
+    if(e.code==="ArrowRight"){e.preventDefault();step();}
+    if(e.code==="ArrowLeft"){e.preventDefault();reverse();}
+    if(e.code==="KeyR"){e.preventDefault();reset();}
+  });
+}
+
+function init(){
+  readURL(); render();
+  $("dot").className="dot on"; $("statusTxt").textContent="就绪";
+  bind();
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init); else init();
+})();
+</script>
+</body>
+</html>

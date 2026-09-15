@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-G04 向量加法 · 大数学交互交付</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f172a;--panel:#1e293b;--border:#334155;--text:#e2e8f0;
+  --muted:#94a3b8;--blue:#2563eb;--gold:#E8B964;--green:#059669;
+  --red:#ef4444;--cyan:#22d3ee;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:16px}
+.container{width:100%;max-width:1180px;display:grid;grid-template-columns:1fr 310px;gap:16px;align-items:start}
+@media(max-width:880px){.container{grid-template-columns:1fr}.right-panel{order:-1}}
+.left-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;overflow:hidden}
+.svg-wrap{width:100%;aspect-ratio:1000/720}
+.svg-wrap svg{width:100%;height:100%;display:block}
+.right-panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+h1{font-size:18px;font-weight:700;letter-spacing:.5px}
+h1 span{color:var(--cyan);font-size:13px;font-weight:400;margin-left:6px}
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:2px}
+.slider-group{display:flex;flex-direction:column;gap:6px}
+.slider-row{display:flex;align-items:center;gap:8px}
+.slider-row label{width:24px;font-size:13px;font-weight:600}
+.slider-row input[type=range]{flex:1;accent-color:var(--blue);height:4px;cursor:pointer}
+.slider-row .val{width:32px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums}
+.slider-row.b-slider input[type=range]{accent-color:var(--gold)}
+.buttons{display:flex;flex-wrap:wrap;gap:6px}
+.buttons button{flex:1;min-width:70px;padding:7px 0;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;transition:background .15s,border-color .15s}
+.buttons button:hover{background:var(--border);border-color:var(--muted)}
+.buttons button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.buttons button.primary:hover{background:#1d4ed8}
+.readout{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.8;font-variant-numeric:tabular-nums}
+.readout .label{color:var(--muted)}
+.classroom{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.7;color:var(--muted)}
+.classroom strong{color:var(--text)}
+.status-bar{font-size:11px;color:var(--muted);text-align:center;padding-top:4px}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="left-panel">
+    <div class="svg-wrap">
+      <svg id="svg" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ahBlue" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L12,4 L0,8 L2,4 Z" fill="#2563eb"/>
+          </marker>
+          <marker id="ahGold" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L12,4 L0,8 L2,4 Z" fill="#E8B964"/>
+          </marker>
+          <marker id="ahGreen" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M0,0 L12,4 L0,8 L2,4 Z" fill="#059669"/>
+          </marker>
+        </defs>
+        <!-- Grid, axes, vectors drawn by JS -->
+      </svg>
+    </div>
+  </div>
+  <div class="right-panel">
+    <h1>向量加法<span>C-G04</span></h1>
+
+    <div class="section-label">向量 A</div>
+    <div class="slider-group">
+      <div class="slider-row"><label style="color:var(--blue)">ax</label><input type="range" id="ax" min="-5" max="7" step="0.5" value="3"><span class="val" id="axV">3</span></div>
+      <div class="slider-row"><label style="color:var(--blue)">ay</label><input type="range" id="ay" min="-4" max="7" step="0.5" value="2"><span class="val" id="ayV">2</span></div>
+    </div>
+
+    <div class="section-label">向量 B</div>
+    <div class="slider-group">
+      <div class="slider-row b-slider"><label style="color:var(--gold)">bx</label><input type="range" id="bx" min="-5" max="7" step="0.5" value="1"><span class="val" id="bxV">1</span></div>
+      <div class="slider-row b-slider"><label style="color:var(--gold)">by</label><input type="range" id="by" min="-4" max="7" step="0.5" value="4"><span class="val" id="byV">4</span></div>
+    </div>
+
+    <div class="section-label">动画控制</div>
+    <div class="buttons">
+      <button class="primary" id="btnPlay">▶ 播放</button>
+      <button id="btnPause">⏸ 暂停</button>
+      <button id="btnStep">⏭ 步进</button>
+      <button id="btnReset">↺ 重置</button>
+      <button id="btnCopy">🔗 复制链接</button>
+    </div>
+
+    <div class="readout" id="readout"></div>
+
+    <div class="section-label">课堂思考</div>
+    <div class="classroom" id="classroom">
+      <strong>Q1</strong> 先猜：A=(3,2), B=(1,4) 的和向量是几？<br>
+      <strong>Q2</strong> 验证：交换 A 和 B 的顺序，结果一样吗？为什么？
+    </div>
+
+    <div class="status-bar" id="statusBar">就绪 · Space=播放/暂停 → 步进 R=重置</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const svg = $('svg');
+  const NS = 'http://www.w3.org/2000/svg';
+
+  /* ── coordinate mapping ── */
+  const W=1000, H=720;
+  const OX=260, OY=460;
+  const SCALE=58;
+  const XMIN=-6, XMAX=8, YMIN=-4, YMAX=8;
+
+  function toSvg(x,y){ return [OX + x*SCALE, OY - y*SCALE]; }
+  function fromSvg(sx,sy){ return [(sx-OX)/SCALE, (OY-sy)/SCALE]; }
+
+  /* ── state ── */
+  const S = { ax:3, ay:2, bx:1, by:4, t:0, playing:false, raf:null };
+  const ease = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+
+  /* ── URL params ── */
+  (function loadUrl(){
+    const p = new URLSearchParams(location.search);
+    ['ax','ay','bx','by'].forEach(k=>{ if(p.has(k)) S[k]=parseFloat(p[k])||0; });
+    ['ax','ay','bx','by'].forEach(k=>{
+      $(k).value = S[k]; $(k+'V').textContent = S[k];
+    });
+  })();
+
+  /* ── SVG helpers ── */
+  function make(tag, attrs, parent){
+    const el = document.createElementNS(NS, tag);
+    for(const [k,v] of Object.entries(attrs||{})) el.setAttribute(k,v);
+    if(parent) parent.appendChild(el);
+    return el;
+  }
+
+  /* build static SVG structure */
+  const gGrid = make('g',{id:'gGrid'},svg);
+  const gAxes = make('g',{id:'gAxes'},svg);
+  const gPara = make('g',{id:'gPara'},svg);
+  const gVecs = make('g',{id:'gVecs'},svg);
+  const gLabels = make('g',{id:'gLabels'},svg);
+
+  function buildGrid(){
+    gGrid.innerHTML='';
+    // vertical gridlines
+    for(let x=XMIN;x<=XMAX;x++){
+      const [sx]=toSvg(x,0);
+      make('line',{x1:sx,y1:toSvg(0,YMAX)[1],x2:sx,y2:toSvg(0,YMIN)[1],
+        stroke:'#1e293b','stroke-width': x===0?'0':'1'}, gGrid);
+    }
+    for(let y=YMIN;y<=YMAX;y++){
+      const [,sy]=toSvg(0,y);
+      make('line',{x1:toSvg(XMIN,0)[0],y1:sy,x2:toSvg(XMAX,0)[0],y2:sy,
+        stroke:'#1e293b','stroke-width': y===0?'0':'1'}, gGrid);
+    }
+  }
+
+  function buildAxes(){
+    gAxes.innerHTML='';
+    const [x0,y0]=toSvg(XMIN,0);
+    const [x1,y1]=toSvg(XMAX,0);
+    const [x2,y2]=toSvg(0,YMAX);
+    const [x3,y3]=toSvg(0,YMIN);
+    // axes
+    make('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'#475569','stroke-width':1.5},gAxes);
+    make('line',{x1:x2,y1:y2,x2:x3,y2:y3,stroke:'#475569','stroke-width':1.5},gAxes);
+    // arrowheads
+    make('polygon',{points:`${x1},${y1} ${x1-10},${y1-5} ${x1-10},${y1+5}`,fill:'#475569'},gAxes);
+    make('polygon',{points:`${x2},${y2} ${x2-5},${y2+10} ${x2+5},${y2+10}`,fill:'#475569'},gAxes);
+    // tick labels
+    for(let x=XMIN;x<=XMAX;x++){
+      if(x===0) continue;
+      const [sx,sy]=toSvg(x,0);
+      const t=make('text',{x:sx,y:sy+16,'text-anchor':'middle',fill:'#64748b','font-size':'11'},gAxes);
+      t.textContent=x;
+    }
+    for(let y=YMIN;y<=YMAX;y++){
+      if(y===0) continue;
+      const [sx,sy]=toSvg(0,y);
+      const t=make('text',{x:sx-14,y:sy+4,'text-anchor':'middle',fill:'#64748b','font-size':'11'},gAxes);
+      t.textContent=y;
+    }
+    // origin label
+    const [ox,oy]=toSvg(0,0);
+    const ot=make('text',{x:ox-12,y:oy+16,fill:'#64748b','font-size':'11'},gAxes);
+    ot.textContent='O';
+  }
+
+  /* ── draw function ── */
+  function draw(){
+    const t = ease(S.t);
+    const [ax,ay] = [S.ax*t, S.ay*t];
+    const [bx,by] = [S.bx*t, S.by*t];
+    const [rx,ry] = [ax+bx, ay+by];
+
+    const [ox,oy]=toSvg(0,0);
+    const [axs,ays]=toSvg(ax,ay);
+    const [bxs,bybs]=toSvg(ax+bx, ay+by);
+    const [bxs2,bybs2]=toSvg(bx,by);
+
+    // clear dynamic groups
+    gPara.innerHTML='';
+    gVecs.innerHTML='';
+    gLabels.innerHTML='';
+
+    if(t<0.001) return;
+
+    // parallelogram dashed lines
+    make('line',{x1:axs,y1:ays,x2:bxs,y2:bybs,stroke:'#64748b','stroke-width':1.2,'stroke-dasharray':'6,4',opacity:0.7},gPara);
+    make('line',{x1:bxs2,y1:bybs2,x2:bxs,y2:bybs,stroke:'#64748b','stroke-width':1.2,'stroke-dasharray':'6,4',opacity:0.7},gPara);
+    // B from tip of A (dashed)
+    make('line',{x1:axs,y1:ays,x2:bxs,y2:bybs,stroke:'#E8B964','stroke-width':2,'stroke-dasharray':'6,4',opacity:0.4},gPara);
+
+    // angle arc at origin between A and B
+    const angA = Math.atan2(ay, ax);
+    const angB = Math.atan2(by, bx);
+    const angDiff = angB - angA;
+    const r = 35;
+    const arcPath = describeArc(ox, oy, r, angA, angA+angDiff);
+    make('path',{d:arcPath,fill:'none',stroke:'#94a3b8','stroke-width':1.2,opacity:0.6},gVecs);
+    // angle label
+    const midAng = angA + angDiff/2;
+    const degDiff = Math.abs(angDiff*180/Math.PI);
+    if(degDiff > 1 && degDiff < 179){
+      const lx = ox + (r+16)*Math.cos(midAng);
+      const ly = oy - (r+16)*Math.sin(midAng);
+      const lt=make('text',{x:lx,y:ly+4,'text-anchor':'middle',fill:'#94a3b8','font-size':'11'},gLabels);
+      lt.textContent= degDiff.toFixed(1)+'°';
+    }
+
+    // vector A (origin → tip)
+    make('line',{x1:ox,y1:oy,x2:axs,y2:ays,stroke:'#2563eb','stroke-width':2.8,'marker-end':'url(#ahBlue)'},gVecs);
+    // vector B (from origin)
+    make('line',{x1:ox,y1:oy,x2:bxs2,y2:bybs2,stroke:'#E8B964','stroke-width':2.8,'marker-end':'url(#ahGold)'},gVecs);
+    // resultant A+B
+    make('line',{x1:ox,y1:oy,x2:bxs,y2:bybs,stroke:'#059669','stroke-width':3,'marker-end':'url(#ahGreen)'},gVecs);
+
+    // labels
+    const lA = make('text',{x:(ox+axs)/2-12,y:(oy+ays)/2-10,fill:'#2563eb','font-size':'14','font-weight':'bold'},gLabels);
+    lA.textContent='A('+S.ax+','+S.ay+')';
+    const lB = make('text',{x:(ox+bxs2)/2+8,y:(oy+bybs2)/2+18,fill:'#E8B964','font-size':'14','font-weight':'bold'},gLabels);
+    lB.textContent='B('+S.bx+','+S.by+')';
+    const lR = make('text',{x:(ox+bxs)/2+8,y:(oy+bybs)/2-10,fill:'#059669','font-size':'14','font-weight':'bold'},gLabels);
+    lR.textContent='A+B('+(S.ax+S.bx)+','+(S.ay+S.by)+')';
+
+    // dot at origin
+    make('circle',{cx:ox,cy:oy,r:4,fill:'#e2e8f0'},gVecs);
+  }
+
+  function describeArc(cx,cy,r,startAngle,endAngle){
+    // ensure smallest arc
+    let diff = endAngle-startAngle;
+    while(diff>Math.PI) diff-=2*Math.PI;
+    while(diff<-Math.PI) diff+=2*Math.PI;
+    const steps = Math.max(2, Math.round(Math.abs(diff)*10));
+    let d = '';
+    for(let i=0;i<=steps;i++){
+      const a = startAngle + diff*(i/steps);
+      const x = cx + r*Math.cos(a);
+      const y = cy - r*Math.sin(a);
+      d += (i===0?'M':'L')+x.toFixed(2)+','+y.toFixed(2);
+    }
+    return d;
+  }
+
+  /* ── readout ── */
+  function updateReadout(){
+    const magA = Math.sqrt(S.ax*S.ax+S.ay*S.ay);
+    const magB = Math.sqrt(S.bx*S.bx+S.by*S.by);
+    const magR = Math.sqrt((S.ax+S.bx)**2+(S.ay+S.by)**2);
+    const dot = S.ax*S.bx + S.ay*S.by;
+    const cosAngle = (magA>0&&magB>0) ? dot/(magA*magB) : 1;
+    const angle = Math.acos(Math.max(-1,Math.min(1,cosAngle)))*180/Math.PI;
+    $('readout').innerHTML =
+      `<span class="label">|A|</span> = ${magA.toFixed(2)} 　<span class="label">|B|</span> = ${magB.toFixed(2)}<br>` +
+      `<span class="label">|A+B|</span> = ${magR.toFixed(2)} 　<span class="label">∠</span> = ${angle.toFixed(1)}°<br>` +
+      `<span class="label">A+B</span> = (${S.ax+S.bx}, ${S.ay+S.by})`;
+  }
+
+  /* ── sliders ── */
+  ['ax','ay','bx','by'].forEach(k=>{
+    $(k).addEventListener('input', ()=>{
+      S[k] = parseFloat($(k).value);
+      $(k+'V').textContent = S[k];
+      updateReadout(); draw(); updateUrl();
+    });
+  });
+
+  /* ── animation ── */
+  const DURATION = 1200;
+  let lastTs = 0;
+
+  function stepForward(){
+    if(S.t>=1){ S.t=1; stopPlay(); return; }
+    S.t = Math.min(1, S.t + 0.02);
+    draw(); updateReadout();
+    if(S.t>=1) stopPlay();
+  }
+
+  function animate(ts){
+    if(!S.playing) return;
+    if(!lastTs) lastTs=ts;
+    const dt = ts - lastTs;
+    lastTs = ts;
+    S.t = Math.min(1, S.t + dt/DURATION);
+    draw(); updateReadout();
+    if(S.t>=1){ stopPlay(); return; }
+    S.raf = requestAnimationFrame(animate);
+  }
+
+  function startPlay(){
+    if(S.t>=1) S.t=0;
+    S.playing=true; lastTs=0;
+    S.raf=requestAnimationFrame(animate);
+    $('btnPlay').textContent='▶ 播放中…';
+  }
+  function stopPlay(){
+    S.playing=false; lastTs=0;
+    if(S.raf) cancelAnimationFrame(S.raf);
+    $('btnPlay').textContent='▶ 播放';
+  }
+
+  /* ── buttons ── */
+  $('btnPlay').onclick = ()=>{ if(S.playing) stopPlay(); else startPlay(); };
+  $('btnPause').onclick = stopPlay;
+  $('btnStep').onclick = ()=>{ stopPlay(); stepForward(); };
+  $('btnReset').onclick = ()=>{ stopPlay(); S.t=0; draw(); updateReadout(); };
+  $('btnCopy').onclick = ()=>{
+    const url = location.origin + location.pathname + '?ax='+S.ax+'&ay='+S.ay+'&bx='+S.bx+'&by='+S.by;
+    navigator.clipboard.writeText(url).then(()=>{ $('statusBar').textContent='链接已复制 ✓'; setTimeout(()=>{ $('statusBar').textContent='就绪 · Space=播放/暂停 → 步进 R=重置'; },1500); });
+  };
+
+  function updateUrl(){
+    const u=new URL(location); u.searchParams.set('ax',S.ax); u.searchParams.set('ay',S.ay); u.searchParams.set('bx',S.bx); u.searchParams.set('by',S.by);
+    history.replaceState(null,'',u);
+  }
+
+  /* ── keyboard ── */
+  document.addEventListener('keydown', e=>{
+    if(e.target.tagName==='INPUT') return;
+    if(e.code==='Space'){ e.preventDefault(); if(S.playing) stopPlay(); else startPlay(); }
+    if(e.code==='ArrowRight'){ e.preventDefault(); stopPlay(); stepForward(); }
+    if(e.code==='KeyR'){ e.preventDefault(); stopPlay(); S.t=0; draw(); updateReadout(); }
+  });
+
+  /* ── SciDemo ── */
+  window.SciDemo = {
+    isReady: true,
+    state: ()=>({...S, rx:S.ax+S.bx, ry:S.ay+S.by}),
+    setParams: (o)=>{ Object.assign(S,o); ['ax','ay','bx','by'].forEach(k=>{ if(k in o){ $(k).value=S[k]; $(k+'V').textContent=S[k]; }}); updateReadout(); draw(); updateUrl(); },
+    play: startPlay,
+    pause: stopPlay,
+    step: ()=>{ stopPlay(); stepForward(); },
+    reset: ()=>{ stopPlay(); S.t=0; draw(); updateReadout(); },
+    reverse: ()=>{ /* not implemented */ },
+    verify: ()=>{
+      const rx=S.ax+S.bx, ry=S.ay+S.by;
+      const magR=Math.sqrt(rx**2+ry**2);
+      const exp=Math.sqrt((S.ax+S.bx)**2+(S.ay+S.by)**2);
+      return { rx, ry, magnitude:magR.toFixed(4), expected:exp.toFixed(4), pass: Math.abs(magR-exp)<1e-6 };
+    }
+  };
+
+  /* ── init ── */
+  buildGrid(); buildAxes(); draw(); updateReadout();
+})();
+</script>
+</body>
+</html>

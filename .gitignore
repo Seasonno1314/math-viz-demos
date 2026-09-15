@@ -4,6 +4,10 @@ node_modules/
 # 录屏中间素材与成片
 recordings/
 
+# 本地录制工具脚本（非站点内容）
+record-live.mjs
+finish-demo.py
+
 # 系统文件
 .DS_Store
 Thumbs.db

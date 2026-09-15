@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-B06 斜率场与微分方程 · 大数学交互交付</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f6f7f9; color:#1f2430; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; min-height:100vh; }
+  .wrap { max-width:1180px; margin:0 auto; padding:18px 16px 30px; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:14px; }
+  .layout { display:grid; grid-template-columns:1fr 310px; gap:16px; }
+  .stage { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  svg { width:100%; height:auto; display:block; }
+  .panel { display:flex; flex-direction:column; gap:12px; }
+  .box { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:12px 14px; }
+  .box h3 { font-size:14px; margin-bottom:8px; color:#374151; }
+  .ctl { margin-bottom:10px; }
+  .ctl label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px; }
+  .ctl label b { color:#2563eb; }
+  .ctl input[type=range] { width:100%; }
+  .btnrow { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+  .btnrow2 { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  button { border:none; border-radius:8px; padding:9px 0; font-size:14px; cursor:pointer; background:#eef1f6; color:#1f2430; }
+  button:hover { background:#e2e8f0; }
+  button.pri { background:#2563eb; color:#fff; }
+  button.pri:hover { background:#1d4ed8; }
+  button.on { background:#2563eb; color:#fff; }
+  .readout { font-size:13px; line-height:1.75; }
+  .readout .big { font-size:15px; font-weight:700; color:#1f2430; }
+  .ok { color:#059669; font-weight:700; }
+  .warn { color:#dc2626; font-weight:700; }
+  .msg { font-size:12px; color:#6b7280; line-height:1.6; }
+  .q { font-size:12px; color:#6b7280; border-top:1px dashed #e3e6ec; padding-top:8px; margin-top:4px; }
+  .q b { color:#374151; }
+  .ode-btns { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
+  .ode-btns button { font-size:12px; padding:7px 4px; white-space:nowrap; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:6px; }
+  .legend span { font-size:11px; color:#6b7280; display:flex; align-items:center; gap:4px; }
+  .legend i { display:inline-block; width:14px; height:3px; border-radius:2px; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>C-B06 · 斜率场与微分方程</h1>
+  <p class="sub">斜率场（方向场）是 dy/dx = f(x,y) 的几何表示：每个网格点上画一小段线段，斜率 = f(x,y)。从任意初始点出发，解曲线沿斜率场"流动"——看它如何被方向场引导。</p>
+  <div class="layout">
+    <div class="stage">
+      <svg id="scene" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="斜率场与微分方程"></svg>
+    </div>
+    <div class="panel">
+      <div class="box">
+        <h3>ODE 选择</h3>
+        <div class="ode-btns" id="odeBtns"></div>
+        <div class="ctl"><label>网格密度 <b id="vGrid">10</b></label><input type="range" id="sGrid" min="5" max="20" step="1" value="10"></div>
+        <div class="ctl"><label>x₀ = <b id="vX0">0</b></label><input type="range" id="sX0" min="-3.5" max="3.5" step="0.1" value="0"></div>
+        <div class="ctl"><label>y₀ = <b id="vY0">1</b></label><input type="range" id="sY0" min="-3.5" max="3.5" step="0.1" value="1"></div>
+        <div class="legend">
+          <span><i style="background:#9CA8C0"></i>斜率场</span>
+          <span><i style="background:#2563eb"></i>解曲线</span>
+          <span><i style="background:#dc2626"></i>初始点</span>
+          <span><i style="background:#E8B964"></i>追踪点</span>
+          <span><i style="background:#059669"></i>验证</span>
+        </div>
+      </div>
+      <div class="box">
+        <h3>控制</h3>
+        <div class="btnrow">
+          <button class="pri" id="btnPlay">▶ 追踪</button>
+          <button id="btnPause">⏸ 暂停</button>
+          <button id="btnStep">⏭ 单步</button>
+        </div>
+        <div class="btnrow2" style="margin-top:7px">
+          <button id="btnAdd">＋ 添加曲线</button>
+          <button id="btnReset">↺ 复位</button>
+        </div>
+        <div class="btnrow2" style="margin-top:7px">
+          <button id="btnCopy">🔗 复制链接</button>
+          <button id="btnVerify">✅ 验证</button>
+        </div>
+      </div>
+      <div class="box">
+        <h3>实时数据</h3>
+        <div class="readout" id="readout"></div>
+      </div>
+      <div class="box">
+        <h3>课堂提问</h3>
+        <div class="q">
+          <b>先猜</b>：dy/dx = y 过 (0,1) 的解是什么曲线？<br>
+          <b>后问</b>：为什么斜率场的线段方向就是解曲线的切线方向？<br>
+          <b>拓展</b>：dy/dx = x+y 的斜率场在原点附近是什么形状？解曲线为什么"拐弯"？
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+
+var SVG_NS = "http://www.w3.org/2000/svg";
+var W = 1000, H = 720, PAD = 50;
+var X_MIN = -4, X_MAX = 4, Y_MIN = -4, Y_MAX = 4;
+
+var odes = [
+  { id:"y",    label:"dy/dx = y",      fn:function(x,y){ return y; },           exact:function(x,c){ return c * Math.exp(x); },       exactLabel:"y = Ce^x" },
+  { id:"negxy",label:"dy/dx = -x/y",    fn:function(x,y){ return -x/(y||1e-9); },exact:null,                             exactLabel:"x²+y²=C (圆)" },
+  { id:"xpy",  label:"dy/dx = x+y",     fn:function(x,y){ return x + y; },       exact:function(x,c){ return (c+1)*Math.exp(x)-x-1; }, exactLabel:"y=(C+1)e^x-x-1" },
+  { id:"sinx", label:"dy/dx = sin(x)",   fn:function(x,y){ return Math.sin(x); }, exact:function(x,c){ return c - Math.cos(x) + 1; },    exactLabel:"y = C - cos(x) + 1" }
+];
+
+var state = {
+  odeIdx: 0,
+  grid: 10,
+  x0: 0, y0: 1,
+  curves: [],
+  activeCurve: -1,
+  playing: false,
+  lastTs: 0,
+  verified: false,
+  traceParam: 0
+};
+
+var svg = document.getElementById("scene");
+
+function sx(x){ return PAD + (x - X_MIN) / (X_MAX - X_MIN) * (W - PAD*2); }
+function sy(y){ return H - PAD - (y - Y_MIN) / (Y_MAX - Y_MIN) * (H - PAD*2); }
+function usx(px){ return X_MIN + (px - PAD) / (W - PAD*2) * (X_MAX - X_MIN); }
+function usy(py){ return Y_MIN + (H - PAD - py) / (H - PAD*2) * (Y_MAX - Y_MIN); }
+
+function el(tag, attrs){
+  var e = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function clearSvg(){ while (svg.firstChild) svg.removeChild(svg.firstChild); }
+function txt(x, y, text, color, size, weight, anchor){
+  var t = el("text", { x:x, y:y, fill:color||"#374151", "font-size":size||13,
+    "text-anchor":anchor||"middle", "font-weight":weight||"normal",
+    "font-family":"'Microsoft YaHei','PingFang SC',sans-serif" });
+  t.textContent = text;
+  svg.appendChild(t);
+  return t;
+}
+function fnum(x, d){ return x.toFixed(d === undefined ? 4 : d).replace(/0+$/, "").replace(/\.$/, ""); }
+
+function currentODE(){ return odes[state.odeIdx]; }
+
+function redraw(){
+  clearSvg();
+  var ode = currentODE();
+  var g = state.grid;
+  var stepX = (X_MAX - X_MIN) / g;
+  var stepY = (Y_MAX - Y_MIN) / g;
+
+  // grid lines
+  for (var gx = Math.ceil(X_MIN); gx <= Math.floor(X_MAX); gx++){
+    svg.appendChild(el("line", { x1:sx(gx), y1:sy(Y_MIN), x2:sx(gx), y2:sy(Y_MAX), stroke:"#eef0f4", "stroke-width":1 }));
+  }
+  for (var gy = Math.ceil(Y_MIN); gy <= Math.floor(Y_MAX); gy++){
+    svg.appendChild(el("line", { x1:sx(X_MIN), y1:sy(gy), x2:sx(X_MAX), y2:sy(gy), stroke:"#eef0f4", "stroke-width":1 }));
+  }
+
+  // axes
+  svg.appendChild(el("line", { x1:sx(X_MIN)-10, y1:sy(0), x2:sx(X_MAX)+10, y2:sy(0), stroke:"#94a3b8", "stroke-width":2 }));
+  svg.appendChild(el("line", { x1:sx(0), y1:sy(Y_MIN)-10, x2:sx(0), y2:sy(Y_MAX)+10, stroke:"#94a3b8", "stroke-width":2 }));
+  for (var ax = Math.ceil(X_MIN); ax <= Math.floor(X_MAX); ax++){
+    if (ax === 0) continue;
+    txt(sx(ax), sy(0)+18, String(ax), "#94a3b8", 11);
+  }
+  for (var ay = Math.ceil(Y_MIN); ay <= Math.floor(Y_MAX); ay++){
+    if (ay === 0) continue;
+    txt(sx(0)-16, sy(ay)+4, String(ay), "#94a3b8", 11);
+  }
+  txt(sx(X_MAX)+14, sy(0)+4, "x", "#6b7280", 12, "bold");
+  txt(sx(0)+4, sy(Y_MAX)-10, "y", "#6b7280", 12, "bold");
+
+  // slope field segments
+  var segLen = 15;
+  var slopeColors = [];
+  for (var i = 0; i <= g; i++){
+    for (var j = 0; j <= g; j++){
+      var cx = X_MIN + i * stepX;
+      var cy = Y_MIN + j * stepY;
+      if (cx < X_MIN - 0.01 || cx > X_MAX + 0.01 || cy < Y_MIN - 0.01 || cy > Y_MAX + 0.01) continue;
+      var slope = ode.fn(cx, cy);
+      if (!isFinite(slope)) continue;
+      var angle = Math.atan(slope);
+      var dx = segLen * Math.cos(angle);
+      var dy = segLen * Math.sin(angle);
+      var px = sx(cx), py = sy(cy);
+      svg.appendChild(el("line", {
+        x1: px - dx, y1: py + dy,
+        x2: px + dx, y2: py - dy,
+        stroke: "#9CA8C0", "stroke-width": 1.5, "stroke-linecap": "round", opacity: 0.7
+      }));
+    }
+  }
+
+  // existing curves
+  for (var ci = 0; ci < state.curves.length; ci++){
+    var curve = state.curves[ci];
+    if (curve.points.length < 2) continue;
+    var pathD = "M";
+    for (var pi = 0; pi < curve.points.length; pi++){
+      var pt = curve.points[pi];
+      pathD += (pi === 0 ? "" : " L") + fnum(sx(pt[0]), 2) + " " + fnum(sy(pt[1]), 2);
+    }
+    var isActive = ci === state.activeCurve;
+    svg.appendChild(el("path", {
+      d: pathD, fill: "none",
+      stroke: curve.verified ? "#059669" : (isActive ? "#2563eb" : "#60a5fa"),
+      "stroke-width": isActive ? 3.5 : 2.5,
+      "stroke-linejoin": "round", "stroke-linecap": "round",
+      opacity: curve.verified ? 1 : (isActive ? 1 : 0.6)
+    }));
+
+    // initial point
+    svg.appendChild(el("circle", { cx:sx(curve.x0), cy:sy(curve.y0), r:5, fill:"#dc2626", stroke:"#fff", "stroke-width":1.5 }));
+
+    // current trace point
+    if (curve.points.length > 0 && isActive){
+      var last = curve.points[curve.points.length - 1];
+      svg.appendChild(el("circle", { cx:sx(last[0]), cy:sy(last[1]), r:6, fill:"#E8B964", stroke:"#fff", "stroke-width":2 }));
+    }
+  }
+
+  // title banner
+  var banner = el("g", {});
+  banner.appendChild(el("rect", { x:W-330, y:12, width:310, height:36, rx:8, fill:"#111827", opacity:0.85 }));
+  txt(W-165, 36, ode.label + "   " + ode.exactLabel, "#f8fafc", 14, "700");
+  svg.appendChild(banner);
+
+  updateReadout();
+}
+
+function updateReadout(){
+  var ode = currentODE();
+  var el2 = document.getElementById("readout");
+  var ac = state.activeCurve >= 0 ? state.curves[state.activeCurve] : null;
+  var ptText = "—";
+  var slopeText = "—";
+  if (ac && ac.points.length > 0){
+    var last = ac.points[ac.points.length - 1];
+    ptText = "(" + fnum(last[0], 3) + ", " + fnum(last[1], 3) + ")";
+    slopeText = fnum(ode.fn(last[0], last[1]), 4);
+  }
+  var curveCount = state.curves.length;
+  var verifiedNote = "";
+  for (var i = 0; i < state.curves.length; i++){
+    if (state.curves[i].verified) verifiedNote += '<div class="ok">✓ 曲线 ' + (i+1) + ' 已验证满足微分方程</div>';
+  }
+  el2.innerHTML =
+    '<div class="big">ODE: ' + ode.label + '</div>' +
+    '<div>解族: ' + ode.exactLabel + '</div>' +
+    '<div>当前点: <b>' + ptText + '</b></div>' +
+    '<div>dy/dx = <b>' + slopeText + '</b></div>' +
+    '<div>曲线数: ' + curveCount + '</div>' +
+    verifiedNote +
+    '<div class="msg">拖动 x₀、y₀ 改变初始条件，点"添加曲线"保留多条解曲线对比。</div>';
+}
+
+/* ---------- Euler trace ---------- */
+function traceCurve(x0, y0, steps, dt){
+  var ode = currentODE();
+  var pts = [[x0, y0]];
+  var x = x0, y = y0;
+  for (var i = 0; i < steps; i++){
+    var slope = ode.fn(x, y);
+    if (!isFinite(slope)) break;
+    var nx = x + dt;
+    var ny = y + slope * dt;
+    if (nx > X_MAX + 0.5 || nx < X_MIN - 0.5 || ny > Y_MAX + 0.5 || ny < Y_MIN - 0.5) break;
+    pts.push([nx, ny]);
+    x = nx; y = ny;
+  }
+  return pts;
+}
+
+function addCurve(x0, y0){
+  var fullPts = traceCurve(x0, y0, 500, 0.02);
+  var curve = { x0: x0, y0: y0, points: [fullPts[0]], fullPoints: fullPts, verified: false, traceIdx: 0 };
+  state.curves.push(curve);
+  state.activeCurve = state.curves.length - 1;
+  state.traceParam = 0;
+}
+
+function animateTrace(ts){
+  if (!state.playing) return;
+  var ac = state.activeCurve >= 0 ? state.curves[state.activeCurve] : null;
+  if (!ac){ state.playing = false; return; }
+  var dt = state.lastTs ? (ts - state.lastTs) / 1000 : 0;
+  state.lastTs = ts;
+  var stepsThisFrame = Math.max(1, Math.round(dt * 120));
+  for (var s = 0; s < stepsThisFrame; s++){
+    ac.traceIdx++;
+    if (ac.traceIdx >= ac.fullPoints.length){
+      ac.traceIdx = ac.fullPoints.length - 1;
+      state.playing = false;
+      break;
+    }
+    ac.points.push(ac.fullPoints[ac.traceIdx]);
+  }
+  redraw();
+  if (state.playing) requestAnimationFrame(animateTrace);
+}
+
+function play(){
+  var ac = state.activeCurve >= 0 ? state.curves[state.activeCurve] : null;
+  if (!ac) return;
+  if (ac.traceIdx >= ac.fullPoints.length - 1){
+    ac.points = [ac.fullPoints[0]];
+    ac.traceIdx = 0;
+    ac.verified = false;
+  }
+  state.playing = true;
+  state.lastTs = 0;
+  requestAnimationFrame(animateTrace);
+}
+function pause(){ state.playing = false; }
+function step(){
+  state.playing = false;
+  var ac = state.activeCurve >= 0 ? state.curves[state.activeCurve] : null;
+  if (!ac) return;
+  for (var s = 0; s < 10; s++){
+    ac.traceIdx++;
+    if (ac.traceIdx >= ac.fullPoints.length){ ac.traceIdx = ac.fullPoints.length - 1; break; }
+    ac.points.push(ac.fullPoints[ac.traceIdx]);
+  }
+  redraw();
+}
+function resetAll(){
+  state.playing = false;
+  state.curves = [];
+  state.activeCurve = -1;
+  state.traceParam = 0;
+  addCurve(state.x0, state.y0);
+  redraw();
+}
+function addCurveBtn(){
+  state.playing = false;
+  addCurve(state.x0, state.y0);
+  redraw();
+}
+
+/* ---------- verify ---------- */
+function verify(){
+  var ode = currentODE();
+  var ac = state.activeCurve >= 0 ? state.curves[state.activeCurve] : null;
+  if (!ac || ac.points.length < 3) return { ok:false, reason:"no curve" };
+  var maxErr = 0;
+  for (var i = 1; i < ac.points.length; i++){
+    var p0 = ac.points[i-1], p1 = ac.points[i];
+    var numSlope = (p1[1] - p0[1]) / (p1[0] - p0[0]);
+    var exactSlope = ode.fn(p0[0], p0[1]);
+    if (isFinite(numSlope) && isFinite(exactSlope)){
+      var err = Math.abs(numSlope - exactSlope);
+      if (err > maxErr) maxErr = err;
+    }
+  }
+  ac.verified = maxErr < 0.15;
+  redraw();
+  return { ok: ac.verified, maxError: maxErr, ode: ode.id, curveLen: ac.points.length };
+}
+
+/* ---------- URL params ---------- */
+function readURL(){
+  var q = new URLSearchParams(location.search);
+  var oi = q.get("ode");
+  if (oi !== null){
+    for (var i = 0; i < odes.length; i++){
+      if (odes[i].id === oi){ state.odeIdx = i; break; }
+    }
+  }
+  var x0 = parseFloat(q.get("x0"));
+  var y0 = parseFloat(q.get("y0"));
+  if (isFinite(x0)) state.x0 = Math.max(-3.5, Math.min(3.5, x0));
+  if (isFinite(y0)) state.y0 = Math.max(-3.5, Math.min(3.5, y0));
+  var g = parseInt(q.get("grid"), 10);
+  if (g >= 5 && g <= 20) state.grid = g;
+}
+
+/* ---------- UI setup ---------- */
+function buildODEButtons(){
+  var container = document.getElementById("odeBtns");
+  container.innerHTML = "";
+  for (var i = 0; i < odes.length; i++){
+    var btn = document.createElement("button");
+    btn.textContent = odes[i].label;
+    btn.setAttribute("data-idx", i);
+    if (i === state.odeIdx) btn.className = "on";
+    btn.onclick = (function(idx){
+      return function(){
+        state.odeIdx = idx;
+        document.querySelectorAll("#odeBtns button").forEach(function(b){ b.className = ""; });
+        this.className = "on";
+        resetAll();
+      };
+    })(i);
+    container.appendChild(btn);
+  }
+}
+
+function syncSliders(){
+  document.getElementById("sGrid").value = state.grid;
+  document.getElementById("vGrid").textContent = state.grid;
+  document.getElementById("sX0").value = state.x0;
+  document.getElementById("vX0").textContent = fnum(state.x0, 2);
+  document.getElementById("sY0").value = state.y0;
+  document.getElementById("vY0").textContent = fnum(state.y0, 2);
+}
+
+document.getElementById("sGrid").oninput = function(){
+  state.grid = +this.value;
+  document.getElementById("vGrid").textContent = state.grid;
+  state.playing = false;
+  redraw();
+};
+document.getElementById("sX0").oninput = function(){
+  state.x0 = +this.value;
+  document.getElementById("vX0").textContent = fnum(state.x0, 2);
+};
+document.getElementById("sY0").oninput = function(){
+  state.y0 = +this.value;
+  document.getElementById("vY0").textContent = fnum(state.y0, 2);
+};
+
+document.getElementById("btnPlay").onclick = play;
+document.getElementById("btnPause").onclick = pause;
+document.getElementById("btnStep").onclick = step;
+document.getElementById("btnReset").onclick = resetAll;
+document.getElementById("btnAdd").onclick = addCurveBtn;
+document.getElementById("btnVerify").onclick = function(){
+  var r = verify();
+  alert(r.ok ? "验证通过: max|数值斜率 - f(x,y)| = " + fnum(r.maxError, 6) : "验证未通过: max误差 = " + fnum(r.maxError, 6));
+};
+document.getElementById("btnCopy").onclick = function(){
+  var u = new URL(location.href);
+  u.searchParams.set("ode", currentODE().id);
+  u.searchParams.set("x0", fnum(state.x0, 2));
+  u.searchParams.set("y0", fnum(state.y0, 2));
+  u.searchParams.set("grid", state.grid);
+  var s = u.href;
+  if (navigator.clipboard) navigator.clipboard.writeText(s).then(function(){ alert("链接已复制"); });
+  else { prompt("复制链接", s); }
+};
+
+document.addEventListener("keydown", function(e){
+  if (e.key === " "){ e.preventDefault(); state.playing ? pause() : play(); }
+  else if (e.key === "ArrowRight"){ step(); }
+  else if (e.key === "r" || e.key === "R"){ resetAll(); }
+});
+
+/* ---------- SciDemo ---------- */
+function setParams(p){
+  if (p.ode !== undefined){
+    for (var i = 0; i < odes.length; i++){
+      if (odes[i].id === p.ode){ state.odeIdx = i; break; }
+    }
+    buildODEButtons();
+  }
+  if (p.x0 !== undefined) state.x0 = Math.max(-3.5, Math.min(3.5, +p.x0));
+  if (p.y0 !== undefined) state.y0 = Math.max(-3.5, Math.min(3.5, +p.y0));
+  if (p.grid !== undefined) state.grid = Math.max(5, Math.min(20, Math.round(+p.grid)));
+  syncSliders();
+  resetAll();
+}
+
+window.SciDemo = {
+  setParams: setParams,
+  play: play,
+  pause: pause,
+  step: step,
+  reset: resetAll,
+  reverse: function(){
+    state.playing = false;
+    var ac = state.activeCurve >= 0 ? state.curves[state.activeCurve] : null;
+    if (!ac) return;
+    var remove = Math.min(10, ac.points.length - 1);
+    for (var r = 0; r < remove; r++){
+      ac.points.pop();
+      ac.traceIdx = Math.max(0, ac.traceIdx - 1);
+    }
+    redraw();
+  },
+  verify: verify,
+  state: function(){ return { ode: currentODE().id, x0: state.x0, y0: state.y0, grid: state.grid, curves: state.curves.length, playing: state.playing }; }
+};
+Object.defineProperty(window.SciDemo, "isReady", { get: function(){ return true; } });
+
+/* ---------- init ---------- */
+readURL();
+syncSliders();
+buildODEButtons();
+addCurve(state.x0, state.y0);
+redraw();
+
+})();
+</script>
+</body>
+</html>

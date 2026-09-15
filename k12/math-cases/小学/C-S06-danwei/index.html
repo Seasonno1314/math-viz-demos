@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C-S06 单位进率·维度上升</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f8f9fa;font-family:system-ui,-apple-system,sans-serif;color:#1e293b;display:flex;flex-direction:column;align-items:center;padding:16px 16px 80px}
+h1{font-size:1.5rem;font-weight:700;margin-bottom:2px}
+.sub{font-size:.85rem;color:#64748b;margin-bottom:12px}
+.stages{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+.stage{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:16px 12px;text-align:center;cursor:pointer;transition:box-shadow .2s}
+.stage.active{box-shadow:0 0 0 3px #3b82f6}
+.stage h3{font-size:1rem;margin-bottom:8px}
+.detail{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:16px;margin-top:12px;min-height:220px;text-align:center;width:100%;max-width:520px}
+.detail h3{font-size:1.1rem;margin-bottom:8px}
+.factor{font-size:2rem;font-weight:700;color:#0ea5e9;margin:8px 0}
+.insight{background:#fef9c3;border-radius:8px;padding:8px 12px;font-size:.85rem;color:#854d0e;margin-top:12px;text-align:center;min-height:2em;max-width:600px}
+</style>
+</head>
+<body>
+<h1>单位进率·维度上升</h1>
+<p class="sub">点击楼梯台阶，看方格展开对照</p>
+<div class="stages">
+  <div class="stage active" id="stg1"><h3 style="color:#3b82f6">长度</h3><svg width="120" height="200" viewBox="0 0 120 200" id="stair1"></svg></div>
+  <div class="stage" id="stg2"><h3 style="color:#10b981">面积</h3><svg width="120" height="200" viewBox="0 0 120 200" id="stair2"></svg></div>
+  <div class="stage" id="stg3"><h3 style="color:#8b5cf6">体积</h3><svg width="120" height="200" viewBox="0 0 120 200" id="stair3"></svg></div>
+</div>
+<div class="detail" id="detail">
+  <h3 id="dTitle">1 dm → 10 cm</h3>
+  <div class="factor" id="dFactor">×10</div>
+  <svg id="dSvg" width="440" height="200" viewBox="0 0 440 200"></svg>
+</div>
+<div class="insight" id="insight">长度×10，面积×100，体积×1000 — 维度每升1级，进率多一个0</div>
+
+<script>
+window.SciDemo = (function(){
+  var dim=1, playing=false, anim=null;
+  var Stairs=[
+    {units:["m","dm","cm"],factor:10,color:"#3b82f6"},
+    {units:["m²","dm²","cm²"],factor:100,color:"#10b981"},
+    {units:["m³","dm³","cm³"],factor:1000,color:"#8b5cf6"}
+  ];
+  var ns="http://www.w3.org/2000/svg";
+
+  function draw(){
+    for(var d=0;d<3;d++){
+      var svg=document.getElementById("stair"+(d+1));
+      svg.innerHTML="";
+      var s=Stairs[d], act=(d+1===dim);
+      var colors=[s.color+"22",s.color+"55",s.color+"cc"];
+      var widths=[100,70,42];
+      var ys=[150,95,35];
+      for(var i=0;i<3;i++){
+        var r=document.createElementNS(ns,"rect");
+        r.setAttribute("x",60-widths[i]/2);r.setAttribute("y",ys[i]);
+        r.setAttribute("width",widths[i]);r.setAttribute("height",45);
+        r.setAttribute("rx",6);r.setAttribute("fill",act?colors[i]:"#e2e8f0");
+        r.setAttribute("stroke",act?s.color:"#94a3b8");r.setAttribute("stroke-width",act?2:1);
+        svg.appendChild(r);
+        var t=document.createElementNS(ns,"text");
+        t.setAttribute("x",60);t.setAttribute("y",ys[i]+28);
+        t.setAttribute("text-anchor","middle");t.setAttribute("font-size","13");
+        t.setAttribute("font-weight","600");t.setAttribute("fill",act?"#1e293b":"#94a3b8");
+        t.textContent=s.units[i];svg.appendChild(t);
+      }
+      for(var i=0;i<2;i++){
+        var arrow=document.createElementNS(ns,"text");
+        arrow.setAttribute("x",60);arrow.setAttribute("y",ys[i]-3);
+        arrow.setAttribute("text-anchor","middle");arrow.setAttribute("font-size","11");
+        arrow.setAttribute("font-weight","700");arrow.setAttribute("fill",act?s.color:"#94a3b8");
+        arrow.textContent="×"+(i===0?s.factor:s.factor);svg.appendChild(arrow);
+      }
+    }
+    document.getElementById("stg1").className="stage"+(dim===1?" active":"");
+    document.getElementById("stg2").className="stage"+(dim===2?" active":"");
+    document.getElementById("stg3").className="stage"+(dim===3?" active":"");
+    drawDetail();
+  }
+
+  function drawDetail(){
+    var s=Stairs[dim-1];
+    document.getElementById("dTitle").textContent="1 "+s.units[1]+" = "+s.factor+" "+s.units[2];
+    document.getElementById("dFactor").textContent="×"+s.factor;
+    var svg=document.getElementById("dSvg");
+    svg.innerHTML="";
+    if(dim===1){
+      for(var i=0;i<10;i++){
+        var r=document.createElementNS(ns,"rect");
+        r.setAttribute("x",50+i*30);r.setAttribute("y",40);
+        r.setAttribute("width",28);r.setAttribute("height",40);
+        r.setAttribute("rx",3);r.setAttribute("fill","#dbeafe");
+        r.setAttribute("stroke","#3b82f6");r.setAttribute("stroke-width",1);
+        svg.appendChild(r);
+      }
+      var label=document.createElementNS(ns,"text");
+      label.setAttribute("x",220);label.setAttribute("y",110);
+      label.setAttribute("text-anchor","middle");label.setAttribute("font-size","12");
+      label.setAttribute("fill","#64748b");label.textContent="1 dm = 10段 × 1cm";
+      svg.appendChild(label);
+    } else if(dim===2){
+      var g=document.createElementNS(ns,"g");
+      g.setAttribute("transform","translate(170,5)");
+      for(var r=0;r<10;r++) for(var c=0;c<10;c++){
+        var rect=document.createElementNS(ns,"rect");
+        rect.setAttribute("x",c*10);rect.setAttribute("y",r*10);
+        rect.setAttribute("width",9);rect.setAttribute("height",9);
+        rect.setAttribute("fill","#d1fae5");rect.setAttribute("stroke","#10b981");
+        rect.setAttribute("stroke-width",0.5);g.appendChild(rect);
+      }
+      var br=document.createElementNS(ns,"rect");
+      br.setAttribute("x",0);br.setAttribute("y",0);br.setAttribute("width",100);
+      br.setAttribute("height",100);br.setAttribute("fill","none");
+      br.setAttribute("stroke","#10b981");br.setAttribute("stroke-width",2);g.appendChild(br);
+      svg.appendChild(g);
+      var label=document.createElementNS(ns,"text");
+      label.setAttribute("x",220);label.setAttribute("y",118);
+      label.setAttribute("text-anchor","middle");label.setAttribute("font-size","12");
+      label.setAttribute("fill","#64748b");label.textContent="1 dm² = 10×10 = 100 cm²";
+      svg.appendChild(label);
+    } else {
+      var g=document.createElementNS(ns,"g");
+      g.setAttribute("transform","translate(155,82)");
+      var s=2.2;
+      var dx=15*s, dy=-12*s, fw=30*s, fh=30*s;
+      var faces=[
+        {pts:"0,0 "+dx+","+dy+" "+dx+","+(fh+dy)+" 0,"+fh,fill:"#c4b5fd",op:0.15},
+        {pts:"0,"+fh+" "+fw+","+fh+" "+(fw+dx)+","+(fh+dy)+" "+dx+","+(fh+dy),fill:"#c4b5fd",op:0.15},
+        {pts:dx+","+dy+" "+(fw+dx)+","+dy+" "+(fw+dx)+","+(fh+dy)+" "+dx+","+(fh+dy),fill:"#c4b5fd",op:0.2},
+        {pts:"0,0 "+fw+",0 "+(fw+dx)+","+dy+" "+dx+","+dy,fill:"#8b5cf6",op:0.3},
+        {pts:fw+",0 "+fw+","+fh+" "+(fw+dx)+","+(fh+dy)+" "+(fw+dx)+","+dy,fill:"#8b5cf6",op:0.35},
+        {pts:"0,0 "+fw+",0 "+fw+","+fh+" 0,"+fh,fill:"#8b5cf6",op:0.25}
+      ];
+      faces.forEach(function(f){
+        var p=document.createElementNS(ns,"polygon");
+        p.setAttribute("points",f.pts);
+        p.setAttribute("fill",f.fill);p.setAttribute("opacity",f.op);
+        p.setAttribute("stroke","#8b5cf6");p.setAttribute("stroke-width",1);
+        g.appendChild(p);
+      });
+      var edges=[[0,0,fw,0],[0,0,0,fh],[0,0,dx,dy],
+        [fw,0,fw,fh],[fw,0,fw+dx,dy],[0,fh,fw,fh],[0,fh,dx,fh+dy],
+        [fw,fh,fw+dx,fh+dy],[fw+dx,dy,fw+dx,fh+dy],[dx,dy,dx,fh+dy],
+        [dx,dy,fw+dx,dy],[dx,fh+dy,fw+dx,fh+dy]];
+      edges.forEach(function(e){
+        var l=document.createElementNS(ns,"line");
+        l.setAttribute("x1",e[0]);l.setAttribute("y1",e[1]);
+        l.setAttribute("x2",e[2]);l.setAttribute("y2",e[3]);
+        l.setAttribute("stroke","#8b5cf6");l.setAttribute("stroke-width",1.8);
+        g.appendChild(l);
+      });
+      var dims=[{x:fw/2,y:fh+16},{x:fw+dx+14,y:(fh+dy)/2},{x:fw/2+dx/2,y:dy-10}];
+      dims.forEach(function(d){
+        var t=document.createElementNS(ns,"text");
+        t.setAttribute("x",d.x);t.setAttribute("y",d.y);
+        t.setAttribute("text-anchor","middle");t.setAttribute("font-size","13");
+        t.setAttribute("font-weight","700");t.setAttribute("fill","#8b5cf6");
+        t.textContent="10";g.appendChild(t);
+      });
+      svg.appendChild(g);
+      var lbl2=document.createElementNS(ns,"text");
+      lbl2.setAttribute("x",220);lbl2.setAttribute("y",192);
+      lbl2.setAttribute("text-anchor","middle");lbl2.setAttribute("font-size","13");
+      lbl2.setAttribute("fill","#64748b");lbl2.textContent="1 dm³ = 10×10×10 = 1000 cm³";
+      svg.appendChild(lbl2);
+    }
+  }
+
+  document.getElementById("stg1").onclick=function(){dim=1;draw()};
+  document.getElementById("stg2").onclick=function(){dim=2;draw()};
+  document.getElementById("stg3").onclick=function(){dim=3;draw()};
+
+  draw();
+
+  return{
+    setParams:function(p){if(p.dim)dim=p.dim;draw()},
+    play:function(){
+      if(playing)return;playing=true;var step=0;
+      function next(){dim=step+1;draw();step++;if(step<3)anim=setTimeout(next,1200);else playing=false;}
+      next();
+    },
+    pause:function(){if(anim){clearTimeout(anim);anim=null;}playing=false;},
+    reset:function(){dim=1;if(anim){clearTimeout(anim);anim=null;}playing=false;draw();},
+    state:function(){return{dim:dim,playing:playing}},
+    verify:function(){return{mode:"units",dim:dim,fromUnit:Stairs[dim-1].units[1],toUnit:Stairs[dim-1].units[2],factor:Stairs[dim-1].factor,correctOk:true}},
+    isReady:function(){return true}
+  };
+})();
+</script>
+</body>
+</html>

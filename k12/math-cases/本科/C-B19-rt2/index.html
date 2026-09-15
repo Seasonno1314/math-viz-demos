@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C-B19 数轴逼近 √2 · 实数完备性</title>
+<style>
+:root{
+  --blue:#5DA9E9;
+  --gold:#E8B964;
+  --red:#E85B5B;
+  --bg:#0c1322;
+  --bg2:#0f1a2e;
+  --panel:#111d33;
+  --line:#27395c;
+  --grid:#1e2f4d;
+  --text:#dbe7f5;
+  --muted:#8fa6c2;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.5;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 18px 36px}
+
+header.titlecard{
+  background:linear-gradient(135deg,#16233e 0%,#0d1526 60%,#141d33 100%);
+  border:1px solid var(--line);border-radius:12px;padding:18px 22px;
+  display:flex;align-items:center;gap:16px;margin-bottom:16px;
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+}
+header.titlecard .tag{
+  flex:0 0 auto;font-size:12px;font-weight:700;letter-spacing:1px;
+  color:#0d1526;background:linear-gradient(135deg,var(--gold),#f3cf8f);
+  padding:6px 12px;border-radius:6px;box-shadow:0 2px 8px rgba(232,185,100,.35);
+}
+header.titlecard h1{
+  font-size:24px;letter-spacing:1px;font-weight:700;
+  background:linear-gradient(90deg,var(--blue),#9ad0ff 55%,var(--gold));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+header.titlecard p{color:var(--muted);font-size:13px;margin-top:2px}
+header.titlecard .brix{
+  margin-left:auto;text-align:right;font-size:12px;color:var(--muted);white-space:nowrap
+}
+header.titlecard .brix b{color:var(--gold);font-weight:600}
+
+main{display:grid;grid-template-columns:1fr 310px;gap:16px;align-items:start}
+
+.stage{
+  background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:6px;
+  min-width:0;
+}
+.stage svg{width:100%;height:auto;display:block}
+
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+section.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+}
+section.card h3{
+  font-size:12px;color:var(--gold);letter-spacing:.5px;margin-bottom:8px;
+  font-weight:700;
+}
+section.card h3::before{content:"▍";color:var(--blue);margin-right:4px}
+
+#nSlider{width:100%;accent-color:var(--blue);cursor:pointer}
+.nread{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}
+.nread b{font-size:26px;color:var(--blue);font-family:Consolas,monospace}
+.range-labels{font-size:11px;color:var(--muted);display:flex;gap:14px}
+
+.worlds{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.world-note{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6}
+
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{
+  font-family:inherit;font-size:13px;cursor:pointer;border-radius:7px;
+  background:#16243f;color:var(--text);border:1px solid var(--line);
+  padding:9px 10px;transition:filter .15s, transform .05s;
+}
+button:hover{filter:brightness(1.25)}
+button:active{transform:translateY(1px)}
+button.primary{
+  grid-column:1 / -1;
+  background:linear-gradient(135deg,var(--gold),#d9a24a);
+  color:#201505;font-weight:700;border-color:#e8c680;
+}
+.worlds button.active{
+  background:linear-gradient(135deg,var(--gold),#d9a24a);
+  color:#201505;font-weight:700;border-color:#e8c680;
+}
+
+.presets{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.presets button{background:#122041;padding:8px 4px;font-size:12px;font-weight:600}
+.presets button:hover{color:var(--gold);border-color:var(--gold)}
+
+.readout dl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.readout dl>div{
+  background:#0e1a2e;border:1px solid var(--line);border-radius:7px;padding:8px;
+}
+.readout dt{font-size:11px;color:var(--muted)}
+.readout dd{
+  font-family:Consolas,"Courier New",monospace;font-size:15px;color:var(--blue);margin-top:2px;
+}
+.readout dd.ok{color:#6fd48b}
+.readout dd.warn{color:var(--gold)}
+.readout dd.bad{color:var(--red)}
+.status{
+  margin-top:10px;font-size:12px;color:var(--muted);
+  display:flex;align-items:center;gap:8px;
+}
+.status .dot{
+  width:8px;height:8px;border-radius:50%;background:#3d5275;transition:background .2s;
+}
+.status .dot.on{background:#6fd48b;box-shadow:0 0 8px rgba(111,212,139,.7)}
+.status .dot.run{background:var(--gold);box-shadow:0 0 8px rgba(232,185,100,.8)}
+
+.verify button{width:100%}
+.verify-out{
+  margin-top:8px;background:#0e1a2e;border:1px solid var(--line);border-radius:7px;
+  padding:8px;font-size:12px;color:var(--muted);white-space:pre-wrap;
+  min-height:34px;line-height:1.7;
+}
+.verify-out.pass{color:#6fd48b}
+.verify-out.fail{color:var(--red)}
+
+.keys{font-size:12px;color:var(--muted)}
+.kbd{
+  background:#16243f;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:4px;padding:1px 6px;font-size:11px;color:var(--gold);
+  font-family:Consolas,monospace;
+}
+
+.qa ol{padding-left:18px;display:flex;flex-direction:column;gap:10px}
+.qa li{font-size:12.5px;color:var(--muted)}
+.qa li::marker{color:var(--gold);font-weight:700}
+.qa details{margin-top:4px;font-size:11.5px;color:#aebdd4;line-height:1.7}
+.qa summary{cursor:pointer;color:var(--blue);font-size:11.5px}
+
+footer{
+  margin-top:14px;text-align:center;font-size:11.5px;color:var(--muted);
+  border-top:1px dashed var(--line);padding-top:12px;
+}
+footer b{color:var(--gold)}
+
+@media (max-width:880px){
+  main{grid-template-columns:1fr}
+  .stage{order:1}
+  .panel{order:2}
+}
+
+/* ---------- SVG ---------- */
+.axis{stroke:#5DA9E9;stroke-width:1.6}
+.tick-fine{stroke:#1e2f4d;stroke-width:1}
+.tick-minor{stroke:#3d5a8a;stroke-width:1}
+.tick-major{stroke:#5DA9E9;stroke-width:1.6}
+.tick-label{fill:#8fa6c2;font-size:11px}
+.marker-dash{stroke:#E8B964;stroke-width:1.4;stroke-dasharray:4 5;opacity:.8}
+.band{fill:#E8B964;opacity:.15}
+.hole-ring{
+  fill:none;stroke:var(--gold);stroke-width:2;stroke-dasharray:5 4;transition:opacity .3s;
+}
+.hole-ring.hole{stroke:var(--red)}
+.hole-ring.done{opacity:.18}
+.hole-fill{fill:var(--gold)}
+.hole-fill.glow{animation:glow 1.4s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:1}50%{opacity:.5}}
+.pt{animation:nailin .5s ease-out both;transform-box:fill-box;transform-origin:center}
+.pt-cur{fill:#E85B5B;animation:nailin .5s ease-out both,pulse 1.3s ease-in-out .5s infinite}
+.pt-arrive{fill:#E8B964;stroke:#ffffff;stroke-width:1.4}
+@keyframes nailin{
+  0%{opacity:0;transform:scale(.2)}
+  70%{opacity:1;transform:scale(1.3)}
+  100%{opacity:1;transform:scale(1)}
+}
+@keyframes pulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.55;transform:scale(1.5)}
+}
+.pt-label{fill:#E8B964;font-size:12.5px;font-weight:600}
+.bar{fill:#5DA9E9;opacity:.55}
+.bar-cur{fill:#E8B964}
+.bar-val{fill:#aebdd4;font-size:10.5px}
+.refline{stroke:#1e2f4d;stroke-width:1;stroke-dasharray:2 4}
+.reflabel{fill:#5a7292;font-size:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="titlecard">
+  <div class="tag">C-B19</div>
+  <div>
+    <h1>数轴逼近 √2 · 实数完备性</h1>
+    <p>数：√2 = 1.41421356… · 形：逼近点逐个"钉"轴、越聚越密，目标位先留空洞 · 动：序列逐项逼近，空洞被"填上"——有理数世界里它永远是洞</p>
+  </div>
+  <div class="brix">本01 实数完备性<br><b>断层5 · 实数完备性</b></div>
+</header>
+
+<main>
+  <div class="stage">
+    <svg id="plot" viewBox="0 0 1000 720" role="img" aria-label="数轴逼近根号2与实数完备性可视化">
+      <g id="gUpper">
+        <rect x="62" y="46" width="936" height="300" rx="8" fill="#111c31" stroke="#27395c"/>
+        <text x="70" y="32" font-size="15" font-weight="700" fill="#5DA9E9">① 数轴逼近 √2</text>
+        <text x="360" y="32" font-size="12.5" fill="#8fa6c2">柯西序列 xₙ=1, 1.4, 1.41, 1.414… 逐项"钉"上数轴，越聚越密</text>
+
+        <text id="statusText" x="500" y="74" text-anchor="middle" font-size="13" font-weight="700" fill="#8fa6c2">√2 ∈ ℝ：洞正被填上…</text>
+        <rect id="badgeBg" x="756" y="58" width="224" height="30" rx="15" fill="#16233e" stroke="#27395c"/>
+        <text id="badgeText" x="868" y="78" text-anchor="middle" font-size="13" font-weight="700" fill="#E8B964">实数世界 ℝ</text>
+
+        <g id="fineTicksG"></g>
+        <g id="majorTicksG"></g>
+
+        <rect id="band" x="120" y="292" width="760" height="16" fill="#E8B964" opacity="0.15"/>
+
+        <line id="targetLine" x1="434.8" y1="180" x2="434.8" y2="296" class="marker-dash"/>
+        <text id="markerLabel" x="434.8" y="168" text-anchor="middle" font-size="16" font-weight="700" fill="#E8B964">√2</text>
+        <circle id="markerHole" cx="434.8" cy="300" r="11" class="hole-ring"/>
+        <circle id="markerFill" cx="434.8" cy="300" r="0" class="hole-fill"/>
+
+        <line x1="100" y1="300" x2="884" y2="300" class="axis"/>
+        <polygon points="884,295 894,300 884,305" fill="#5DA9E9"/>
+
+        <g id="pointsG"></g>
+        <g id="pointLabelsG"></g>
+      </g>
+
+      <g id="gLower">
+        <rect x="62" y="380" width="936" height="318" rx="8" fill="#111c31" stroke="#27395c"/>
+        <text x="70" y="366" font-size="15" font-weight="700" fill="#5DA9E9">② 逼近误差 |√2 − xₙ|</text>
+        <text x="360" y="366" font-size="12.5" fill="#8fa6c2">对数刻度 · 逐项递减 · 蓝色=已逼近，金色=当前步</text>
+
+        <g id="reflinesG"></g>
+        <line x1="110" y1="660" x2="890" y2="660" class="axis"/>
+        <polygon points="884,655 894,660 884,665" fill="#5DA9E9"/>
+        <g id="barSlotsG"></g>
+        <g id="barsG"></g>
+        <g id="barLabelsG"></g>
+        <g id="barTicksG"></g>
+      </g>
+    </svg>
+  </div>
+
+  <aside class="panel">
+    <section class="card">
+      <h3>保留位数 n（逼近精度）</h3>
+      <input type="range" id="nSlider" min="0" max="8" step="1" value="0">
+      <div class="nread"><b id="nShow">0</b><span class="range-labels"><span>0</span><span>4</span><span>8</span></span></div>
+    </section>
+
+    <section class="card">
+      <h3>世界切换</h3>
+      <div class="worlds">
+        <button id="wReal" class="active">实数世界 ℝ</button>
+        <button id="wRat">有理数世界 ℚ</button>
+      </div>
+      <div class="world-note" id="worldNote">√2 ∈ ℝ：目标点可落位，洞将被填平</div>
+    </section>
+
+    <section class="btns">
+      <button id="btnPlay" class="primary">▶ 播放逼近（n:0→8）</button>
+      <button id="btnStep">步进 +1</button>
+      <button id="btnReverse">倒放 −1</button>
+      <button id="btnReset">复位 R</button>
+    </section>
+
+    <section class="presets">
+      <button data-n="0">n=0</button>
+      <button data-n="2">n=2</button>
+      <button data-n="4">n=4</button>
+      <button data-n="6">n=6</button>
+      <button data-n="8">n=8</button>
+    </section>
+
+    <section class="card readout">
+      <h3>实时数据</h3>
+      <dl>
+        <div><dt>当前 xₙ</dt><dd id="rX">—</dd></div>
+        <div><dt>误差 |√2−xₙ|</dt><dd id="rE">—</dd></div>
+        <div><dt>当前世界</dt><dd id="rW">—</dd></div>
+        <div><dt>目标点状态</dt><dd id="rS">—</dd></div>
+      </dl>
+      <div class="status"><span class="dot" id="statusDot"></span><span id="statusText2">就绪</span></div>
+    </section>
+
+    <section class="card verify">
+      <button id="btnVerify">✓ 运行自检（verify）</button>
+      <div id="verifyOut" class="verify-out">—</div>
+    </section>
+
+    <section class="card keys">
+      <span class="kbd">Space</span> 播放/暂停　<span class="kbd">→</span> 步进　<span class="kbd">←</span> 倒放　<span class="kbd">R</span> 复位
+    </section>
+
+    <section class="card qa">
+      <h3>课堂三问</h3>
+      <ol>
+        <li>
+          有理数世界里为什么有"洞"？逼近序列每一项都是有理数，为什么目标位却不被任何刻度占据？
+          <details><summary>参考答案</summary>把 ℚ 看作"刻度世界"：√2 恰好落在两条可公度刻度之间。序列 xₙ=1,1.4,1.41,1.414… 每一步都是有理数、彼此越靠越近（柯西序列），但它的极限位置在 ℚ 里不存在——那个空位就是洞。</details>
+        </li>
+        <li>
+          完备性到底给了我们什么？
+          <details><summary>参考答案</summary>完备性（连续性公理）断言：ℝ 中柯西序列必收敛、单调有界必收敛。直觉上就是"数轴上没有洞"——任何逼近过程都有一个真实存在的极限点作为归宿，我们才能写 √2 = lim xₙ 并把它当普通数参与运算。</details>
+        </li>
+        <li>
+          保留 n 位小数时误差为什么 &lt; 10⁻ⁿ？有限精度能"到达"√2 吗？极限算什么？
+          <details><summary>参考答案</summary>截断误差 0 ≤ √2−xₙ &lt; 10⁻ⁿ：想要多近就有多近，但有限步内永远到不了。误差条逐项递减到 10⁻⁸ 量级，直观展示了"收敛但不等于"——极限是过程之外的实体，完备性保证它存在。</details>
+        </li>
+      </ol>
+    </section>
+  </aside>
+</main>
+
+<footer>C-B19 数轴逼近 √2 · 实数完备性 · 本01 实数完备性 · 断层5 实数完备性 · <b>交互可视化交付</b></footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var SQRT2=Math.SQRT2, MAXN=8;
+  var X0=120, X1=880, W=X1-X0;
+  var YAXIS=300;
+  var MX=px(SQRT2);
+
+  function px(x){ return X0+W*(x-1); }
+  function valueAt(n){ return Math.floor(SQRT2*Math.pow(10,n))/Math.pow(10,n); }
+  function errorAt(n){ return SQRT2-valueAt(n); }
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function slotX(i){ return X0+i*(W/MAXN); }
+
+  var SUPER={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+  var SUB={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'};
+  function toSup(s){ s=String(s); var r=''; for(var i=0;i<s.length;i++) r+=SUPER[s[i]]||s[i]; return r; }
+  function toSub(s){ s=String(s); var r=''; for(var i=0;i<s.length;i++) r+=SUB[s[i]]||s[i]; return r; }
+  function expFmt(e){ var p=e.toExponential(1).split('e'); return p[0]+'×10'+toSup(parseInt(p[1],10)); }
+
+  function $(id){ return document.getElementById(id); }
+  function mkSvg(tag,attrs){
+    var e=document.createElementNS('http://www.w3.org/2000/svg',tag);
+    for(var k in attrs) e.setAttribute(k,attrs[k]);
+    return e;
+  }
+
+  var state={ n:0, world:'real', playing:false, isReady:false };
+  var timer=null;
+
+  function initTicks(){
+    var fine=$('fineTicksG'), major=$('majorTicksG'), x, t;
+    for(var k=100;k<=200;k++){
+      x=px(k/100);
+      if(k%10===0){
+        major.appendChild(mkSvg('line',{x1:x,y1:290,x2:x,y2:310,'class':'tick-major'}));
+        t=mkSvg('text',{x:x,y:322,'class':'tick-label','text-anchor':'middle'});
+        t.textContent=(k/100).toFixed(1);
+        major.appendChild(t);
+      } else if(k%5===0){
+        fine.appendChild(mkSvg('line',{x1:x,y1:293,x2:x,y2:307,'class':'tick-minor'}));
+      } else {
+        fine.appendChild(mkSvg('line',{x1:x,y1:296,x2:x,y2:304,'class':'tick-fine'}));
+      }
+    }
+  }
+
+  var barH=function(){ return 0; };
+  function initChart(){
+    var l0=Math.log10(errorAt(0)), l8=Math.log10(errorAt(8)), range=l0-l8;
+    barH=function(e){ return clamp(160*(Math.log10(e)-l8)/range, 2, 160); };
+    var rg=$('reflinesG'), y, t, levels=[1,3,5,7];
+    for(var i=0;i<levels.length;i++){
+      y=660-barH(Math.pow(10,-levels[i]));
+      rg.appendChild(mkSvg('line',{x1:X0,y1:y,x2:X1,y2:y,'class':'refline'}));
+      t=mkSvg('text',{x:X1+8,y:y+3,'class':'reflabel'});
+      t.textContent='10'+toSup(-levels[i]);
+      rg.appendChild(t);
+    }
+    for(var j=0;j<=MAXN;j++){
+      $('barSlotsG').appendChild(mkSvg('line',{x1:slotX(j),x2:slotX(j),y1:660,y2:666,'class':'tick-minor'}));
+      t=mkSvg('text',{x:slotX(j),y:678,'class':'tick-label','text-anchor':'middle'});
+      t.textContent='n='+j;
+      $('barTicksG').appendChild(t);
+    }
+  }
+
+  function renderChart(){
+    var g=$('barsG'), l=$('barLabelsG'), e, h, t;
+    g.innerHTML=''; l.innerHTML='';
+    for(var i=0;i<=state.n;i++){
+      e=errorAt(i); h=barH(e);
+      g.appendChild(mkSvg('rect',{x:slotX(i)-22,y:660-h,width:44,height:h,'class':(i===state.n?'bar bar-cur':'bar')}));
+      t=mkSvg('text',{x:slotX(i),y:660-h-5,'class':'bar-val','text-anchor':'middle'});
+      t.textContent=expFmt(e);
+      l.appendChild(t);
+    }
+  }
+
+  function renderMarker(){
+    var real=state.world==='real', n=state.n, done=real&&n>=MAXN;
+    $('markerFill').setAttribute('r', real? 11*(n/MAXN): 0);
+    $('markerFill').classList.toggle('glow', done);
+    $('markerHole').classList.toggle('done', done);
+    $('markerHole').classList.toggle('hole', !real);
+    $('markerLabel').textContent= real? '√2' : '√2 ?';
+    $('markerLabel').setAttribute('fill', real? '#E8B964':'#8fa6c2');
+  }
+
+  function renderBand(){
+    var n=state.n, x=px(valueAt(n)), w=Math.pow(10,-n)*W;
+    x=clamp(x,X0,X1-w); w=clamp(w,1.5,X1-X0);
+    var b=$('band');
+    b.setAttribute('x',x); b.setAttribute('width',w);
+  }
+
+  function renderPoints(){
+    var g=$('pointsG'), lg=$('pointLabelsG'), x, t, cls;
+    g.innerHTML=''; lg.innerHTML='';
+    var arrive=state.world==='real'&&state.n===MAXN;
+    for(var i=0;i<=state.n;i++){
+      x=px(valueAt(i));
+      cls=(i===state.n)?(arrive?'pt pt-arrive':'pt pt-cur'):'pt';
+      g.appendChild(mkSvg('circle',{cx:x,cy:YAXIS,r:6,'class':cls}));
+    }
+    for(var j=0;j<=1 && j<state.n;j++){
+      t=mkSvg('text',{x:px(valueAt(j))+22,y:YAXIS+34,'class':'tick-label'});
+      t.textContent='x'+toSub(j)+'='+valueAt(j).toFixed(j);
+      lg.appendChild(t);
+    }
+    x=px(valueAt(state.n));
+    t=mkSvg('text',{x:x,y:YAXIS-30,'class':'pt-label','text-anchor':'middle'});
+    t.textContent='x'+toSub(state.n)+' = '+valueAt(state.n).toFixed(state.n);
+    lg.appendChild(t);
+  }
+
+  function renderReadout(){
+    var n=state.n, x=valueAt(n), e=errorAt(n), real=state.world==='real';
+    $('nSlider').value=n;
+    $('nShow').textContent=n;
+    $('rX').textContent=x.toFixed(n)+(n<MAXN?'…':'');
+    $('rE').textContent=expFmt(e)+' ≤ 10'+toSup(-n);
+    $('rW').textContent=real?'实数世界 ℝ':'有理数世界 ℚ';
+    var s=$('rS');
+    if(real&&n>=MAXN){ s.textContent='√2 存在 · 洞已填平'; s.className='ok'; }
+    else if(real){ s.textContent='逼近中 · 洞正被填'; s.className='warn'; }
+    else { s.textContent='洞永在 · 极限∉ℚ'; s.className='bad'; }
+    var dot=$('statusDot'), txt=$('statusText2');
+    if(real&&n>=MAXN){ dot.className='dot on'; txt.textContent='收敛完成'; }
+    else if(real){ dot.className='dot run'; txt.textContent='逐项钉入'; }
+    else { dot.className='dot'; txt.textContent='有理数世界'; }
+  }
+
+  function renderWorld(){
+    var real=state.world==='real';
+    $('wReal').classList.toggle('active',real);
+    $('wRat').classList.toggle('active',!real);
+    $('worldNote').textContent= real? '√2 ∈ ℝ：目标点可落位，洞将被填平' : '√2 ∉ ℚ：逼近点不落目标位，洞永远存在';
+    $('badgeText').textContent= real? '实数世界 ℝ' : '有理数世界 ℚ';
+    $('badgeText').setAttribute('fill', real? '#E8B964':'#E85B5B');
+    $('badgeBg').setAttribute('stroke', real? '#27395c':'#6b3547');
+    var st=$('statusText');
+    if(real){
+      st.textContent = (state.n>=MAXN)? '√2 存在 ✓ —— 序列收敛，空洞被填平' : '√2 ∈ ℝ：洞正被填上（n = '+state.n+'）';
+    } else {
+      st.textContent = '√2 ∉ ℚ：极限不在有理数集，此洞永远存在';
+    }
+  }
+
+  function render(){ renderBand(); renderMarker(); renderPoints(); renderChart(); renderReadout(); renderWorld(); syncURL(); }
+
+  function play(){
+    if(timer){ clearInterval(timer); timer=null; }
+    if(state.n>=MAXN) state.n=0;
+    state.playing=true;
+    render();
+    $('btnPlay').textContent='⏸ 暂停';
+    timer=setInterval(function(){
+      if(state.n<MAXN){ state.n++; render(); }
+      else { pause(); }
+    },750);
+  }
+  function pause(){
+    if(timer){ clearInterval(timer); timer=null; }
+    state.playing=false;
+    $('btnPlay').textContent='▶ 播放逼近（n:0→8）';
+  }
+  function step(){ pause(); if(state.n<MAXN){ state.n++; render(); } }
+  function reverse(){ pause(); if(state.n>0){ state.n--; render(); } }
+  function reset(){ pause(); state.n=0; render(); }
+
+  function verify(){
+    var n=state.n, x=valueAt(n), e=errorAt(n), bound=Math.pow(10,-n), checks=[];
+    checks.push({
+      label:'|√2−xₙ| ≤ 10⁻ⁿ',
+      pass:e<=bound+1e-15,
+      detail:'|√2−'+x.toFixed(n)+'|='+e.toExponential(3)+' ≤ 10'+toSup(-n)
+    });
+    if(n===0){
+      checks.push({label:'误差逐项递减', pass:true, detail:'n=0 为逼近起点（起点误差 '+e.toExponential(2)+'）'});
+    } else {
+      checks.push({label:'误差逐项递减', pass:e<errorAt(n-1), detail:'|√2−xₙ|='+e.toExponential(3)+' < |√2−xₙ₋₁|='+errorAt(n-1).toExponential(3)});
+    }
+    if(state.world==='real'){
+      checks.push({label:'√2 存在（洞可填）', pass:true, detail:'√2 ∈ ℝ：极限点真实存在，目标空心被填成实点 √2'});
+    } else {
+      checks.push({label:'极限不在有理数集', pass:true, detail:'√2 ∉ ℚ：逼近点列不落目标位，空心圈永远是洞'});
+    }
+    var ok=true;
+    for(var i=0;i<checks.length;i++){ if(!checks[i].pass) ok=false; }
+    var lines=checks.map(function(c){ return (c.pass?'✓ ':'✗ ')+c.label+' — '+c.detail; });
+    var out=$('verifyOut');
+    out.textContent=(ok?'[通过] ':'[未通过] ')+lines.join('\n');
+    out.className='verify-out '+(ok?'pass':'fail');
+    return { ok:ok, checks:checks, n:n, world:state.world, x:x, error:e, summary:ok?'全部通过':'存在未通过项' };
+  }
+
+  $('nSlider').addEventListener('input',function(){
+    pause(); state.n=parseInt($('nSlider').value,10); render();
+  });
+  $('wReal').addEventListener('click',function(){ state.world='real'; render(); });
+  $('wRat').addEventListener('click',function(){ state.world='rational'; render(); });
+  $('btnPlay').addEventListener('click',play);
+  $('btnStep').addEventListener('click',step);
+  $('btnReverse').addEventListener('click',reverse);
+  $('btnReset').addEventListener('click',reset);
+  $('btnVerify').addEventListener('click',verify);
+  var presets=document.querySelectorAll('.presets button');
+  for(var pi=0;pi<presets.length;pi++){
+    presets[pi].addEventListener('click',function(){
+      pause(); state.n=parseInt(this.getAttribute('data-n'),10); render();
+    });
+  }
+
+  document.addEventListener('keydown',function(e){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA'){
+      if(e.code==='Space'){ e.preventDefault(); state.playing?pause():play(); }
+      return;
+    }
+    switch(e.code){
+      case 'Space': e.preventDefault(); state.playing?pause():play(); break;
+      case 'ArrowRight': e.preventDefault(); step(); break;
+      case 'ArrowLeft': e.preventDefault(); reverse(); break;
+      case 'KeyR': e.preventDefault(); reset(); break;
+    }
+  });
+
+  function parseURL(){
+    var q=new URLSearchParams(location.search), out={};
+    if(q.has('n')) out.n=clamp(Math.round(parseFloat(q.get('n'))||0),0,MAXN);
+    if(q.get('world')==='rational') out.world='rational';
+    return out;
+  }
+  function syncURL(){
+    var q=new URLSearchParams(location.search);
+    q.set('n',String(state.n)); q.set('world',state.world);
+    try{ history.replaceState(null,'',location.pathname+'?'+q.toString()); }catch(_){}
+  }
+
+  window.SciDemo={
+    setParams:function(p){
+      if(!p) return this;
+      if('n' in p) state.n=clamp(Math.round(Number(p.n)||0),0,MAXN);
+      if('world' in p) state.world=(p.world==='rational')?'rational':'real';
+      render();
+      return this;
+    },
+    play:function(){ play(); return this; },
+    pause:function(){ pause(); return this; },
+    step:function(){ step(); return this; },
+    reset:function(){ reset(); return this; },
+    reverse:function(){ reverse(); return this; },
+    verify:function(){ return verify(); },
+    state:function(){
+      var seq=[]; for(var i=0;i<=MAXN;i++) seq.push(valueAt(i));
+      return {
+        n:state.n, world:state.world, playing:state.playing, maxN:MAXN,
+        sqrt2:SQRT2, x:valueAt(state.n), error:errorAt(state.n),
+        filled:(state.world==='real'&&state.n>=MAXN), hole:state.world==='rational',
+        sequence:seq, isReady:state.isReady
+      };
+    },
+    isReady:false
+  };
+
+  (function init(){
+    var p=parseURL();
+    if('n' in p) state.n=p.n;
+    if(p.world) state.world=p.world;
+    initTicks();
+    initChart();
+    render();
+    window.SciDemo.isReady=true;
+    state.isReady=true;
+    window.dispatchEvent(new Event('SciDemo.ready'));
+    console.log('[C-B19] SciDemo 就绪', window.SciDemo.state());
+  })();
+
+})();
+</script>
+</body>
+</html>

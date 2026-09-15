@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-G01 导数：割线到切线 · 大数学交互交付</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f6f7f9; color:#1f2430; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; min-height:100vh; }
+  .wrap { max-width:1180px; margin:0 auto; padding:18px 16px 30px; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:14px; }
+  .layout { display:grid; grid-template-columns:1fr 330px; gap:16px; }
+  .stage { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  svg { width:100%; height:auto; display:block; }
+  .panel { display:flex; flex-direction:column; gap:12px; }
+  .box { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:12px 14px; }
+  .box h3 { font-size:14px; margin-bottom:8px; color:#374151; }
+  .ctl { margin-bottom:10px; }
+  .ctl label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px; }
+  .ctl label b { color:#2563eb; }
+  .ctl input[type=range] { width:100%; }
+  .btnrow { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  button { border:none; border-radius:8px; padding:9px 0; font-size:14px; cursor:pointer; background:#eef1f6; color:#1f2430; }
+  button:hover { background:#e2e8f0; }
+  button.pri { background:#2563eb; color:#fff; }
+  button.pri:hover { background:#1d4ed8; }
+  .readout { font-size:13px; line-height:1.75; }
+  .readout .big { font-size:15px; font-weight:700; }
+  .blu { color:#2563eb; }
+  .red { color:#dc2626; }
+  .ok { color:#059669; font-weight:700; }
+  .warn { color:#d97706; }
+  .msg { font-size:12px; color:#6b7280; line-height:1.6; }
+  .q { font-size:12px; color:#6b7280; border-top:1px dashed #e3e6ec; padding-top:8px; margin-top:4px; }
+  .q b { color:#374151; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>C-G01 · 导数概念：割线逼近切线</h1>
+  <p class="sub">蓝线是过 A、P 两点的<b>割线</b>；让 P 沿抛物线滑向 A，割线逐帧逼近红虚线<b>切线</b>，斜率从 k<sub>割</sub> 收敛到导数 k<sub>切</sub> = 2x₀。拖动 x₀ 换位置。</p>
+  <div class="layout">
+    <div class="stage">
+      <svg id="scene" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="割线逼近切线动画"></svg>
+    </div>
+    <div class="panel">
+      <div class="box">
+        <h3>参数控制</h3>
+        <div class="ctl"><label>切点横坐标 x₀ <b id="vx0">1.0</b></label><input type="range" id="sx0" min="-2.5" max="2.5" step="0.1" value="1"></div>
+        <div class="ctl"><label>P 与 A 的距离 Δx <b id="vdx">1.6</b></label><input type="range" id="sdx" min="0.05" max="2.5" step="0.05" value="1.6"></div>
+        <div class="btnrow">
+          <button class="pri" id="btnPlay">▶ P 滑向 A</button>
+          <button id="btnPause">⏸ 暂停</button>
+          <button id="btnStep">⏭ 单步</button>
+          <button id="btnReset">↺ 复位</button>
+          <button id="btnCopy">🔗 复制参数链接</button>
+        </div>
+      </div>
+      <div class="box">
+        <h3>实时数据</h3>
+        <div class="readout" id="readout"></div>
+      </div>
+      <div class="box">
+        <h3>课堂提问</h3>
+        <div class="q"><b>先猜</b>：P 离 A 越近，割线斜率会逼近多少？<br><b>后问</b>：为什么切线斜率恰好是 2x₀？把 x₀ 拖到 -1，导数变号说明了什么？</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+
+var SVG_NS = "http://www.w3.org/2000/svg";
+var W = 1000, H = 720, PAD = 48;
+var XMIN = -3, XMAX = 3, YMIN = -2.5, YMAX = 9.5;
+var svg = document.getElementById("scene");
+
+var state = { x0: 1, dx: 1.6, playing: false, lastTs: 0 };
+
+function f(x){ return x * x; }
+function df(x){ return 2 * x; }
+function sx(x){ return PAD + (x - XMIN) / (XMAX - XMIN) * (W - PAD*2); }
+function sy(y){ return H - PAD - (y - YMIN) / (YMAX - YMIN) * (H - PAD*2); }
+function el(tag, attrs){
+  var e = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function clearSvg(){ while (svg.firstChild) svg.removeChild(svg.firstChild); }
+function txt(x, y, text, color, size, weight){
+  var t = el("text", { x:x, y:y, fill:color||"#374151", "font-size":size||13,
+    "text-anchor":"middle", "font-weight":weight||"normal",
+    "font-family":"'Microsoft YaHei','PingFang SC',sans-serif" });
+  t.textContent = text;
+  svg.appendChild(t);
+  return t;
+}
+function fnum(x){ return Math.abs(x - Math.round(x)) < 1e-9 ? String(Math.round(x)) : x.toFixed(2); }
+function lerp(a, b, t){ return a + (b - a) * t; }
+
+function redraw(){
+  clearSvg();
+  var x0 = state.x0, x1 = x0 + state.dx;
+
+  // 网格 + 轴
+  for (var gx = XMIN; gx <= XMAX; gx++){
+    svg.appendChild(el("line", { x1:sx(gx), y1:sy(YMIN), x2:sx(gx), y2:sy(YMAX), stroke:"#eef0f4", "stroke-width":1 }));
+  }
+  for (var gy = YMIN; gy <= YMAX; gy += 2){
+    svg.appendChild(el("line", { x1:sx(XMIN), y1:sy(gy), x2:sx(XMAX), y2:sy(gy), stroke:"#eef0f4", "stroke-width":1 }));
+  }
+  svg.appendChild(el("line", { x1:sx(XMIN), y1:sy(0), x2:sx(XMAX), y2:sy(0), stroke:"#94a3b8", "stroke-width":2 }));
+  svg.appendChild(el("line", { x1:sx(0), y1:sy(YMAX), x2:sx(0), y2:sy(YMIN), stroke:"#94a3b8", "stroke-width":2 }));
+  for (var tx = XMIN; tx <= XMAX; tx++) if (tx !== 0) txt(sx(tx), sy(0)+16, String(tx), "#94a3b8", 11);
+  for (var ty = 0; ty <= YMAX; ty += 2) if (ty !== 0) txt(sx(0)-16, sy(ty)+4, String(ty), "#94a3b8", 11);
+
+  // 抛物线
+  var path = "M";
+  for (var x = XMIN; x <= XMAX; x += 0.05){
+    path += (x === XMIN ? "" : " L") + sx(x) + " " + sy(f(x));
+  }
+  svg.appendChild(el("path", { d:path, fill:"none", stroke:"#111827", "stroke-width":3.5, "stroke-linejoin":"round" }));
+
+  // 割线（蓝，粗线，延长两端让线型明显）
+  var ms = (f(x1) - f(x0)) / (x1 - x0);
+  var secX0 = x0 - 1.6, secX1 = x1 + 1.6;
+  svg.appendChild(el("line", { x1:sx(secX0), y1:sy(f(x0) + ms*(secX0-x0)), x2:sx(secX1), y2:sy(f(x0) + ms*(secX1-x0)),
+    stroke:"#2563eb", "stroke-width":4 }));
+
+  // 切线（红虚线，粗）——背景不遮线，置于割线之后画
+  var mt = df(x0);
+  var tanX0 = x0 - 2.2, tanX1 = x0 + 2.2;
+  svg.appendChild(el("line", { x1:sx(tanX0), y1:sy(f(x0) + mt*(tanX0-x0)), x2:sx(tanX1), y2:sy(f(x0) + mt*(tanX1-x0)),
+    stroke:"#dc2626", "stroke-width":4, "stroke-dasharray":"10 6", opacity:0.85 }));
+
+  // Δx 与 Δy 标注（沿割线，避开直线）
+  var y0 = f(x0), y1 = f(x1);
+  svg.appendChild(el("line", { x1:sx(x0), y1:sy(y0), x2:sx(x1), y2:sy(y0), stroke:"#93c5fd", "stroke-width":2 }));
+  svg.appendChild(el("line", { x1:sx(x1), y1:sy(y0), x2:sx(x1), y2:sy(y1), stroke:"#fcd34d", "stroke-width":2 }));
+  txt((sx(x0)+sx(x1))/2, sy(y0)+16, "Δx = " + fnum(state.dx), "#2563eb", 12, "bold");
+  txt(sx(x1)+14, (sy(y0)+sy(y1))/2, "Δy", "#d97706", 12, "bold");
+
+  // 点 A / 点 P
+  svg.appendChild(el("circle", { cx:sx(x0), cy:sy(y0), r:8, fill:"#dc2626", stroke:"#fff", "stroke-width":2.5 }));
+  svg.appendChild(el("circle", { cx:sx(x1), cy:sy(y1), r:8, fill:"#2563eb", stroke:"#fff", "stroke-width":2.5 }));
+  txt(sx(x0)-14, sy(y0)+24, "A", "#dc2626", 15, "bold");
+  txt(sx(x1)+16, sy(y1)-14, "P", "#2563eb", 15, "bold");
+
+  // 图例（背景条，右上角）
+  var lg = el("g", {});
+  lg.appendChild(el("rect", { x:W-228, y:12, width:208, height:64, rx:8, fill:"#111827", opacity:0.85 }));
+  var l1 = el("line", { x1:W-208, y1:28, x2:W-148, y2:28, stroke:"#2563eb", "stroke-width":4 });
+  var l2 = el("line", { x1:W-208, y1:58, x2:W-148, y2:58, stroke:"#dc2626", "stroke-width":4, "stroke-dasharray":"10 6" });
+  lg.appendChild(l1); lg.appendChild(l2);
+  txt(W-108, 32, "割线（过 A、P）", "#93c5fd", 12, "bold");
+  txt(W-108, 62, "切线（导数）", "#fca5a5", 12, "bold");
+  svg.appendChild(lg);
+
+  updateReadout();
+}
+
+function updateReadout(){
+  var x0 = state.x0, x1 = x0 + state.dx;
+  var ms = (f(x1) - f(x0)) / (x1 - x0);
+  var mt = df(x0);
+  var gap = Math.abs(ms - mt);
+  var el2 = document.getElementById("readout");
+  el2.innerHTML =
+    '<div class="big"><span class="blu">割线斜率 k</span> = (' + fnum(x1) + '<sup>2</sup>−' + fnum(x0) + '<sup>2</sup>)/(' + fnum(x1) + '−' + fnum(x0) + ') = <span class="blu">' + fnum(ms) + '</span></div>' +
+    '<div class="big"><span class="red">切线斜率（导数）f′(x₀)</span> = 2×' + fnum(x0) + ' = <span class="red">' + fnum(mt) + '</span></div>' +
+    '<div>差值 |k<sub>割</sub> − k<sub>切</sub>| = <b class="' + (gap < 0.05 ? 'ok' : 'warn') + '">' + fnum(gap) + '</b>' + (gap < 0.05 ? ' ✓ P 已贴到 A，割线收敛为切线' : '，继续让 P 靠近 A') + '</div>' +
+    '<div class="msg">P 越接近 A（Δx→0），过两点的割线越接近过 A 的唯一切线，割线斜率越接近导数。这就是"以直代曲"。</div>';
+}
+
+/* ---------- 动画：P 滑向 A ---------- */
+function frame(ts){
+  if (!state.playing) return;
+  var dt = state.lastTs ? (ts - state.lastTs) / 1000 : 0;
+  state.lastTs = ts;
+  state.dx = Math.max(0.05, state.dx - dt * 0.55);
+  if (state.dx <= 0.06){ state.dx = 0.05; state.playing = false; }
+  sdx.value = state.dx; vdx.textContent = fnum(state.dx);
+  redraw();
+  if (state.playing) requestAnimationFrame(frame);
+}
+function play(){
+  state.playing = true;
+  if (state.dx <= 0.06) state.dx = 1.6;
+  state.lastTs = 0;
+  requestAnimationFrame(frame);
+}
+function step(){ state.playing = false; state.dx = Math.max(0.05, state.dx - 0.2); sdx.value = state.dx; vdx.textContent = fnum(state.dx); redraw(); }
+function resetAll(){ state.playing = false; state.dx = 1.6; sdx.value = state.dx; vdx.textContent = fnum(state.dx); redraw(); }
+
+function setParams(p){
+  if (p.x0 !== undefined){
+    state.x0 = Math.max(-2.5, Math.min(2.5, parseFloat(p.x0)));
+    sx0.value = state.x0; vx0.textContent = fnum(state.x0);
+  }
+  if (p.dx !== undefined){
+    state.dx = Math.max(0.05, Math.min(2.5, parseFloat(p.dx)));
+    sdx.value = state.dx; vdx.textContent = fnum(state.dx);
+  }
+  resetAll();
+}
+
+document.getElementById("btnPlay").onclick  = play;
+document.getElementById("btnPause").onclick = function(){ state.playing = false; };
+document.getElementById("btnStep").onclick  = step;
+document.getElementById("btnReset").onclick = resetAll;
+document.getElementById("btnCopy").onclick = function(){
+  var u = new URL(location.href);
+  u.searchParams.set("x0", state.x0); u.searchParams.set("dx", state.dx);
+  var s = u.href;
+  if (navigator.clipboard) navigator.clipboard.writeText(s).then(function(){ alert("链接已复制"); });
+  else { prompt("复制链接", s); }
+};
+
+var sx0 = document.getElementById("sx0"), sdx = document.getElementById("sdx");
+var vx0 = document.getElementById("vx0"), vdx = document.getElementById("vdx");
+function onSlider(){
+  state.x0 = +sx0.value; state.dx = +sdx.value;
+  vx0.textContent = fnum(state.x0); vdx.textContent = fnum(state.dx);
+  state.playing = false;
+  redraw();
+}
+sx0.oninput = onSlider; sdx.oninput = onSlider;
+
+document.addEventListener("keydown", function(e){
+  if (e.key === " ") { e.preventDefault(); if (state.playing) state.playing = false; else play(); }
+  else if (e.key === "ArrowRight") { step(); }
+  else if (e.key === "r" || e.key === "R") { resetAll(); }
+});
+
+/* ---------- 初始化 + URL ---------- */
+(function init(){
+  var q = new URLSearchParams(location.search);
+  var x0 = parseFloat(q.get("x0")), dx = parseFloat(q.get("dx"));
+  if (isFinite(x0) && x0>=-2.5 && x0<=2.5) state.x0 = x0;
+  if (isFinite(dx) && dx>=0.05 && dx<=2.5) state.dx = dx;
+  sx0.value = state.x0; sdx.value = state.dx;
+  vx0.textContent = fnum(state.x0); vdx.textContent = fnum(state.dx);
+  redraw();
+})();
+
+/* ---------- 质检钩子 ---------- */
+function verify(){
+  var x0 = state.x0, x1 = x0 + state.dx;
+  var ms = (f(x1) - f(x0)) / (x1 - x0);
+  var mt = df(x0);
+  var analyticOk = Math.abs(ms - (x1 + x0)) < 1e-6;   // 解析值 k=(x1²-x0²)/(x1-x0)=x1+x0
+  var convergeOk = Math.abs(ms - mt) < 0.01;          // 播放到底后割线斜率≈切线斜率
+  return {
+    mode:"derivative", x0:x0, dx:state.dx,
+    secantSlope: Math.round(ms*1000)/1000,
+    tangentSlope: Math.round(mt*1000)/1000,
+    secantAnalyticOk: analyticOk,
+    converged: convergeOk
+  };
+}
+
+window.SciDemo = {
+  setParams: setParams,
+  play: play,
+  pause: function(){ state.playing = false; },
+  step: step,
+  reset: resetAll,
+  reverse: function(){ state.playing = false; state.dx = Math.min(2.5, state.dx + 0.2); sdx.value = state.dx; vdx.textContent = fnum(state.dx); redraw(); },
+  verify: verify,
+  state: function(){ return { x0:state.x0, dx:state.dx, playing:state.playing }; }
+};
+Object.defineProperty(window.SciDemo, "isReady", { get: function(){ return true; } });
+
+})();
+</script>
+</body>
+</html>

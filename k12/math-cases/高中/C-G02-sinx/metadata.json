@@ -1,0 +1,25 @@
+{
+  "id": "C-G02",
+  "subject": "math",
+  "title": "正弦曲线：单位圆展开",
+  "audience": "高中",
+  "concept": "正弦函数 · 单位圆纵坐标展开为曲线",
+  "desc": "圆上 P 的纵坐标经同一条水平虚线投影到波形，垂直虚线落到 x 轴，Q 的轨迹累积出 y=sin x。",
+  "engine": "svg",
+  "html": "math-cases/高中/C-G02-sinx/index.html",
+  "mp4": "math-cases/高中/C-G02-sinx/out/C-G02.mp4",
+  "gif": "math-cases/高中/C-G02-sinx/out/C-G02-preview.gif",
+  "webp": "math-cases/高中/C-G02-sinx/out/C-G02-preview.webp",
+  "cover": "math-cases/高中/C-G02-sinx/out/C-G02-preview-cover.jpg",
+  "record": {
+    "params": { "th": 0.79 },
+    "seconds": 8,
+    "fps": 30
+  },
+  "sources": [
+    { "name": "Desmos", "url": "https://www.desmos.com/calculator" },
+    { "name": "GeoGebra", "url": "https://www.geogebra.org/materials" }
+  ],
+  "status": "ready",
+  "note": "替代 Manim 高02；圆与波形同一纵向刻度，水平投影线两端同 y"
+}

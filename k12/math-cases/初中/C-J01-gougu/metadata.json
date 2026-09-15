@@ -1,0 +1,25 @@
+{
+  "id": "C-J01",
+  "subject": "math",
+  "title": "勾股定理面积拼合",
+  "audience": "初中",
+  "concept": "勾股定理 · a²+b²=c² 面积计数",
+  "desc": "蓝 a² 格、橙 b² 格旋转后沿斜边逐格对齐飞入斜边正方形，恰好铺满 c² 格：9+16=25。",
+  "engine": "svg",
+  "html": "math-cases/初中/C-J01-gougu/index.html",
+  "mp4": "math-cases/初中/C-J01-gougu/out/C-J01.mp4",
+  "gif": "math-cases/初中/C-J01-gougu/out/C-J01-preview.gif",
+  "webp": "math-cases/初中/C-J01-gougu/out/C-J01-preview.webp",
+  "cover": "math-cases/初中/C-J01-gougu/out/C-J01-preview-cover.jpg",
+  "record": {
+    "params": { "a": 3, "b": 4 },
+    "seconds": 8,
+    "fps": 30
+  },
+  "sources": [
+    { "name": "GeoGebra", "url": "https://www.geogebra.org/materials" },
+    { "name": "Desmos", "url": "https://www.desmos.com/calculator" }
+  ],
+  "status": "ready",
+  "note": "重建：替代 Manim 初01；斜边格阵贴齐 + tspan 上标"
+}

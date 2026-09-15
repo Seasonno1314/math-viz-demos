@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="subject" content="C-G08 直线与圆的位置">
+<meta name="level" content="高10 · 直线与圆方程">
+<meta name="volume" content="12 卷断层4：几何解析化">
+<meta name="keywords" content="直线与圆, 圆心距, 相切, 相交, 相离, 数形结合">
+<title>C-G08 直线与圆的位置｜数形结合交互演示</title>
+<style>
+:root{
+  --blue:#5DA9E9; --gold:#E8B964; --bg:#0d1320; --card:#151e2e; --panel:#182235;
+  --line:#263650; --text:#e8eef7; --muted:#8aa0b8; --dim:#5c7290;
+  --int:#6fd08a; --tan:#E8B964; --sep:#ef6a6a; --perp:#f27a94;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI","Microsoft YaHei","PingFang SC",system-ui,sans-serif;padding:16px 12px 48px;line-height:1.55}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto}
+
+/* ── 标题卡 ── */
+.title-card{background:linear-gradient(120deg,#101a2c 0%,#18294a 55%,#24375f 100%);border:1px solid #2a3d63;border-radius:14px;padding:18px 24px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;box-shadow:0 6px 24px rgba(0,0,0,.35);position:relative;overflow:hidden}
+.title-card::after{content:"";position:absolute;inset:0;background:radial-gradient(600px 160px at 85% -30%,rgba(93,169,233,.18),transparent 70%)}
+.title-card h1{font-size:22px;letter-spacing:1px;display:flex;align-items:center;gap:10px}
+.title-card h1 .cn{color:var(--blue)}
+.title-card h1 .code{color:var(--gold);font-variant-numeric:tabular-nums}
+.title-card .sub{font-size:13px;color:var(--muted);margin-top:4px}
+.tags{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.tag{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:rgba(255,255,255,.03)}
+.tag.gold{border-color:rgba(232,185,100,.4);color:var(--gold)}
+.tag.blue{border-color:rgba(93,169,233,.4);color:var(--blue)}
+
+/* ── 布局 ── */
+.layout{display:grid;grid-template-columns:1fr 310px;gap:16px;margin-top:16px;align-items:start}
+@media (max-width:880px){.layout{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.card h2{font-size:14px;letter-spacing:1px;color:var(--blue);border-left:3px solid var(--gold);padding-left:9px;margin-bottom:10px}
+.card h2 small{color:var(--dim);font-weight:400;margin-left:6px}
+
+/* ── 舞台（左） ── */
+.stage{display:flex;flex-direction:column;gap:12px;min-width:0}
+#plot{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+#plot .gmi{stroke:#1b2940;stroke-width:1}
+#plot .gm{stroke:#233452;stroke-width:1.4}
+#plot .axis{stroke:#c9d8ec;stroke-width:2}
+#plot .axis-arrow{fill:#c9d8ec}
+#plot .tick{fill:#6d8299;font-size:13px;font-family:inherit}
+#plot .origin{fill:#6d8299;font-size:14px}
+#plot .line{stroke:var(--gold);stroke-width:3.5;stroke-linecap:round}
+#plot .circ{stroke:var(--blue);stroke-width:3;fill:rgba(93,169,233,.10)}
+#plot .dist{stroke:var(--perp);stroke-width:2;stroke-dasharray:7 5}
+#plot .rad{stroke:#9fb6cf;stroke-width:1.6;stroke-dasharray:3 3}
+#plot .glb{fill:var(--text);font-size:15px;font-weight:600;stroke:var(--bg);stroke-width:4;paint-order:stroke;font-family:inherit}
+#plot .glb.perp{fill:var(--perp)}
+#plot .glb.rad{fill:#9fb6cf}
+#plot .ipt{fill:#fff;stroke:var(--blue);stroke-width:2.5}
+#plot .ctr{fill:none;stroke:#9fb6cf;stroke-width:2}
+#plot .legend rect{fill:rgba(13,19,32,.78);stroke:var(--line)}
+#plot .legend text{fill:var(--muted);font-size:12.5px;font-family:inherit}
+#plot .legend .sw{stroke-width:3}
+#plot .legend .sw.circ{fill:rgba(93,169,233,.15)}
+#plot .sqm{fill:none;stroke:var(--perp);stroke-width:1.4}
+
+/* ── 方程同步显示 ── */
+.eq-card{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:center;justify-content:center;background:linear-gradient(100deg,#14203a,#101a2c);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.eq{font-size:16.5px;letter-spacing:.5px;font-family:"Cambria Math","Times New Roman","Microsoft YaHei",serif;color:#eef4fc;white-space:nowrap}
+.eq .v{color:var(--gold)}
+.eq .v.pulse{animation:pu 1.1s ease-in-out infinite}
+@keyframes pu{0%,100%{box-shadow:0 0 0 0 rgba(232,185,100,0)}50%{box-shadow:0 0 0 3px rgba(232,185,100,.35);color:#ffd99a}}
+
+/* ── readout ── */
+.readout{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.chip{display:inline-flex;align-items:baseline;gap:6px;font-size:13px;color:var(--muted);padding:3px 10px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.02)}
+.chip b{color:var(--text);font-size:14px;font-variant-numeric:tabular-nums}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:4px 12px;border-radius:8px}
+.badge .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+.badge.int{color:var(--int);background:rgba(111,208,138,.12);border:1px solid rgba(111,208,138,.45)}
+.badge.tan{color:var(--tan);background:rgba(232,185,100,.12);border:1px solid rgba(232,185,100,.45)}
+.badge.sep{color:var(--sep);background:rgba(239,106,106,.12);border:1px solid rgba(239,106,106,.45)}
+.status{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.status .hot{color:var(--gold)}
+
+/* ── 控制面板（右） ── */
+.panel{display:flex;flex-direction:column;gap:12px;max-height:none}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px}
+.tab{border:none;background:transparent;color:var(--muted);padding:8px 0;border-radius:7px;font-size:14px;transition:.2s}
+.tab.active{background:linear-gradient(120deg,#234063,#2c4f7a);color:#fff;box-shadow:inset 0 0 0 1px rgba(93,169,233,.55)}
+.pane{display:flex;flex-direction:column;gap:10px}
+.pane.hidden{display:none}
+.choose{display:flex;gap:8px}
+.cho{flex:1;text-align:center;font-size:13px;padding:6px 0;border-radius:8px;border:1px solid var(--line);color:var(--muted);background:transparent;transition:.2s}
+.cho.on{border-color:var(--gold);color:var(--gold);background:rgba(232,185,100,.10);font-weight:700}
+.sl-row{display:grid;grid-template-columns:34px 1fr 52px;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.02)}
+.sl-row .nm{font-size:14px;font-weight:700;color:var(--blue)}
+.sl-row .nm.gold{color:var(--gold)}
+.sl-row .val{font-size:13px;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+.sl-row.locked{opacity:.42;background:rgba(255,255,255,.01)}
+.sl-row.locked .nm{color:var(--dim)}
+.sl-row .lk{font-size:10px;color:var(--dim);text-align:right;letter-spacing:1px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,#2c3e5a,#3a517a)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:var(--gold);border:2px solid #0d1320;margin-top:-5.5px;box-shadow:0 0 0 2px rgba(232,185,100,.35)}
+input[type=range].blue::-webkit-slider-thumb{background:var(--blue);box-shadow:0 0 0 2px rgba(93,169,233,.35)}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#2c3e5a}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--gold);border:2px solid #0d1320}
+input[type=range]:disabled{cursor:not-allowed;opacity:.55}
+.hint{font-size:11.5px;color:var(--dim);padding:2px 2px 0}
+.hint .hl{color:var(--gold)}
+
+.ctrl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn{padding:8px 6px;font-size:13px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--text);transition:.15s}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn.primary{border-color:rgba(232,185,100,.5);color:var(--gold);background:rgba(232,185,100,.08)}
+.btn.primary:hover{background:rgba(232,185,100,.16)}
+.btn.danger:hover{border-color:var(--sep);color:var(--sep)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+.preset{flex:1;min-width:88px;font-size:12.5px;padding:7px 4px;border-radius:8px;border:1px solid var(--line);color:var(--muted);background:rgba(255,255,255,.02)}
+.preset:hover{color:#fff;border-color:var(--gold)}
+.preset.t{color:var(--tan)} .preset.i{color:var(--int)} .preset.s{color:var(--sep)}
+.verify-msg{font-size:12px;color:var(--muted);background:rgba(255,255,255,.03);border:1px dashed var(--line);border-radius:8px;padding:8px 10px;min-height:34px}
+.verify-msg.ok{color:var(--int);border-color:rgba(111,208,138,.4)}
+.verify-msg.bad{color:var(--sep);border-color:rgba(239,106,106,.4)}
+
+/* ── 课堂提问 ── */
+.qa{padding:10px 0;border-bottom:1px dashed var(--line)}
+.qa:last-child{border-bottom:none}
+.qa .q{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:4px}
+.qa .a{font-size:12.5px;color:var(--muted);padding-left:14px;border-left:2px solid var(--line);margin-left:2px}
+.kbd{display:inline-block;font-size:11px;padding:1px 7px;border:1px solid var(--line);border-bottom-width:3px;border-radius:5px;color:var(--gold);background:#0f1a2b;margin:0 2px}
+.keys{font-size:12px;color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="title-card">
+    <div>
+      <h1><span class="cn">直线与圆的位置</span>&nbsp;<span class="code">C-G08</span></h1>
+      <div class="sub">高10 · 直线与圆方程 ｜ 12 卷断层4：几何解析化 —— 数 · 形 · 动 三问驱动</div>
+    </div>
+    <div class="tags">
+      <span class="tag blue">数形结合</span>
+      <span class="tag gold">三问驱动</span>
+      <span class="tag">参数扫描</span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- 左：舞台 -->
+    <section class="stage">
+      <div class="eq-card">
+        <span class="eq" id="eqLine"></span>
+        <span class="eq" id="eqCircle"></span>
+      </div>
+
+      <svg id="plot" viewBox="0 0 1000 720" role="img" aria-label="直线与圆的位置坐标平面">
+        <defs>
+          <clipPath id="plotClip"><rect x="140" y="0" width="720" height="720"/></clipPath>
+        </defs>
+        <g id="grid"></g>
+        <g id="labels"></g>
+        <g id="axes"></g>
+        <g clip-path="url(#plotClip)">
+          <line id="ln" class="line" x1="140" y1="360" x2="860" y2="360"/>
+          <line id="dist" class="dist"/>
+          <line id="rad" class="rad"/>
+          <path id="sqmark" class="sqm"/>
+        </g>
+        <circle id="circ" class="circ"/>
+        <circle id="ctrPt" class="ctr" r="5"/>
+        <g id="pts"></g>
+        <text id="lblC" class="glb" font-size="14"></text>
+        <text id="lblD" class="glb perp"></text>
+        <text id="lblR" class="glb rad"></text>
+        <g class="legend">
+          <rect x="618" y="42" width="238" height="76" rx="8"/>
+          <line x1="630" y1="62" x2="660" y2="62" class="sw" style="stroke:var(--gold)"/>
+          <text x="668" y="66">直线 y = kx + b</text>
+          <circle cx="645" cy="86" r="11" class="sw circ" style="stroke:var(--blue)"/>
+          <text x="668" y="90">圆 (x−c)²+(y−d)² = r²</text>
+          <line x1="630" y1="110" x2="660" y2="110" class="sw" style="stroke:var(--perp);stroke-dasharray:6 4"/>
+          <text x="668" y="114">圆心距 d（垂线段）</text>
+        </g>
+      </svg>
+
+      <div class="readout">
+        <span class="chip">圆心距 d = <b id="rD">–</b></span>
+        <span class="chip">半径 r = <b id="rR">–</b></span>
+        <span class="badge sep" id="rRel"><span class="dot"></span>判定：–</span>
+        <span class="chip">交点 <b id="rN">–</b></span>
+        <span class="status" id="status" style="margin-left:auto">就绪 · 拖动滑块或按 Space 播放</span>
+      </div>
+    </section>
+
+    <!-- 右：控制面板 -->
+    <aside class="panel">
+      <div class="card">
+        <h2>参数控制 <small>数</small></h2>
+        <div class="tabs">
+          <button class="tab active" id="tab-line" type="button">① 直线</button>
+          <button class="tab" id="tab-circle" type="button">② 圆</button>
+        </div>
+
+        <div class="pane" id="pane-line">
+          <div class="choose">
+            <button class="cho on" id="cho-k" type="button">动 k</button>
+            <button class="cho" id="cho-b" type="button">动 b</button>
+          </div>
+          <div class="sl-row" id="row-k">
+            <span class="nm">k</span>
+            <input type="range" id="sl-k" min="-3" max="3" step="0.01" value="0.6">
+            <span class="val" id="val-k">0.60</span>
+          </div>
+          <div class="sl-row locked" id="row-b">
+            <span class="nm">b</span>
+            <input type="range" id="sl-b" min="-8" max="8" step="0.01" value="1.2" disabled>
+            <span class="val" id="val-b">1.20</span>
+          </div>
+          <div class="hint" id="hintLine">一次一动：当前解锁 <span class="hl">k</span>，b 已灰色锁定。</div>
+        </div>
+
+        <div class="pane hidden" id="pane-circle">
+          <div class="sl-row" id="row-c">
+            <span class="nm">c</span>
+            <input type="range" class="blue" id="sl-c" min="-8" max="8" step="0.01" value="-1">
+            <span class="val" id="val-c">-1.00</span>
+          </div>
+          <div class="sl-row" id="row-d">
+            <span class="nm">d</span>
+            <input type="range" class="blue" id="sl-d" min="-8" max="8" step="0.01" value="-2">
+            <span class="val" id="val-d">-2.00</span>
+          </div>
+          <div class="sl-row" id="row-r">
+            <span class="nm" style="color:var(--gold)">r</span>
+            <input type="range" class="blue" id="sl-r" min="0.5" max="8" step="0.01" value="3">
+            <span class="val" id="val-r">3.00</span>
+          </div>
+          <div class="hint">圆心 (c,d)、半径 r —— 拖到圆的另一侧，观察 d 与 r 的比较。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>演示控制 <small>动</small></h2>
+        <div class="ctrl">
+          <button class="btn primary" id="btn-play" type="button">▶ 播放扫描</button>
+          <button class="btn" id="btn-pause" type="button">⏸ 暂停</button>
+          <button class="btn" id="btn-step" type="button">⏭ 单步</button>
+          <button class="btn" id="btn-reverse" type="button">⇄ 反向</button>
+          <button class="btn danger" id="btn-reset" type="button">⟲ 重置</button>
+          <button class="btn" id="btn-verify" type="button">✓ 校验判定</button>
+        </div>
+        <div class="verify-msg" id="verifyMsg">点击「✓ 校验判定」验证 d 与 r 关系的判定是否正确。</div>
+      </div>
+
+      <div class="card">
+        <h2>预设示例</h2>
+        <div class="presets">
+          <button class="preset t" id="ps-tan" type="button">相切</button>
+          <button class="preset i" id="ps-int" type="button">相交</button>
+          <button class="preset s" id="ps-sep" type="button">相离</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>课堂提问 <small>三问</small></h2>
+        <div class="qa">
+          <div class="q">① 数 · k 与 b 的语义</div>
+          <div class="a">直线 y=kx+b 中，k 决定倾斜程度（坡度），b 决定与 y 轴的交点。分别拖动 k 与 b，观察直线怎样“转”、怎样“平移”。</div>
+        </div>
+        <div class="qa">
+          <div class="q">② 形 · 三种位置关系</div>
+          <div class="a">圆心到直线的垂线段长 d 与半径 r 比较：d&lt;r 相交（2 个交点）、d=r 相切（1 个交点）、d&gt;r 相离（0 个交点）。</div>
+        </div>
+        <div class="qa">
+          <div class="q">③ 动 · 由动到定</div>
+          <div class="a">播放参数扫描：先动 k（旋转直线），再动 b（平移直线），再切到「圆」页动 c、d、r，观察 d 与 r 的大小变化与判定标签的实时切换。</div>
+        </div>
+        <div class="keys" style="margin-top:8px">快捷键：<span class="kbd">Space</span> 播放/暂停 · <span class="kbd">→</span> 单步 · <span class="kbd">←</span> 反向 · <span class="kbd">R</span> 重置</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  /* ── 常量 ── */
+  var RANGES = { k: [-3, 3], b: [-8, 8], c: [-8, 8], d: [-8, 8], r: [0.5, 8] };
+  var DEFAULTS = { k: 0.6, b: 1.2, c: -1, d: -2, r: 3, tab: 'line', active: 'k' };
+  var PX0 = 140, PYRANGE = 720, UNIT = 36;   // 每单位 36px，绘图区 140..860 × 0..720
+  var TICK = 0.012;                            // 每步扫过相位区间长度的比例
+  var EPS = 1e-6;
+
+  var S = Object.assign({}, DEFAULTS);
+  var INIT = Object.assign({}, S);
+  var playing = false, timer = null, idx = 0, rev = false;
+  var phases = buildPhases();
+  var ready = false;
+
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+  function px(x) { return PX0 + (x + 10) * UNIT; }
+  function py(y) { return (10 - y) * UNIT; }
+  function round2(v) { return Math.round(v * 100) / 100; }
+  function f2(v) { return v.toFixed(2); }
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ── 几何计算 ── */
+  function lineCircle() {
+    var k = S.k, b = S.b, c = S.c, d = S.d, r = S.r;
+    var denom = Math.sqrt(k * k + 1);
+    var dist = Math.abs(k * c - d + b) / denom;
+    var rel = Math.abs(dist - r) < EPS ? 'tangent' : (dist < r ? 'intersect' : 'separate');
+    var a = k, be = -1, cn = b;
+    var t = (a * c + be * d + cn) / (a * a + be * be);
+    var fx = c - a * t, fy = d - be * t;
+    var n = rel === 'intersect' ? 2 : (rel === 'tangent' ? 1 : 0);
+    var pts = [];
+    if (n > 0) {
+      var ux = 1 / denom, uy = k / denom;
+      var s = Math.sqrt(Math.max(0, r * r - dist * dist));
+      var qx = ux * s, qy = uy * s;
+      if (n === 2) { pts.push({ x: fx + qx, y: fy + qy }, { x: fx - qx, y: fy - qy }); }
+      else { pts.push({ x: fx, y: fy }); }
+    }
+    return { dist: dist, rel: rel, n: n, foot: { x: fx, y: fy }, pts: pts };
+  }
+
+  function clipLine(k, b) {
+    if (Math.abs(k) < 1e-9) {
+      if (b < -10 || b > 10) return null;
+      return [{ x: -10, y: b }, { x: 10, y: b }];
+    }
+    var pts = [], i;
+    for (i = 0; i < 2; i++) {
+      var x = i === 0 ? -10 : 10, y = k * x + b;
+      if (y >= -10 && y <= 10) pts.push({ x: x, y: y });
+    }
+    for (i = 0; i < 2; i++) {
+      var yy = i === 0 ? -10 : 10, xx = (yy - b) / k;
+      if (xx >= -10 && xx <= 10) pts.push({ x: xx, y: yy });
+    }
+    if (pts.length < 2) return null;
+    pts.sort(function (p, q) { return p.x - q.x; });
+    return [pts[0], pts[pts.length - 1]];
+  }
+
+  /* ── 坐标平面 ── */
+  function buildGrid() {
+    var g = '', i;
+    for (i = -10; i <= 10; i++) {
+      g += '<line x1="' + px(i) + '" y1="0" x2="' + px(i) + '" y2="720" class="' + (i % 5 === 0 ? 'gm' : 'gmi') + '"/>';
+      g += '<line x1="140" y1="' + py(i) + '" x2="860" y2="' + py(i) + '" class="' + (i % 5 === 0 ? 'gm' : 'gmi') + '"/>';
+    }
+    $('grid').innerHTML = g;
+    var l = '';
+    for (i = -10; i <= 10; i += 2) {
+      if (i !== 0) {
+        l += '<text x="' + px(i) + '" y="386" text-anchor="middle" class="tick">' + i + '</text>';
+        l += '<text x="486" y="' + (py(i) + 5) + '" text-anchor="end" class="tick">' + i + '</text>';
+      }
+    }
+    l += '<text x="470" y="388" text-anchor="middle" class="origin">O</text>';
+    $('labels').innerHTML = l;
+    var ax =
+      '<line x1="' + px(-10) + '" y1="360" x2="' + px(10) + '" y2="360" class="axis"/>' +
+      '<line x1="500" y1="0" x2="500" y2="720" class="axis"/>' +
+      '<polygon class="axis-arrow" points="858,360 844,353 844,367"/>' +
+      '<polygon class="axis-arrow" points="500,6 493,20 507,20"/>';
+    $('axes').innerHTML = ax;
+  }
+
+  /* ── 渲染 ── */
+  function render() {
+    var geo = lineCircle();
+    var ep = clipLine(S.k, S.b);
+
+    /* 直线 */
+    var ln = $('ln');
+    if (ep) {
+      ln.setAttribute('x1', px(ep[0].x)); ln.setAttribute('y1', py(ep[0].y));
+      ln.setAttribute('x2', px(ep[1].x)); ln.setAttribute('y2', py(ep[1].y));
+      ln.setAttribute('visibility', 'visible');
+    } else { ln.setAttribute('visibility', 'hidden'); }
+
+    /* 圆 */
+    var c = $('circ');
+    c.setAttribute('cx', px(S.c)); c.setAttribute('cy', py(S.d)); c.setAttribute('r', S.r * UNIT);
+
+    /* 圆心标记 */
+    var cp = $('ctrPt');
+    cp.setAttribute('cx', px(S.c)); cp.setAttribute('cy', py(S.d));
+    cp.setAttribute('visibility', (S.c > -10 && S.c < 10 && S.d > -10 && S.d < 10) ? 'visible' : 'hidden');
+
+    /* 垂线段 d（圆心→垂足） */
+    var dx = geo.foot.x - S.c, dy = geo.foot.y - S.d;
+    var dlen = Math.hypot(dx, dy);
+    var distEl = $('dist');
+    distEl.setAttribute('x1', px(S.c)); distEl.setAttribute('y1', py(S.d));
+    distEl.setAttribute('x2', px(geo.foot.x)); distEl.setAttribute('y2', py(geo.foot.y));
+    var lblD = $('lblD');
+    if (dlen > 1e-9) {
+      var mx = (S.c + geo.foot.x) / 2, my = (S.d + geo.foot.y) / 2;
+      var ox = -dy / dlen * 18, oy = dx / dlen * 18;
+      lblD.setAttribute('x', px(mx) + ox); lblD.setAttribute('y', py(my) + oy);
+      lblD.textContent = 'd';
+      /* 垂直小方块 */
+      var un = { x: dx / dlen, y: dy / dlen };
+      var ux = 1 / Math.sqrt(S.k * S.k + 1), uy = S.k / Math.sqrt(S.k * S.k + 1);
+      var fx = px(geo.foot.x), fy = py(geo.foot.y), sz = 8;
+      $('sqmark').setAttribute('d',
+        'M' + fx + ',' + fy + ' l' + (un.x * sz) + ',' + (-un.y * sz) +
+        ' l' + (ux * sz) + ',' + (-uy * sz) + ' l' + (-un.x * sz) + ',' + (un.y * sz));
+      distEl.setAttribute('visibility', 'visible');
+      $('sqmark').setAttribute('visibility', 'visible');
+    } else {
+      distEl.setAttribute('visibility', 'hidden');
+      $('sqmark').setAttribute('visibility', 'hidden');
+      lblD.textContent = '';
+    }
+
+    /* 半径标记 r（圆心→朝直线方向的最近圆周点） */
+    var radEl = $('rad'), lblR = $('lblR');
+    if (dlen > 1e-9) {
+      var rx = S.c + dx / dlen * S.r, ry = S.d + dy / dlen * S.r;
+      radEl.setAttribute('x1', px(S.c)); radEl.setAttribute('y1', py(S.d));
+      radEl.setAttribute('x2', px(rx)); radEl.setAttribute('y2', py(ry));
+      lblR.setAttribute('x', px((S.c + rx) / 2) + 10); lblR.setAttribute('y', py((S.d + ry) / 2) - 8);
+      lblR.textContent = 'r';
+      radEl.setAttribute('visibility', 'visible');
+    } else { radEl.setAttribute('visibility', 'hidden'); lblR.textContent = ''; }
+
+    /* 交点 */
+    var pg = $('pts');
+    pg.innerHTML = '';
+    var names = geo.n === 1 ? ['P'] : ['P₁', 'P₂'];
+    geo.pts.forEach(function (p, i) {
+      var x = px(p.x), y = py(p.y);
+      pg.innerHTML += '<circle class="ipt" cx="' + x + '" cy="' + y + '" r="5.5"/>' +
+        '<text x="' + (x + 10) + '" y="' + (y - 8) + '" font-size="13" fill="#cfdff2" font-weight="600">' + names[i] + '</text>';
+    });
+
+    /* 圆心文字 */
+    $('lblC').setAttribute('x', px(S.c) + 14);
+    $('lblC').setAttribute('y', py(S.d) + 22);
+    $('lblC').textContent = 'O(' + (Math.round(S.c * 100) / 100) + ',' + (Math.round(S.d * 100) / 100) + ')';
+
+    /* readout */
+    $('rD').textContent = geo.dist.toFixed(2);
+    $('rR').textContent = S.r.toFixed(2);
+    $('rN').textContent = geo.n === 0 ? '0' : (geo.n === 1 ? '1' : '2');
+    var relTxt = { intersect: ['相交 · d<r', 'int'], tangent: ['相切 · d=r', 'tan'], separate: ['相离 · d>r', 'sep'] }[geo.rel];
+    var rb = $('rRel');
+    rb.className = 'badge ' + relTxt[1];
+    rb.innerHTML = '<span class="dot"></span>' + relTxt[0];
+
+    /* 滑块同步 */
+    $('sl-k').value = S.k; $('val-k').textContent = f2(S.k);
+    $('sl-b').value = S.b; $('val-b').textContent = f2(S.b);
+    $('sl-c').value = S.c; $('val-c').textContent = f2(S.c);
+    $('sl-d').value = S.d; $('val-d').textContent = f2(S.d);
+    $('sl-r').value = S.r; $('val-r').textContent = f2(S.r);
+
+    /* 锁定逻辑 */
+    var lineTab = S.tab === 'line';
+    var onK = lineTab && S.active === 'k';
+    var onB = lineTab && S.active === 'b';
+    $('row-k').className = 'sl-row' + (onK ? '' : ' locked');
+    $('row-b').className = 'sl-row' + (onB ? '' : ' locked');
+    $('sl-k').disabled = !onK;
+    $('sl-b').disabled = !onB;
+    $('cho-k').className = 'cho' + (onK ? ' on' : '');
+    $('cho-b').className = 'cho' + (onB ? ' on' : '');
+    $('hintLine').innerHTML = '一次一动：当前解锁 <span class="hl">' + S.active + '</span>，' +
+      (S.active === 'k' ? 'b' : 'k') + ' 已灰色锁定。';
+
+    renderEquations();
+    updateStatus();
+    syncURL();
+  }
+
+  /* ── 方程同步显示 ── */
+  function hl(p, label) {
+    var hot = S.active === p && S.tab === 'line';
+    if (p === 'c' || p === 'd' || p === 'r') hot = S.active === p;
+    return hot ? '<b class="v pulse">' + label + '</b>' : '<b class="v">' + label + '</b>';
+  }
+  function renderEquations() {
+    var k = S.k, b = S.b, c = S.c, d = S.d, r = S.r;
+    var ks = (k >= 0 ? '' : '−') + Math.abs(k).toFixed(2);
+    var bs = (b >= 0 ? '+' : '−') + Math.abs(b).toFixed(2);
+    $('eqLine').innerHTML = 'y = ' + hl('k', ks) + 'x ' + bs;
+    function term(a, axis) {
+      if (Math.abs(a) < 1e-6) return axis + '²';
+      return '(' + axis + (a > 0 ? ' − ' : ' + ') + Math.abs(a).toFixed(2) + ')²';
+    }
+    $('eqCircle').innerHTML = hl('c', term(c, 'x')) + ' + ' + hl('d', term(d, 'y')) + ' = ' + hl('r', r.toFixed(2)) + '²';
+  }
+
+  function updateStatus() {
+    var el = $('status');
+    if (playing) {
+      var ph = phases[idx];
+      var dir = ph.z > ph.a ? '→' : '←';
+      el.innerHTML = '<span class="hot">▶ 扫描 ' + ph.p + '</span>：' + ph.a.toFixed(1) + ' ' + dir + ' ' + ph.z.toFixed(1);
+    } else {
+      el.textContent = '已暂停 · 拖动滑块或按 Space 播放';
+    }
+  }
+
+  function syncURL() {
+    try {
+      var p = new URLSearchParams();
+      p.set('k', round2(S.k)); p.set('b', round2(S.b)); p.set('c', round2(S.c));
+      p.set('d', round2(S.d)); p.set('r', round2(S.r)); p.set('tab', S.tab);
+      history.replaceState(null, '', '?' + p.toString());
+    } catch (e) { /* noop */ }
+  }
+
+  /* ── 动画（参数扫描：依次扫 k，再扫 b） ── */
+  function buildPhases() {
+    var base = [['k', -3, 3], ['b', -8, 8], ['k', 3, -3], ['b', 8, -8]];
+    var list = base.map(function (ph) {
+      return rev ? { p: ph[0], a: ph[2], z: ph[1] } : { p: ph[0], a: ph[1], z: ph[2] };
+    });
+    return rev ? list.reverse() : list;
+  }
+  function advance() {
+    var ph = phases[idx];
+    var step = (ph.z - ph.a) * TICK;
+    var v = S[ph.p] + step;
+    if ((step > 0 && v >= ph.z) || (step < 0 && v <= ph.z)) {
+      S[ph.p] = ph.z;
+      idx = (idx + 1) % phases.length;
+      if (phases[idx].p === 'k' || phases[idx].p === 'b') { S.tab = 'line'; }
+      S.active = phases[idx].p;
+    } else { S[ph.p] = v; }
+    S.active = ph.p;
+    S.tab = 'line';
+    clampAll();
+  }
+  function clampAll() {
+    ['k', 'b', 'c', 'd', 'r'].forEach(function (key) {
+      S[key] = clamp(S[key], RANGES[key][0], RANGES[key][1]);
+    });
+  }
+  function play() {
+    if (playing) return;
+    S.tab = 'line';
+    S.active = phases[idx].p;
+    playing = true;
+    timer = setInterval(function () { advance(); render(); }, 32);
+    $('btn-play').disabled = true;
+    updateStatus();
+  }
+  function pause() {
+    playing = false;
+    if (timer) { clearInterval(timer); timer = null; }
+    $('btn-play').disabled = false;
+    updateStatus();
+  }
+  function stepOnce() {
+    if (playing) return;
+    advance(); render();
+  }
+  function reset() {
+    pause();
+    S = Object.assign({}, INIT);
+    rev = false; idx = 0;
+    phases = buildPhases();
+    clampAll(); render();
+  }
+  function reverse() {
+    rev = !rev;
+    idx = 0;
+    phases = buildPhases();
+    if (playing) S.active = phases[idx].p;
+    updateStatus();
+  }
+
+  /* ── verify ── */
+  function verify() {
+    var g = lineCircle();
+    var expected = Math.abs(g.dist - S.r) < EPS ? 'tangent' : (g.dist < S.r ? 'intersect' : 'separate');
+    var ok = true, checks = [];
+    checks.push({ name: '距离非负', pass: g.dist >= 0, msg: 'd = ' + g.dist.toFixed(4) });
+    checks.push({ name: 'd/r 判定一致', pass: expected === g.rel, msg: '期望 ' + expected + '，计算 ' + g.rel });
+    var expN = expected === 'intersect' ? 2 : (expected === 'tangent' ? 1 : 0);
+    checks.push({ name: '交点个数一致', pass: expN === g.n, msg: '期望 ' + expN + ' 个，实际 ' + g.n + ' 个' });
+    if (expected === 'tangent') {
+      checks.push({ name: '相切精度', pass: Math.abs(g.dist - S.r) < EPS, msg: '|d−r| = ' + Math.abs(g.dist - S.r).toExponential(2) });
+    }
+    ok = checks.every(function (x) { return x.pass; });
+    var cn = { intersect: '相交', tangent: '相切', separate: '相离' }[g.rel];
+    var msgEl = $('verifyMsg');
+    msgEl.className = 'verify-msg ' + (ok ? 'ok' : 'bad');
+    msgEl.innerHTML = ok
+      ? '✓ 判定正确：d = ' + g.dist.toFixed(2) + (g.dist < S.r ? ' &lt; ' : (g.dist > S.r ? ' &gt; ' : ' = ')) + 'r = ' + S.r.toFixed(2) + ' → ' + cn + '（' + g.n + ' 个交点）'
+      : '✗ 判定不一致：' + checks.filter(function (x) { return !x.pass; }).map(function (x) { return x.msg; }).join('；');
+    return {
+      ok: ok,
+      d: g.dist, r: S.r,
+      relation: g.rel,
+      intersectionCount: g.n,
+      checks: checks,
+      params: { k: S.k, b: S.b, c: S.c, d: S.d, r: S.r }
+    };
+  }
+
+  /* ── 外部 API ── */
+  var SciDemo = {
+    setParams: function (o) {
+      if (!o || typeof o !== 'object') return SciDemo.state;
+      if (typeof o.tab === 'string' && (o.tab === 'line' || o.tab === 'circle')) { S.tab = o.tab; setTab(o.tab); }
+      if (typeof o.active === 'string' && (o.active === 'k' || o.active === 'b')) S.active = o.active;
+      ['k', 'b', 'c', 'd', 'r'].forEach(function (key) {
+        if (typeof o[key] === 'number' && isFinite(o[key])) S[key] = clamp(o[key], RANGES[key][0], RANGES[key][1]);
+      });
+      clampAll(); render();
+      return SciDemo.state;
+    },
+    play: function () { play(); return SciDemo.state; },
+    pause: function () { pause(); return SciDemo.state; },
+    step: function () { stepOnce(); return SciDemo.state; },
+    reset: function () { reset(); return SciDemo.state; },
+    reverse: function () { reverse(); return SciDemo.state; },
+    verify: verify,
+    get state() {
+      var g = lineCircle();
+      return {
+        k: S.k, b: S.b, c: S.c, d: S.d, r: S.r,
+        tab: S.tab, active: S.active, playing: playing,
+        distance: g.dist, relation: g.rel,
+        intersectionCount: g.n, foot: g.foot, points: g.pts
+      };
+    },
+    get isReady() { return ready; }
+  };
+  window.SciDemo = SciDemo;
+
+  /* ── 交互绑定 ── */
+  function setTab(tab) {
+    S.tab = tab;
+    $('tab-line').className = 'tab' + (tab === 'line' ? ' active' : '');
+    $('tab-circle').className = 'tab' + (tab === 'circle' ? ' active' : '');
+    $('pane-line').className = 'pane' + (tab === 'line' ? '' : ' hidden');
+    $('pane-circle').className = 'pane' + (tab === 'circle' ? '' : ' hidden');
+  }
+  $('tab-line').addEventListener('click', function () { pause(); setTab('line'); render(); });
+  $('tab-circle').addEventListener('click', function () { pause(); setTab('circle'); render(); });
+
+  function bindSlider(id, key, color) {
+    var el = $(id);
+    el.addEventListener('input', function () {
+      pause();
+      S[key] = parseFloat(el.value);
+      S.active = key;
+      if (key === 'k' || key === 'b') S.tab = 'line';
+      clampAll(); render();
+    });
+  }
+  bindSlider('sl-k', 'k'); bindSlider('sl-b', 'b');
+  bindSlider('sl-c', 'c'); bindSlider('sl-d', 'd'); bindSlider('sl-r', 'r');
+
+  $('cho-k').addEventListener('click', function () { S.active = 'k'; S.tab = 'line'; render(); });
+  $('cho-b').addEventListener('click', function () { S.active = 'b'; S.tab = 'line'; render(); });
+
+  $('btn-play').addEventListener('click', play);
+  $('btn-pause').addEventListener('click', pause);
+  $('btn-step').addEventListener('click', stepOnce);
+  $('btn-reverse').addEventListener('click', reverse);
+  $('btn-reset').addEventListener('click', reset);
+  $('btn-verify').addEventListener('click', function () { verify(); });
+
+  function setPreset(p) {
+    pause();
+    if (p === 'tan')  { S.k = 0.75; S.b = 3.75; S.c = 0; S.d = 0; S.r = 3; }   /* d = |b|/√(k²+1) = 3 = r */
+    if (p === 'int')  { S.k = 0.6; S.b = 1.2; S.c = -1; S.d = -2; S.r = 3; }   /* d ≈ 2.23 < 3 */
+    if (p === 'sep')  { S.k = 1; S.b = 7; S.c = 0; S.d = 0; S.r = 2; }         /* d ≈ 4.95 > 2 */
+    S.tab = 'line'; S.active = 'k';
+    clampAll(); render();
+  }
+  $('ps-tan').addEventListener('click', function () { setPreset('tan'); });
+  $('ps-int').addEventListener('click', function () { setPreset('int'); });
+  $('ps-sep').addEventListener('click', function () { setPreset('sep'); });
+
+  /* 键盘 */
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'button' || tag === 'select') return;
+    if (e.code === 'Space') { e.preventDefault(); playing ? pause() : play(); }
+    else if (e.code === 'ArrowRight') { e.preventDefault(); stepOnce(); }
+    else if (e.code === 'ArrowLeft') { e.preventDefault(); reverse(); }
+    else if (e.key === 'r' || e.key === 'R') { reset(); }
+  });
+
+  /* ── URL 分享参数 ── */
+  (function readURL() {
+    try {
+      var q = new URLSearchParams(location.search);
+      ['k', 'b', 'c', 'd', 'r'].forEach(function (key) {
+        var v = parseFloat(q.get(key));
+        if (!isNaN(v)) S[key] = clamp(v, RANGES[key][0], RANGES[key][1]);
+      });
+      var tab = q.get('tab');
+      if (tab === 'line' || tab === 'circle') S.tab = tab;
+    } catch (e) { /* noop */ }
+    INIT = Object.assign({}, S);
+  })();
+
+  /* ── 初始化 ── */
+  buildGrid();
+  setTab(S.tab);
+  clampAll();
+  render();
+  ready = true;
+  window.dispatchEvent(new CustomEvent('scidemo-ready', { detail: SciDemo }));
+})();
+</script>
+</body>
+</html>

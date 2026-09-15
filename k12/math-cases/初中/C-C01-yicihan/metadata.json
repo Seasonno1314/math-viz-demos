@@ -1,0 +1,25 @@
+{
+  "id": "C-C01",
+  "subject": "math",
+  "title": "一次函数三表征联动",
+  "audience": "初中",
+  "concept": "一次函数 y=kx+b · 式/表/图联动",
+  "desc": "拖 k、b：解析式、表格、图像三表征同步。斜率台阶直观展示"x 每增 1，y 增 k"。",
+  "engine": "svg",
+  "html": "math-cases/初中/C-C01-yicihan/index.html",
+  "mp4": "math-cases/初中/C-C01-yicihan/out/C-C01.mp4",
+  "gif": "math-cases/初中/C-C01-yicihan/out/C-C01-preview.gif",
+  "webp": "math-cases/初中/C-C01-yicihan/out/C-C01-preview.webp",
+  "cover": "math-cases/初中/C-C01-yicihan/out/C-C01-preview-cover.jpg",
+  "record": {
+    "params": { "k": 2, "b": 1 },
+    "seconds": 8,
+    "fps": 30
+  },
+  "sources": [
+    { "name": "Desmos", "url": "https://www.desmos.com/calculator" },
+    { "name": "GeoGebra", "url": "https://www.geogebra.org/materials" }
+  ],
+  "status": "ready",
+  "note": "替代 Manim 初02；标注带背景条，不再被直线遮挡"
+}

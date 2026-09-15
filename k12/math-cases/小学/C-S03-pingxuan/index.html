@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>C-S03 平移与旋转</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#f8f9fa;font-family:system-ui,-apple-system,sans-serif;color:#1e293b;display:flex;flex-direction:column;align-items:center;padding:16px 16px 40px}
+    h1{font-size:1.5rem;font-weight:700;margin-bottom:2px}
+    .sub{font-size:.85rem;color:#64748b;margin-bottom:12px}
+    .layout{display:grid;grid-template-columns:1fr 300px;gap:14px;width:100%;max-width:800px}
+    .stage{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:10px;display:flex;align-items:center;justify-content:center}
+    .stage svg{width:100%;height:auto;display:block}
+    .panel{display:flex;flex-direction:column;gap:10px}
+    .box{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);padding:12px 14px}
+    .box h3{font-size:.9rem;margin-bottom:8px;color:#374151}
+    .mode-btns{display:flex;gap:6px;margin-bottom:10px}
+    .mode-btns button{flex:1;background:#e2e8f0;color:#475569;border:none;border-radius:6px;padding:7px 0;font-size:.85rem;cursor:pointer;font-weight:600}
+    .mode-btns button.active{background:#3b82f6;color:#fff}
+    .ctl{margin-bottom:10px}
+    .ctl label{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:3px;color:#64748b}
+    .ctl label b{color:#2563eb;font-size:.9rem}
+    .ctl input[type=range]{width:100%;accent-color:#3b82f6}
+    .info{background:#f1f5f9;border-radius:8px;padding:8px 12px;font-size:.8rem;color:#475569;min-height:2em;line-height:1.6}
+    @media(max-width:680px){.layout{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <h1>平移与旋转</h1>
+  <p class="sub">拖动滑块，观察图形的平移和旋转变换</p>
+  <div class="layout">
+    <div class="stage">
+      <svg id="grid" viewBox="0 0 440 440"></svg>
+    </div>
+    <div class="panel">
+      <div class="box">
+        <h3>变换模式</h3>
+        <div class="mode-btns">
+          <button id="btnTranslate" class="active">平移</button>
+          <button id="btnRotate">旋转</button>
+        </div>
+        <div id="translateControls">
+          <div class="ctl"><label>水平 tx <b id="txV">2</b></label><input type="range" id="tx" min="-5" max="5" value="2"></div>
+          <div class="ctl"><label>垂直 ty <b id="tyV">1</b></label><input type="range" id="ty" min="-5" max="5" value="1"></div>
+        </div>
+        <div id="rotateControls" style="display:none">
+          <div class="ctl"><label>旋转角度 <b id="rotV">0°</b></label><input type="range" id="rot" min="0" max="360" value="0"></div>
+        </div>
+      </div>
+      <div class="box">
+        <h3>实时数据</h3>
+        <div class="info" id="info">平移: 右移2格，上移1格</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  window.SciDemo = (function(){
+    const CELL = 40;
+    const GRID = 10;
+    const PAD = 20;
+    const svg = document.getElementById('grid');
+    const ns = 'http://www.w3.org/2000/svg';
+    const info = document.getElementById('info');
+    const btnT = document.getElementById('btnTranslate');
+    const btnR = document.getElementById('btnRotate');
+    const txSlider = document.getElementById('tx');
+    const tySlider = document.getElementById('ty');
+    const rotSlider = document.getElementById('rot');
+    const txV = document.getElementById('txV');
+    const tyV = document.getElementById('tyV');
+    const rotV = document.getElementById('rotV');
+    const tcBox = document.getElementById('translateControls');
+    const rcBox = document.getElementById('rotateControls');
+
+    const COLORS = ['#ef4444','#22c55e','#3b82f6'];
+    const LABELS = ['A','B','C'];
+    const originals = [{x:2,y:2},{x:5,y:1},{x:3,y:5}];
+    let params = {mode:'translate',tx:2,ty:1,angle:0};
+    let animId = null;
+
+    function g2s(gx,gy){ return {x: PAD + gx*CELL + CELL/2, y: PAD + (GRID-1-gy)*CELL + CELL/2}; }
+
+    function makeEl(tag,attrs,parent){
+      const el = document.createElementNS(ns,tag);
+      for(const [k,v] of Object.entries(attrs)) el.setAttribute(k,v);
+      if(parent) parent.appendChild(el);
+      return el;
+    }
+
+    function el(id){ return document.getElementById(id); }
+    function show(id,vis){ el(id).style.display = vis ? '' : 'none'; }
+
+    function setSliders(){
+      txSlider.value = params.tx;
+      tySlider.value = params.ty;
+      rotSlider.value = params.angle;
+      txV.textContent = params.tx;
+      tyV.textContent = params.ty;
+      rotV.textContent = params.angle + '°';
+    }
+
+    function translateVerts(verts,tx,ty){
+      return verts.map(v=>({x:v.x+tx,y:v.y+ty}));
+    }
+
+    function rotateVerts(verts,angle){
+      const rad = angle * Math.PI / 180;
+      const cx = originals[0].x, cy = originals[0].y;
+      return verts.map(v=>{
+        const dx = v.x - cx, dy = v.y - cy;
+        return {x: cx + dx*Math.cos(rad) - dy*Math.sin(rad), y: cy + dx*Math.sin(rad) + dy*Math.cos(rad)};
+      });
+    }
+
+    function getTransformed(verts,mode,tx,ty,angle){
+      if(mode==='translate') return translateVerts(verts,tx,ty);
+      return rotateVerts(verts,angle);
+    }
+
+    function polyPoints(verts){
+      return verts.map(v=>{ const s=g2s(v.x,v.y); return s.x+','+s.y; }).join(' ');
+    }
+
+    function updateInfo(){
+      if(params.mode==='translate'){
+        const tx=params.tx, ty=params.ty;
+        const dir = (tx>=0?'右移':'左移')+Math.abs(tx)+'格'+(ty>=0?'，上移':'，下移')+Math.abs(ty)+'格';
+        info.textContent = '平移: '+dir;
+      } else {
+        info.textContent = '旋转: 绕A点旋转 '+params.angle+'°';
+      }
+    }
+
+    function render(){
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+      // grid lines
+      for(let i=0;i<=GRID;i++){
+        const pos = PAD + i*CELL;
+        makeEl('line',{x1:pos,y1:PAD,x2:pos,y2:PAD+GRID*CELL,stroke:'#e2e8f0','stroke-width':1},svg);
+        makeEl('line',{x1:PAD,y1:pos,x2:PAD+GRID*CELL,y2:pos,stroke:'#e2e8f0','stroke-width':1},svg);
+      }
+      // axis
+      makeEl('line',{x1:PAD,y1:PAD+GRID*CELL,x2:PAD+GRID*CELL,y2:PAD+GRID*CELL,stroke:'#94a3b8','stroke-width':2},svg);
+      makeEl('line',{x1:PAD,y1:PAD,x2:PAD,y2:PAD+GRID*CELL,stroke:'#94a3b8','stroke-width':2},svg);
+      // axis labels
+      for(let i=0;i<GRID;i++){
+        makeEl('text',{x:PAD+i*CELL+CELL/2,y:PAD+GRID*CELL+14,fill:'#94a3b8','font-size':'10','text-anchor':'middle'},svg).textContent=i;
+        makeEl('text',{x:PAD-8,y:PAD+(GRID-1-i)*CELL+CELL/2+4,fill:'#94a3b8','font-size':'10','text-anchor':'middle'},svg).textContent=i;
+      }
+
+      const transformed = getTransformed(originals,params.mode,params.tx,params.ty,params.angle);
+
+      // ghost triangle (original)
+      makeEl('polygon',{points:polyPoints(originals),fill:'none',stroke:'#fb923c','stroke-width':2,'stroke-dasharray':'6,4',opacity:0.7},svg);
+
+      // arc trajectories in rotate mode
+      if(params.mode==='rotate' && params.angle !== 0){
+        const rad = params.angle * Math.PI/180;
+        const cx = originals[0].x, cy = originals[0].y;
+        for(let i=0;i<3;i++){
+          const v = originals[i];
+          const dx=v.x-cx, dy=v.y-cy;
+          const r = Math.sqrt(dx*dx+dy*dy);
+          const startA = Math.atan2(dy,dx);
+          const endA = startA + rad;
+          const sr = g2s(cx,cy);
+          const pxr = r*CELL;
+          const x1 = sr.x + pxr*Math.cos(startA);
+          const y1 = sr.y - pxr*Math.sin(startA);
+          const x2 = sr.x + pxr*Math.cos(endA);
+          const y2 = sr.y - pxr*Math.sin(endA);
+          const large = params.angle > 180 ? 1 : 0;
+          makeEl('path',{d:'M'+x1+','+y1+' A'+pxr+','+pxr+' 0 '+large+',1 '+x2+','+y2,fill:'none',stroke:COLORS[i],'stroke-width':1.5,'stroke-dasharray':'4,3',opacity:0.5},svg);
+        }
+      }
+
+      // solid transformed triangle
+      makeEl('polygon',{points:polyPoints(transformed),fill:'rgba(59,130,246,0.1)',stroke:'#3b82f6','stroke-width':2.5},svg);
+
+      // dashed lines and colored dots at corresponding vertices
+      for(let i=0;i<3;i++){
+        const os = g2s(originals[i].x, originals[i].y);
+        const ts = g2s(transformed[i].x, transformed[i].y);
+        if(params.tx!==0||params.ty!==0||params.angle!==0){
+          makeEl('line',{x1:os.x,y1:os.y,x2:ts.x,y2:ts.y,stroke:COLORS[i],'stroke-width':1.5,'stroke-dasharray':'3,3',opacity:0.6},svg);
+        }
+        // original dot
+        makeEl('circle',{cx:os.x,cy:os.y,r:5,fill:COLORS[i],opacity:0.5},svg);
+        // transformed dot
+        makeEl('circle',{cx:ts.x,cy:ts.y,r:6,fill:COLORS[i]},svg);
+        // label
+        makeEl('text',{x:os.x+8,y:os.y-8,fill:COLORS[i],'font-size':'11','font-weight':'700',opacity:0.5},svg).textContent=LABELS[i];
+        makeEl('text',{x:ts.x+8,y:ts.y-8,fill:COLORS[i],'font-size':'11','font-weight':'700'},svg).textContent=LABELS[i]+"'";
+      }
+
+      // translation vector arrow
+      if(params.mode==='translate' && (params.tx!==0||params.ty!==0)){
+        const ac = g2s(originals[0].x, originals[0].y);
+        const tc = g2s(originals[0].x+params.tx, originals[0].y+params.ty);
+        const ang = Math.atan2(tc.y-ac.y, tc.x-ac.x);
+        const arrowLen = 8;
+        makeEl('line',{x1:ac.x,y1:ac.y,x2:tc.x,y2:tc.y,stroke:'#f59e0b','stroke-width':2.5,'stroke-linecap':'round',opacity:0.8},svg);
+        // arrowhead
+        const ax1 = tc.x - arrowLen*Math.cos(ang-0.4);
+        const ay1 = tc.y - arrowLen*Math.sin(ang-0.4);
+        const ax2 = tc.x - arrowLen*Math.cos(ang+0.4);
+        const ay2 = tc.y - arrowLen*Math.sin(ang+0.4);
+        makeEl('polygon',{points:tc.x+','+tc.y+' '+ax1+','+ay1+' '+ax2+','+ay2,fill:'#f59e0b',opacity:0.8},svg);
+      }
+
+      // rotation center marker
+      if(params.mode==='rotate'){
+        const cs = g2s(originals[0].x, originals[0].y);
+        makeEl('circle',{cx:cs.x,cy:cs.y,r:4,fill:'#f59e0b',stroke:'#fff','stroke-width':2},svg);
+      }
+
+      updateInfo();
+    }
+
+    function bindSlider(slider, vid, key){
+      slider.addEventListener('input',()=>{
+        params[key] = parseInt(slider.value);
+        vid.textContent = key==='angle' ? params[key]+'°' : params[key];
+        render();
+      });
+    }
+
+    bindSlider(txSlider, txV, 'tx');
+    bindSlider(tySlider, tyV, 'ty');
+    bindSlider(rotSlider, rotV, 'angle');
+
+    btnT.addEventListener('click',()=>{
+      params.mode='translate';
+      btnT.classList.add('active');
+      btnR.classList.remove('active');
+      show('translateControls',true);
+      show('rotateControls',false);
+      render();
+    });
+    btnR.addEventListener('click',()=>{
+      params.mode='rotate';
+      btnR.classList.add('active');
+      btnT.classList.remove('active');
+      show('translateControls',false);
+      show('rotateControls',true);
+      render();
+    });
+
+    function animate(from,to,dur,fn,done){
+      const start = performance.now();
+      function tick(now){
+        const t = Math.min((now-start)/dur,1);
+        const ease = t<0.5 ? 2*t*t : -1+(4-2*t)*t;
+        fn(from+(to-from)*ease);
+        if(t<1) animId = requestAnimationFrame(tick);
+        else if(done) done();
+      }
+      animId = requestAnimationFrame(tick);
+    }
+
+    setSliders();
+    render();
+
+    return {
+      setParams(p){
+        if(p.mode){
+          params.mode = p.mode;
+          if(p.mode==='translate'){ btnT.click(); }
+          else { btnR.click(); }
+        }
+        if(p.tx!==undefined) params.tx=p.tx;
+        if(p.ty!==undefined) params.ty=p.ty;
+        if(p.angle!==undefined) params.angle=p.angle;
+        setSliders();
+        render();
+      },
+      play(){
+        if(animId) cancelAnimationFrame(animId);
+        const target = params.mode==='translate'
+          ? {tx:params.tx, ty:params.ty}
+          : {angle:params.angle};
+        if(params.mode==='translate'){
+          const tgtTx=params.tx, tgtTy=params.ty;
+          params.tx=0; params.ty=0; setSliders(); render();
+          const steps=60;
+          let step=0;
+          function tick(){
+            step++;
+            const t=Math.min(step/steps,1);
+            const e=t<0.5?2*t*t:-1+(4-2*t)*t;
+            params.tx=Math.round(tgtTx*e);
+            params.ty=Math.round(tgtTy*e);
+            setSliders(); render();
+            if(t<1) animId=requestAnimationFrame(tick);
+          }
+          animId=requestAnimationFrame(tick);
+        } else {
+          const tgtAngle=params.angle;
+          params.angle=0; setSliders(); render();
+          const steps=60;
+          let step=0;
+          function tick(){
+            step++;
+            const t=Math.min(step/steps,1);
+            const e=t<0.5?2*t*t:-1+(4-2*t)*t;
+            params.angle=Math.round(tgtAngle*e);
+            setSliders(); render();
+            if(t<1) animId=requestAnimationFrame(tick);
+          }
+          animId=requestAnimationFrame(tick);
+        }
+      },
+      reset(){
+        if(animId) cancelAnimationFrame(animId);
+        params={mode:'translate',tx:0,ty:0,angle:0};
+        btnT.click();
+        setSliders(); render();
+      },
+      state(){
+        return JSON.parse(JSON.stringify(params));
+      },
+      verify(){
+        const t = params.mode==='translate'
+          ? getTransformed(originals,'translate',params.tx,params.ty,0)
+          : getTransformed(originals,'rotate',0,0,params.angle);
+        const ok = t.every((v,i)=>{
+          const exp = params.mode==='translate'
+            ? {x:originals[i].x+params.tx, y:originals[i].y+params.ty}
+            : (()=>{
+                const rad=params.angle*Math.PI/180;
+                const cx=originals[0].x,cy=originals[0].y;
+                const dx=originals[i].x-cx, dy=originals[i].y-cy;
+                return {x:cx+dx*Math.cos(rad)-dy*Math.sin(rad), y:cy+dx*Math.sin(rad)+dy*Math.cos(rad)};
+              })();
+          return Math.abs(v.x-exp.x)<1e-9 && Math.abs(v.y-exp.y)<1e-9;
+        });
+        return {
+          mode: params.mode,
+          type: params.mode,
+          tx: params.tx,
+          ty: params.ty,
+          angle: params.angle,
+          verticesOk: ok
+        };
+      },
+      isReady(){ return true; }
+    };
+  })();
+  </script>
+</body>
+</html>

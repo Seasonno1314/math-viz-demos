@@ -4,18 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>数形结合 · 让抽象的数，变成看得见的图</title>
+  <title>大数学 · 交互可视化案例库</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-0: #0B1120;
       --bg-1: #101A31;
       --bg-card: #0F1628;
-      --bg-card-hi: #131C33;
       --line: rgba(255, 255, 255, .09);
       --line-soft: rgba(255, 255, 255, .055);
       --txt: #EAEDF4;
@@ -24,6 +21,9 @@
       --gold: #E8B964;
       --gold-soft: rgba(232, 185, 100, .16);
       --gold-line: rgba(232, 185, 100, .55);
+      --blue: #5DA9E9;
+      --blue-soft: rgba(93, 169, 233, .14);
+      --blue-line: rgba(93, 169, 233, .5);
       --font-d: "Space Grotesk", "Bahnschrift", "PingFang SC", "Microsoft YaHei", sans-serif;
       --font-b: "PingFang SC", "Microsoft YaHei", "Space Grotesk", sans-serif;
       --font-m: "JetBrains Mono", Consolas, "Courier New", monospace;
@@ -50,7 +50,6 @@
       overflow-x: hidden;
     }
 
-    /* 永久网格底纹 —— 结构指纹，不抢注意力 */
     body::before {
       content: "";
       position: fixed;
@@ -174,10 +173,87 @@
       z-index: 2;
     }
 
+    .hero-corners {
+      position: absolute;
+      inset: clamp(86px, 11vh, 128px) clamp(16px, 4vw, 44px);
+      z-index: 3;
+    }
+
+    .frame-corners {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .frame-corners i {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border: 0 solid var(--blue);
+      opacity: .72;
+      filter: drop-shadow(0 0 6px rgba(93, 169, 233, .6));
+      animation: cornerFloat 4.8s ease-in-out infinite;
+    }
+
+    .hero-corners i {
+      width: 42px;
+      height: 42px;
+    }
+
+    .frame-corners i:nth-child(1) {
+      top: -2px;
+      left: -2px;
+      border-top-width: 2px;
+      border-left-width: 2px;
+      border-top-left-radius: 2px;
+      border-color: var(--blue) var(--gold) transparent transparent;
+      animation-delay: 0s;
+    }
+
+    .frame-corners i:nth-child(2) {
+      top: -2px;
+      right: -2px;
+      border-top-width: 2px;
+      border-right-width: 2px;
+      border-top-right-radius: 2px;
+      border-color: var(--gold) var(--blue) transparent transparent;
+      animation-delay: .7s;
+    }
+
+    .frame-corners i:nth-child(3) {
+      bottom: -2px;
+      left: -2px;
+      border-bottom-width: 2px;
+      border-left-width: 2px;
+      border-bottom-left-radius: 2px;
+      border-color: transparent transparent var(--gold) var(--blue);
+      animation-delay: 1.4s;
+    }
+
+    .frame-corners i:nth-child(4) {
+      bottom: -2px;
+      right: -2px;
+      border-bottom-width: 2px;
+      border-right-width: 2px;
+      border-bottom-right-radius: 2px;
+      border-color: transparent transparent var(--blue) var(--gold);
+      animation-delay: 2.1s;
+    }
+
+    @keyframes cornerFloat {
+      0%, 100% {
+        transform: translate(0, 0);
+        opacity: .5;
+      }
+      50% {
+        transform: translate(0, -4px);
+        opacity: 1;
+      }
+    }
+
     .hero-inner {
       text-align: center;
-      max-width: 900px;
-      margin-bottom: 44px;
+      max-width: 920px;
+      margin-bottom: 40px;
     }
 
     .hero-inner .kicker {
@@ -189,7 +265,7 @@
       margin-top: 18px;
       font-family: var(--font-d);
       font-weight: 700;
-      font-size: clamp(2.3rem, 6.4vw, 4.6rem);
+      font-size: clamp(2.2rem, 6vw, 4.4rem);
       line-height: 1.12;
       letter-spacing: .01em;
       opacity: 0;
@@ -203,7 +279,7 @@
 
     .lede {
       margin: 20px auto 0;
-      max-width: 620px;
+      max-width: 660px;
       color: var(--txt-2);
       font-size: clamp(15px, 1.6vw, 18px);
       opacity: 0;
@@ -236,7 +312,6 @@
         opacity: 0;
         transform: translateY(22px);
       }
-
       to {
         opacity: 1;
         transform: none;
@@ -249,7 +324,6 @@
         transform: translateY(26px);
         filter: blur(10px);
       }
-
       to {
         opacity: 1;
         transform: none;
@@ -257,7 +331,7 @@
       }
     }
 
-    /* ---------- 旗舰轮播 ---------- */
+    /* ---------- 旗舰轮播（紫金边框） ---------- */
     .stage {
       position: relative;
       width: min(1040px, 94vw);
@@ -273,83 +347,6 @@
       }
     }
 
-    /* ---------- 黑金边框悬浮装饰 ---------- */
-    .hero-corners {
-      position: absolute;
-      inset: clamp(86px, 11vh, 128px) clamp(16px, 4vw, 44px);
-      z-index: 3;
-    }
-
-    .frame-corners {
-      position: absolute;
-      pointer-events: none;
-    }
-
-    .frame-corners i {
-      position: absolute;
-      width: 30px;
-      height: 30px;
-      border: 0 solid var(--gold);
-      opacity: .72;
-      filter: drop-shadow(0 0 6px rgba(232, 185, 100, .65));
-      animation: cornerFloat 4.8s ease-in-out infinite;
-    }
-
-    .hero-corners i {
-      width: 42px;
-      height: 42px;
-    }
-
-    .frame-corners i:nth-child(1) {
-      top: -2px;
-      left: -2px;
-      border-top-width: 2px;
-      border-left-width: 2px;
-      border-top-left-radius: 2px;
-      animation-delay: 0s;
-    }
-
-    .frame-corners i:nth-child(2) {
-      top: -2px;
-      right: -2px;
-      border-top-width: 2px;
-      border-right-width: 2px;
-      border-top-right-radius: 2px;
-      animation-delay: .7s;
-    }
-
-    .frame-corners i:nth-child(3) {
-      bottom: -2px;
-      left: -2px;
-      border-bottom-width: 2px;
-      border-left-width: 2px;
-      border-bottom-left-radius: 2px;
-      animation-delay: 1.4s;
-    }
-
-    .frame-corners i:nth-child(4) {
-      bottom: -2px;
-      right: -2px;
-      border-bottom-width: 2px;
-      border-right-width: 2px;
-      border-bottom-right-radius: 2px;
-      animation-delay: 2.1s;
-    }
-
-    @keyframes cornerFloat {
-
-      0%,
-      100% {
-        transform: translate(0, 0);
-        opacity: .5;
-      }
-
-      50% {
-        transform: translate(0, -4px);
-        opacity: 1;
-      }
-    }
-
     .stage-frame {
       position: relative;
     }
@@ -358,9 +355,9 @@
       content: "";
       position: absolute;
       inset: -14px;
-      border: 1px solid rgba(232, 185, 100, .3);
+      border: 1px solid rgba(93, 169, 233, .28);
       border-radius: 6px;
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 0 30px rgba(232, 185, 100, .12);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 0 30px rgba(93, 169, 233, .1);
       animation: frameBreathe 5.5s ease-in-out infinite;
       pointer-events: none;
     }
@@ -371,7 +368,7 @@
       inset: -34px;
       z-index: -1;
       background:
-        radial-gradient(58% 58% at 50% 50%, rgba(232, 185, 100, .10), rgba(5, 8, 14, .78) 72%, transparent 92%);
+        radial-gradient(58% 58% at 50% 50%, rgba(93, 169, 233, .08), rgba(5, 8, 14, .78) 72%, transparent 92%);
       filter: blur(12px);
       animation: frameBreathe 5.5s ease-in-out 1.1s infinite;
       pointer-events: none;
@@ -383,13 +380,10 @@
     }
 
     @keyframes frameBreathe {
-
-      0%,
-      100% {
+      0%, 100% {
         opacity: .55;
         transform: translateY(0);
       }
-
       50% {
         opacity: 1;
         transform: translateY(-5px);
@@ -448,7 +442,7 @@
     .slide-no {
       font-family: var(--font-m);
       font-size: 12px;
-      color: var(--gold);
+      color: var(--blue);
       letter-spacing: .16em;
     }
 
@@ -488,8 +482,8 @@
     }
 
     .slide-open:hover {
-      background: var(--gold);
-      border-color: var(--gold);
+      background: var(--blue);
+      border-color: var(--blue);
       color: #14100a;
     }
 
@@ -526,36 +520,31 @@
     }
 
     @keyframes grow {
-      from {
-        width: 0;
-      }
-
-      to {
-        width: 100%;
-      }
+      from { width: 0; }
+      to { width: 100%; }
     }
 
     .stage-btn {
-      background: none;
-      border: 1px solid var(--line);
-      border-radius: 2px;
-      color: var(--txt-2);
-      width: 36px;
-      height: 30px;
-      font-size: 15px;
-      cursor: pointer;
-      transition: color .25s, border-color .25s;
+      width: 32px;
+      height: 32px;
       display: grid;
       place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--txt-2);
+      font-size: 16px;
+      cursor: pointer;
+      transition: border-color .25s, color .25s;
     }
 
     .stage-btn:hover {
-      color: var(--gold);
-      border-color: var(--gold-line);
+      border-color: var(--blue-line);
+      color: var(--blue);
     }
 
     .scroll-cue {
-      margin-top: 26px;
+      margin-top: 30px;
       font-family: var(--font-m);
       font-size: 11px;
       letter-spacing: .22em;
@@ -566,12 +555,9 @@
     }
 
     @keyframes cueBounce {
-
-      0%,
-      100% {
+      0%, 100% {
         transform: translateY(0);
       }
-
       50% {
         transform: translateY(7px);
       }
@@ -624,8 +610,8 @@
       font-size: 13px;
     }
 
-    /* ---------- 视频库 ---------- */
-    .gallery {
+    /* ---------- 案例库 ---------- */
+    .cases {
       position: relative;
       z-index: 2;
       max-width: 1080px;
@@ -634,11 +620,11 @@
       scroll-margin-top: 90px;
     }
 
-    .gallery-head .kicker::before {
+    .cases-head .kicker::before {
       content: "— ";
     }
 
-    .gallery-head h2 {
+    .cases-head h2 {
       margin-top: 10px;
       font-family: var(--font-d);
       font-weight: 700;
@@ -646,7 +632,7 @@
       line-height: 1.2;
     }
 
-    .gallery-head h2 em {
+    .cases-head h2 em {
       font-style: normal;
       color: var(--gold);
     }
@@ -673,6 +659,13 @@
       gap: 8px;
     }
 
+    .chip .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
     .chip .cnt {
       font-family: var(--font-m);
       font-size: 11px;
@@ -693,9 +686,34 @@
       color: var(--gold);
     }
 
+    .chip[data-audience="小学"].active {
+      background: rgba(245, 158, 11, .16);
+      border-color: rgba(245, 158, 11, .55);
+      color: #F59E0B;
+    }
+
+    .chip[data-audience="初中"].active {
+      background: rgba(59, 130, 246, .16);
+      border-color: rgba(59, 130, 246, .55);
+      color: #3B82F6;
+    }
+
+    .chip[data-audience="高中"].active {
+      background: rgba(139, 92, 246, .16);
+      border-color: rgba(139, 92, 246, .55);
+      color: #8B5CF6;
+    }
+
+    .chip[data-audience="本科"].active {
+      background: rgba(236, 72, 153, .16);
+      border-color: rgba(236, 72, 153, .55);
+      color: #EC4899;
+    }
+
     .chip.active .cnt {
-      color: var(--gold);
-      border-color: var(--gold-line);
+      color: inherit;
+      border-color: inherit;
+      opacity: .8;
     }
 
     .grid {
@@ -704,7 +722,7 @@
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 20px;
       content-visibility: auto;
-      contain-intrinsic-size: auto 340px;
+      contain-intrinsic-size: auto 380px;
     }
 
     .card {
@@ -736,7 +754,7 @@
       left: 0;
       right: 0;
       height: 2px;
-      background: var(--gold);
+      background: var(--card-accent, var(--gold));
       transform: scaleX(0);
       transform-origin: left;
       transition: transform .4s var(--ease-slide);
@@ -782,14 +800,14 @@
     }
 
     .preview .play-badge span {
-      width: 58px;
-      height: 58px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
       border: 1.5px solid var(--gold);
       color: var(--gold);
       display: grid;
       place-items: center;
-      font-size: 20px;
+      font-size: 19px;
       background: rgba(11, 17, 32, .5);
       transform: scale(.8);
       transition: transform .35s var(--ease-out);
@@ -801,6 +819,22 @@
 
     .card:hover .play-badge span {
       transform: scale(1);
+    }
+
+    .preview .badge {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      z-index: 2;
+      font-family: var(--font-m);
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: var(--card-accent, var(--gold));
+      background: rgba(8, 12, 24, .62);
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      padding: 2px 8px;
+      backdrop-filter: blur(4px);
     }
 
     .body {
@@ -816,10 +850,21 @@
     }
 
     .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-family: var(--font-m);
       font-size: 11px;
       letter-spacing: .1em;
-      color: var(--gold);
+      color: var(--card-accent, var(--gold));
+    }
+
+    .tag::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
     }
 
     .no {
@@ -835,25 +880,62 @@
       line-height: 1.3;
     }
 
+    .concept {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--font-m);
+      font-size: 11.5px;
+      color: var(--gold);
+    }
+
     .body p {
-      margin-top: 6px;
+      margin-top: 8px;
       color: var(--txt-2);
       font-size: 13px;
       line-height: 1.6;
     }
 
-    .dl {
-      display: inline-block;
-      margin-top: 12px;
-      font-family: var(--font-m);
+    .cmeta {
+      margin-top: 10px;
       font-size: 12px;
-      letter-spacing: .06em;
       color: var(--txt-3);
-      transition: color .25s;
     }
 
-    .dl:hover {
+    .btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      padding: 7px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      color: var(--txt-2);
+      transition: all .25s var(--ease-out);
+    }
+
+    .btn:hover {
       color: var(--gold);
+      border-color: var(--gold-line);
+    }
+
+    .btn.primary {
+      background: var(--card-accent, var(--gold));
+      border-color: transparent;
+      color: #14100a;
+      font-weight: 700;
+    }
+
+    .btn.primary:hover {
+      filter: brightness(1.08);
     }
 
     /* ---------- 页脚 ---------- */
@@ -929,15 +1011,9 @@
         grid-template-columns: repeat(2, 1fr);
         gap: 18px 0;
       }
-
       .stat {
         padding-left: 14px;
       }
-
-      .slide p {
-        max-width: 100%;
-      }
-
       .topnav {
         gap: 14px;
         font-size: 13px;
@@ -948,12 +1024,10 @@
       .card:hover .preview img {
         transform: none;
       }
-
       .preview .play-badge {
         opacity: 1;
         background: rgba(8, 12, 24, .2);
       }
-
       .preview .play-badge span {
         transform: scale(1);
         width: 46px;
@@ -965,7 +1039,6 @@
       html {
         scroll-behavior: auto;
       }
-
       *,
       *::before,
       *::after {
@@ -973,7 +1046,6 @@
         animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
       }
-
       #fx {
         display: none;
       }
@@ -983,11 +1055,10 @@
 
 <body>
   <header class="topbar">
-    <a class="brand" href="#top">数形结合<span class="brand-sub"> / MATH·VIZ</span></a>
+    <a class="brand" href="#top">大数学<span class="brand-sub"> / 交互可视化</span></a>
     <nav class="topnav">
-      <a href="#gallery">视频库</a>
-      <a href="k12/index.html">四学段交互库 →</a>
-      <a href="https://github.com/Seasonno1314/math-viz-demos" target="_blank" rel="noopener">GitHub ↗</a>
+      <a href="../index.html">小学数形结合 ←</a>
+      <a href="#cases">案例库</a>
     </nav>
   </header>
 
@@ -995,15 +1066,15 @@
     <canvas id="fx"></canvas>
     <div class="frame-corners hero-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <div class="hero-inner">
-      <p class="kicker">Manim · 数形结合 · 18 段动画</p>
-      <h1 class="title">让抽象的数，<br>变成<em>看得见</em>的图</h1>
-      <p class="lede">运算律、分数、行程、面积、统计与思维拓展<br>——一条动画讲清一个数学原理，原理都动起来了。</p>
-      <a class="cta" href="#gallery">进入视频库 ↓</a>
+      <p class="kicker">交互可视化 · 四学段 · 32 个可交互原理</p>
+      <h1 class="title">让抽象的数学，<br>变成<em>可以动手</em>的模型</h1>
+      <p class="lede">可交互 HTML · MP4 讲解 · WebP/GIF 预览<br>纯静态 · 免安装 · 双击即开 · 可分享</p>
+      <a class="cta" href="#cases">浏览案例库 ↓</a>
     </div>
 
-    <div class="stage">
+    <div class="stage" id="showcase">
       <div class="stage-frame">
-        <div class="stage-main" id="stageMain" aria-label="精选视频轮播"></div>
+        <div class="stage-main" id="stageMain" aria-label="四学段旗舰轮播"></div>
         <div class="frame-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
       </div>
       <div class="stage-ui">
@@ -1013,48 +1084,36 @@
         <button class="stage-btn" id="stageNext" aria-label="下一个">›</button>
       </div>
     </div>
-    <div class="scroll-cue" id="scrollCue">向下滑动 · 探索 18 段动画</div>
+    <div class="scroll-cue" id="scrollCue">向下滑动 · 32个可交互数学案例</div>
   </section>
 
   <section class="stats" id="stats">
-    <div class="stat"><span class="num" data-count="18">0</span><span class="lbl">段动画</span>
-      <p>覆盖 6 大数学主题</p>
-    </div>
-    <div class="stat"><span class="num" data-count="6">0</span><span class="lbl">大主题</span>
-      <p>运算律 · 分数 · 行程 · 几何 · 统计 · 拓展</p>
-    </div>
-    <div class="stat"><span class="num" data-count="1080">0</span><span class="lbl">P 高清渲染</span>
-      <p>30 fps · H.264 · WebP 动图预览</p>
-    </div>
-    <div class="stat"><span class="num" data-count="0">0</span><span class="lbl">安装成本</span>
-      <p>无需登录 · 浏览器即开即用</p>
-    </div>
+    <div class="stat"><span class="num" data-count="32">0</span><span class="lbl">个案例</span><p>4学段全覆盖，32个已就绪</p></div>
+    <div class="stat"><span class="num" data-count="4">0</span><span class="lbl">学段</span><p>小学 · 初中 · 高中 · 本科</p></div>
+    <div class="stat"><span class="num" data-count="3">0</span><span class="lbl">件套 / 例</span><p>交互 HTML · MP4 · WebP/GIF</p></div>
+    <div class="stat"><span class="num" data-count="0">0</span><span class="lbl">安装成本</span><p>浏览器即开 · 免登录 · 可分享</p></div>
   </section>
 
-  <section class="gallery" id="gallery">
-    <div class="gallery-head">
-      <p class="kicker">Gallery · 视频库</p>
-      <h2>十八段原理，<em>一眼看懂</em></h2>
+  <section class="cases" id="cases">
+    <div class="cases-head">
+      <p class="kicker">Case Library · 案例库</p>
+      <h2>三十二个原理，<em>看得见、动得了</em></h2>
     </div>
     <div class="filters" id="filters" role="tablist" aria-label="按主题筛选"></div>
     <div class="grid" id="grid"></div>
   </section>
 
-  <footer>
-    Manim 渲染 · 小学数学 · 数形结合动态演示视频库
-    <p class="note">GitHub Pages 在线托管 · 免登录</p>
-    <p class="note"><a href="k12/index.html" style="color:#E8B964;text-decoration:none">→ 前往「四学段交互库」（小学 · 初中 · 高中 · 本科，32 个可交互案例）</a></p>
-  </footer>
+  <footer id="footer"></footer>
 
   <!-- 授权证书 · 一知未来 创作分享 · MIT License -->
   <section class="license-card" style="max-width:1080px;margin:0 auto 56px;padding:28px 30px;border:1px solid rgba(232,185,100,.28);border-radius:16px;background:linear-gradient(135deg,rgba(232,185,100,.07),rgba(61,76,255,.05));display:flex;gap:22px;align-items:center;flex-wrap:wrap">
-    <img src="images/logo-yizhiweilai.png" alt="一知未来" style="width:76px;height:76px;object-fit:contain;flex:0 0 auto;border-radius:12px;background:rgba(255,255,255,.04);padding:8px">
+    <img src="../images/logo-yizhiweilai.png" alt="一知未来" style="width:76px;height:76px;object-fit:contain;flex:0 0 auto;border-radius:12px;background:rgba(255,255,255,.04);padding:8px">
     <div style="flex:1 1 320px;min-width:280px">
       <div style="font-size:11px;letter-spacing:.34em;color:#E8B964;margin-bottom:8px">创作分享 · LICENSE</div>
       <div style="font-size:17px;font-weight:700;color:#E8EDF7;margin-bottom:6px">「一知未来」创作分享 · MIT License</div>
       <p style="margin:0 0 6px;font-size:13px;line-height:1.85;color:#9CA8C0">本作品由「一知未来」创作分享，采用 <strong style="color:#E8EDF7">MIT License</strong> 授权。可自由使用、复制、修改、合并、发布、分发、再授权及销售，惟须保留本版权声明与许可声明。</p>
       <p style="margin:0 0 12px;font-size:12px;line-height:1.8;color:#6B7891">Copyright (c) 2026 小何传家 heshenxian1（一知未来）· 本作品按「原样」提供，不含任何明示或默示的担保。</p>
-      <a href="LICENSE" style="display:inline-block;font-size:12px;color:#E8B964;text-decoration:none;border:1px solid rgba(232,185,100,.4);border-radius:999px;padding:6px 14px">查看完整 MIT License ↗</a>
+      <a href="../LICENSE" style="display:inline-block;font-size:12px;color:#E8B964;text-decoration:none;border:1px solid rgba(232,185,100,.4);border-radius:999px;padding:6px 14px">查看完整 MIT License ↗</a>
     </div>
   </section>
 
@@ -1063,31 +1122,19 @@
     <video id="modalVideo" controls playsinline preload="metadata"></video>
   </div>
 
+  <script src="cases.js?v=32all"></script>
   <script>
-    const ITEMS = [
-      {no: "12", title: "乘法分配律", cat: "运算律", webp: "12-乘法分配律.webp", mp4: "12-乘法分配律.mp4", desc: "把 4×3 与 2×3 切成两块再拼合，直观看到 (4+2)×3。"},
-      {no: "13", title: "乘法交换律 / 结合律", cat: "运算律", webp: "13-乘法交换结合律.webp", mp4: "13-乘法交换结合律.mp4", desc: "点阵旋转 90° 不变总数；分组括号移动，总数也不变。"},
-      {no: "16", title: "分数乘法", cat: "分数", webp: "16-分数乘法.webp", mp4: "16-分数乘法.mp4", desc: "正方形先横切再竖切，重叠部分就是两个分数相乘的结果。"},
-      {no: "17", title: "分数除法", cat: "分数", webp: "17-分数除法.webp", mp4: "17-分数除法.mp4", desc: "先平分再倒推填充：6/8 里有多少个 1/4，看得清清楚楚。"},
-      {no: "22", title: "相遇问题", cat: "行程问题", webp: "22-相遇问题.webp", mp4: "22-相遇问题.mp4", desc: "两车相向而行，在 8 个刻度上用速度比 60:40 找到相遇点。"},
-      {no: "23", title: "追及问题", cat: "行程问题", webp: "23-追及问题.webp", mp4: "23-追及问题.mp4", desc: "速度差恒定（70-40=30），路程差随时间不断缩小直到追上。"},
-      {no: "28", title: "火车过桥", cat: "行程问题", webp: "28-火车过桥.webp", mp4: "28-火车过桥.mp4", desc: "车头车尾双路径演示：总路程 = 桥长 + 车长。"},
-      {no: "29", title: "周长概念", cat: "图形与几何", webp: "29-周长概念.webp", mp4: "29-周长概念.mp4", desc: "把四边拆下来拉直排成一排，周长就是围一圈的边之和。"},
-      {no: "31", title: "平行四边形面积", cat: "图形与几何", webp: "31-平行四边形面积.webp", mp4: "31-平行四边形面积.mp4", desc: "沿高剪下一块三角形平移过去，拼成长方形——面积不变。"},
-      {no: "32", title: "三角形面积", cat: "图形与几何", webp: "32-三角形面积.webp", mp4: "32-三角形面积.mp4", desc: "两个一样的三角形旋转拼接成平行四边形，面积取其一半。"},
-      {no: "33", title: "梯形面积", cat: "图形与几何", webp: "33-梯形面积.webp", mp4: "33-梯形面积.mp4", desc: "两个一样的梯形拼成平行四边形，新底 = 上底 + 下底。"},
-      {no: "34", title: "圆的周长", cat: "图形与几何", webp: "34-圆的周长.webp", mp4: "34-圆的周长.mp4", desc: "让圆在直尺上滚一整圈，滚过的长度就是周长 ≈ π×直径。"},
-      {no: "35", title: "圆的面积", cat: "图形与几何", webp: "35-圆的面积.webp", mp4: "35-圆的面积.mp4", desc: "把圆切成 16 个扇形拼成近似长方形，长 πr、宽 r，得 πr²。"},
-      {no: "37", title: "圆柱体积", cat: "图形与几何", webp: "37-圆柱体积.webp", mp4: "37-圆柱体积.mp4", desc: "圆柱切碎拼成长方体，体积 = 底面积 × 高 = πr²h。"},
-      {no: "39", title: "轴对称图形", cat: "图形与几何", webp: "39-轴对称图形.webp", mp4: "39-轴对称图形.mp4", desc: "把左半边沿对称轴翻过去，完全重合就是轴对称。"},
-      {no: "44", title: "可能性 · 转盘", cat: "统计与可能性", webp: "44-可能性转盘.webp", mp4: "44-可能性转盘.mp4", desc: "随机转 24 次实时计数：转得越多，红占比越接近 1/4。"},
-      {no: "46", title: "高斯求和", cat: "思维拓展", webp: "46-高斯求和.webp", mp4: "46-高斯求和.mp4", desc: "阶梯与倒阶梯互补成矩形，1+2+…+n = (n+1)×n÷2。"},
-      {no: "48", title: "一笔画", cat: "思维拓展", webp: "48-一笔画.webp", mp4: "48-一笔画.mp4", desc: "奇点不超过 2 个才能一笔画完；4 个奇点则必然走不完。"}
-    ];
-    const SHOWCASE_NOS = ["46", "35", "44", "16"];
+    const STAGE = {
+      "小学": ["小学数学", "#F59E0B", "C-S02"],
+      "初中": ["初中数学", "#5DA9E9", "C-J01"],
+      "高中": ["高中数学", "#E8B964", "C-G01"],
+      "本科": ["本科数学", "#EC4899", "C-B01"]
+    };
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const finePointer = window.matchMedia("(hover: hover)").matches;
+
+    const norm = s => (s || "").replace(/\\/g, "/");
 
     /* ---------- 顶栏滚动淡化提示 ---------- */
     const scrollCue = document.getElementById("scrollCue");
@@ -1101,7 +1148,7 @@
       if (!cv || reducedMotion) return;
       const ctx = cv.getContext("2d");
       let W, H, parts = [], mouse = {x: 0, y: 0}, tx = 0, ty = 0;
-      const GLYPHS = ["π", "½", "×", "÷", "∞", "√", "=", "+"];
+      const GLYPHS = ["π", "e", "λ", "Σ", "∇", "∮", "Δ", "√", "∞", "÷"];
 
       function resize() {
         W = cv.width = cv.offsetWidth;
@@ -1177,38 +1224,75 @@
       frame();
     })();
 
+    /* ---------- 数据加载 ---------- */
+    let cases = [];
+    const grid = document.getElementById("grid");
+    const filters = document.getElementById("filters");
+
+    if (!Array.isArray(window.CASES)) {
+      grid.innerHTML = "<p style='color:#E2705A'>cases.js 缺失，请先生成（python _gen/render_all.py 会自动产出）或通过 GitHub Pages 打开。</p>";
+    }
+
+    function bootstrap() {
+      cases = (window.CASES || []).map(c => {
+        const o = Object.assign({}, c);
+        ["html", "mp4", "gif", "webp", "cover"].forEach(k => { if (o[k]) o[k] = norm(o[k]); });
+        return o;
+      });
+      document.getElementById("footer").innerHTML =
+        `交互可视化 · 四学段数学 · ${cases.length} 个可交互案例` +
+        `<p class="note">MIT License 授权 · 纯静态托管 · 免安装</p>`;
+      buildShowcase();
+      buildFilters();
+      render("all");
+      buildTilt();
+      watchStats();
+    }
+
     /* ---------- 旗舰轮播 ---------- */
     const stageMain = document.getElementById("stageMain");
     const stageProgress = document.getElementById("stageProgress");
     const stageToggle = document.getElementById("stageToggle");
     const stagePrev = document.getElementById("stagePrev");
     const stageNext = document.getElementById("stageNext");
-    const SHOWCASE = SHOWCASE_NOS.map(no => ITEMS.find(i => i.no === no));
+    let flagshipCases = [];
     const DUR = 6200;
-
     let si = 0, playing = true, timer = null, hoverPaused = false;
 
-    function slideHTML(it, idx) {
-      return `<figure class="slide${idx === 0 ? " active" : ""}" data-no="${it.no}">` +
-        `<img src="webp/${it.webp}" alt="${it.title}" ${idx === 0 ? "" : 'loading="lazy"'}>` +
-        `<figcaption><span class="slide-no">案例 ${it.no} · ${it.cat}</span>` +
-        `<h3>${it.title}</h3><p>${it.desc}</p></figcaption>` +
-        `<button class="slide-open" data-open="${it.no}">▶ 播放全片</button></figure>`;
+    function slideHTML(c, idx) {
+      const img = c.webp || c.cover || "";
+      const stageInfo = STAGE[c.audience] || [c.audience, "#A78BFA"];
+      return `<figure class="slide${idx === 0 ? " active" : ""}" data-id="${c.id}">` +
+        (img ? `<img src="${img}" alt="${c.title}" ${idx === 0 ? "" : 'loading="lazy"'}>` : "") +
+        `<figcaption><span class="slide-no">${stageInfo[0]} · ${c.id}</span>` +
+        `<h3>${c.title}</h3><p>${c.desc || ""}</p></figcaption>` +
+        `<button class="slide-open" data-id="${c.id}">▶ 打开交互</button></figure>`;
     }
 
-    function buildStage() {
-      stageMain.innerHTML = SHOWCASE.map((it, i) => slideHTML(it, i)).join("");
-      stageProgress.innerHTML = SHOWCASE.map(() => `<span class="bar"><span class="fill"></span></span>`).join("");
+    function buildShowcase() {
+      flagshipCases = Object.entries(STAGE).map(([k, [name, color, fid]]) => {
+        return cases.find(x => x.id === fid);
+      }).filter(Boolean);
+      if (!flagshipCases.length) return;
+      stageMain.innerHTML = flagshipCases.map((c, i) => slideHTML(c, i)).join("");
+      stageProgress.innerHTML = flagshipCases.map(() => `<span class="bar"><span class="fill"></span></span>`).join("");
       stageMain.addEventListener("click", e => {
         const btn = e.target.closest(".slide-open");
-        if (btn) {openModal(btn.dataset.open); return;}
+        if (btn) {
+          const c = flagshipCases.find(x => x.id === btn.dataset.id);
+          if (c && c.html) window.open(c.html, "_blank");
+          return;
+        }
         const f = e.target.closest(".slide");
-        if (f) openModal(f.dataset.no);
+        if (f) {
+          const c = flagshipCases.find(x => x.id === f.dataset.id);
+          if (c && c.mp4) playVideo(c.mp4);
+        }
       });
       updateProgress();
     }
 
-    function show(i) {
+    function showSlide(i) {
       const slides = stageMain.querySelectorAll(".slide");
       slides.forEach((s, k) => s.classList.toggle("active", k === i));
       si = i;
@@ -1230,7 +1314,7 @@
       clearTimeout(timer);
       if (!playing || hoverPaused) return;
       timer = setTimeout(() => {
-        show((si + 1) % SHOWCASE.length);
+        showSlide((si + 1) % flagshipCases.length);
         schedule();
       }, DUR);
     }
@@ -1245,94 +1329,138 @@
     }
 
     stageToggle.addEventListener("click", () => setPlay(!playing));
-    stageNext.addEventListener("click", () => {show((si + 1) % SHOWCASE.length); schedule();});
-    stagePrev.addEventListener("click", () => {show((si - 1 + SHOWCASE.length) % SHOWCASE.length); schedule();});
+    stageNext.addEventListener("click", () => { showSlide((si + 1) % flagshipCases.length); schedule(); });
+    stagePrev.addEventListener("click", () => { showSlide((si - 1 + flagshipCases.length) % flagshipCases.length); schedule(); });
 
-    const stage = document.querySelector(".stage");
-    stage.addEventListener("mouseenter", () => {hoverPaused = true; clearTimeout(timer);});
-    stage.addEventListener("mouseleave", () => {hoverPaused = false; schedule();});
-    stage.addEventListener("focusin", () => {hoverPaused = true; clearTimeout(timer);});
-    stage.addEventListener("focusout", () => {hoverPaused = false; schedule();});
+    const stageEl = document.querySelector(".stage");
+    stageEl.addEventListener("mouseenter", () => { hoverPaused = true; clearTimeout(timer); });
+    stageEl.addEventListener("mouseleave", () => { hoverPaused = false; schedule(); });
+    stageEl.addEventListener("focusin", () => { hoverPaused = true; clearTimeout(timer); });
+    stageEl.addEventListener("focusout", () => { hoverPaused = false; schedule(); });
 
-    addEventListener("keydown", e => {
-      if (!document.querySelector(".modal.show") && stage.contains(document.activeElement)) {
-        if (e.key === "ArrowRight") {show((si + 1) % SHOWCASE.length); schedule();}
-        if (e.key === "ArrowLeft") {show((si - 1 + SHOWCASE.length) % SHOWCASE.length); schedule();}
-      }
-    });
-
-    buildStage();
-    schedule();
-
-    /* ---------- 数据递增 ---------- */
-    const statsEl = document.getElementById("stats");
-    const io = new IntersectionObserver(entries => {
-      entries.forEach(en => {
-        if (!en.isIntersecting) return;
-        io.unobserve(en.target);
-        en.target.querySelectorAll("[data-count]").forEach(n => {
-          const target = +n.dataset.count;
-          if (reducedMotion || target === 0) {
-            n.textContent = target;
-            return;
-          }
-          const t0 = performance.now();
-          const dur = 1200;
-          (function tick(t) {
-            const p = Math.min(1, (t - t0) / dur);
-            const ease = 1 - Math.pow(1 - p, 4);
-            n.textContent = Math.round(target * ease);
-            if (p < 1) requestAnimationFrame(tick);
-          })(t0);
+    /* ---------- 筛选 ---------- */
+    function buildFilters() {
+      const order = ["all"].concat(Object.keys(STAGE));
+      order.forEach(k => {
+        const n = k === "all" ? cases.length : cases.filter(c => c.audience === k).length;
+        const chip = document.createElement("button");
+        chip.className = "chip" + (k === "all" ? " active" : "");
+        chip.dataset.audience = k;
+        chip.setAttribute("role", "tab");
+        const label = k === "all" ? "全部" : STAGE[k][0];
+        const color = k === "all" ? "" : STAGE[k][1];
+        chip.innerHTML =
+          (k === "all" ? "" : `<span class="dot" style="background:${color};border-color:${color}"></span>`) +
+          label +
+          `<span class="cnt">${n}</span>`;
+        chip.addEventListener("click", () => {
+          filters.querySelectorAll(".chip").forEach(x => x.classList.remove("active"));
+          chip.classList.add("active");
+          render(k);
         });
+        filters.appendChild(chip);
       });
-    }, {threshold: .35});
-    io.observe(statsEl);
+    }
 
-    /* ---------- 分类筛选 ---------- */
-    const filters = document.getElementById("filters");
-    const grid = document.getElementById("grid");
-    const cats = ["全部"].concat([...new Set(ITEMS.map(i => i.cat))]);
-
-    function renderCards(cat) {
-      const list = cat === "全部" ? ITEMS : ITEMS.filter(i => i.cat === cat);
+    /* ---------- 卡片渲染 ---------- */
+    function render(audience) {
+      const list = audience === "all" ? cases : cases.filter(c => c.audience === audience);
       grid.innerHTML = "";
-      list.forEach((it, idx) => {
+      list.forEach((c, idx) => {
+        const stageInfo = STAGE[c.audience] || [c.audience || "—", "#E8B964", ""];
+        const color = stageInfo[1];
+        const ready = c.status === "ready";
         const card = document.createElement("article");
         card.className = "card";
-        card.dataset.cat = it.cat;
         card.style.setProperty("--i", idx % 9);
+        card.style.setProperty("--card-accent", color);
         card.innerHTML =
-          `<button class="preview" aria-label="播放 ${it.title}">` +
-          `<img src="webp/${it.webp}" alt="${it.title}" loading="lazy">` +
+          `<button class="preview" aria-label="播放 ${c.title}">` +
+          (c.cover ? `<img src="${c.cover}" alt="">` : `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#5D6A85;font-family:'JetBrains Mono',Consolas,monospace;font-size:12px">待渲染</div>`) +
+          (c.webp ? `<img src="${c.webp}" alt="预览" style="position:absolute;inset:0" loading="lazy">` : "") +
+          `<span class="badge">${c.id}</span>` +
           `<span class="play-badge"><span>▶</span></span></button>` +
-          `<div class="body"><div class="meta"><span class="tag">${it.cat}</span><span class="no">#${it.no}</span></div>` +
-          `<h3>${it.title}</h3><p>${it.desc}</p>` +
-          `<a class="dl" href="mp4/${it.mp4}" download>下载 1080p 原片 ↓</a></div>`;
-        card.querySelector(".preview").addEventListener("click", () => openModal(it.no));
+          `<div class="body"><div class="meta">` +
+          `<span class="tag">${c.audience || "—"}</span><span class="no">${c.engine || "—"}</span></div>` +
+          `<h3>${c.title}</h3>` +
+          `<span class="concept">${c.concept || ""}</span>` +
+          `<p>${c.desc || ""}</p>` +
+          `<div class="cmeta">学段：${c.audience || "—"} · 状态：${ready ? "已可用" : "待制作"}</div>` +
+          `<div class="btns">` +
+          `<a class="btn primary" href="${c.html || "#"}" target="_blank" rel="noopener">打开交互</a>` +
+          (c.mp4 && ready ? `<button class="btn" onclick="playVideo('${c.mp4}')">播放视频</button>` : "") +
+          (c.mp4 && ready ? `<a class="btn" href="${c.mp4}" download>下载 MP4</a>` : "") +
+          `<button class="btn" onclick="copyLink(this,'${c.html || ""}')">复制链接</button>` +
+          `</div></div>`;
+        card.querySelector(".preview").addEventListener("click", () => playVideo(c.mp4 || c.webp || ""));
         grid.appendChild(card);
         requestAnimationFrame(() => card.classList.add("revealed"));
       });
     }
 
-    cats.forEach(c => {
-      const n = c === "全部" ? ITEMS.length : ITEMS.filter(i => i.cat === c).length;
-      const chip = document.createElement("button");
-      chip.className = "chip" + (c === "全部" ? " active" : "");
-      chip.setAttribute("role", "tab");
-      chip.dataset.cat = c;
-      chip.innerHTML = c + `<span class="cnt">${n}</span>`;
-      chip.addEventListener("click", () => {
-        filters.querySelectorAll(".chip").forEach(x => x.classList.remove("active"));
-        chip.classList.add("active");
-        renderCards(c);
-      });
-      filters.appendChild(chip);
-    });
-    renderCards("全部");
+    /* ---------- 模态播放器 ---------- */
+    const modal = document.getElementById("modal");
+    const modalVideo = document.getElementById("modalVideo");
 
-    /* ---------- 3D 倾角（仅精确指针） ---------- */
-    if (finePointer && !reducedMotion) {
+    function playVideo(src) {
+      if (!src) return;
+      modalVideo.src = src;
+      modal.classList.add("show");
+      modalVideo.play().catch(() => {});
+    }
+
+    function closeModal() {
+      modal.classList.remove("show");
+      modalVideo.pause();
+      modalVideo.removeAttribute("src");
+      modalVideo.load();
+    }
+
+    document.getElementById("modalClose").addEventListener("click", closeModal);
+    modal.addEventListener("click", e => { if (e.target === modal) closeModal(); });
+    addEventListener("keydown", e => {
+      if (e.key === "Escape" && modal.classList.contains("show")) closeModal();
+    });
+
+    /* ---------- 复制链接 ---------- */
+    function copyLink(btn, path) {
+      const u = new URL(location.href);
+      const base = u.origin + u.pathname.replace(/\/[^/]*$/, "/");
+      const s = base + (path || "");
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(s).then(() => { btn.textContent = "已复制"; });
+      } else {
+        prompt("复制链接", s);
+      }
+    }
+
+    /* ---------- 数据递增 ---------- */
+    function watchStats() {
+      const el = document.getElementById("stats");
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(en => {
+          if (!en.isIntersecting) return;
+          io.unobserve(en.target);
+          en.target.querySelectorAll("[data-count]").forEach(n => {
+            const target = +n.dataset.count;
+            if (reducedMotion || target === 0) { n.textContent = target; return; }
+            const t0 = performance.now();
+            const dur = 1200;
+            (function tick(t) {
+              const p = Math.min(1, (t - t0) / dur);
+              const ease = 1 - Math.pow(1 - p, 4);
+              n.textContent = Math.round(target * ease);
+              if (p < 1) requestAnimationFrame(tick);
+            })(t0);
+          });
+        });
+      }, {threshold: .35});
+      io.observe(el);
+    }
+
+    /* ---------- 3D 倾角 ---------- */
+    function buildTilt() {
+      if (!finePointer || reducedMotion) return;
       grid.addEventListener("pointermove", e => {
         const card = e.target.closest(".card");
         if (!card) return;
@@ -1347,32 +1475,7 @@
       });
     }
 
-    /* ---------- 模态播放器 ---------- */
-    const modal = document.getElementById("modal");
-    const modalVideo = document.getElementById("modalVideo");
-    let lastNo = null;
-
-    function openModal(no) {
-      const it = ITEMS.find(i => i.no === no);
-      if (!it) return;
-      lastNo = it;
-      modalVideo.src = "mp4/" + it.mp4;
-      modal.classList.add("show");
-      modalVideo.play().catch(() => { });
-    }
-
-    function closeModal() {
-      modal.classList.remove("show");
-      modalVideo.pause();
-      modalVideo.removeAttribute("src");
-      modalVideo.load();
-    }
-
-    document.getElementById("modalClose").addEventListener("click", closeModal);
-    modal.addEventListener("click", e => {if (e.target === modal) closeModal();});
-    addEventListener("keydown", e => {
-      if (e.key === "Escape" && modal.classList.contains("show")) closeModal();
-    });
+    bootstrap();
   </script>
 </body>
 

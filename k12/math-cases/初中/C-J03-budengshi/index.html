@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>C-J03 一元一次不等式 · 大数学交互交付</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
+.app{display:grid;grid-template-columns:1fr 310px;gap:16px;max-width:1180px;margin:0 auto;padding:16px}
+@media(max-width:880px){.app{grid-template-columns:1fr}}
+.viz-panel{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.1);overflow:hidden}
+.viz-panel svg{width:100%;height:auto;display:block}
+.ctrl-panel{display:flex;flex-direction:column;gap:10px}
+.panel-section{background:#fff;border-radius:8px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.panel-section h3{font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-weight:700}
+.slider-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.slider-row:last-child{margin-bottom:0}
+.slider-row label{min-width:22px;font-weight:700;font-size:16px}
+.slider-row .sval{min-width:42px;text-align:right;font-size:14px;font-weight:600;color:#2563eb;font-variant-numeric:tabular-nums}
+.slider-row input[type=range]{flex:1;accent-color:#2563eb;height:6px}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-grid button{padding:8px 0;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-grid button:active{transform:scale(.97)}
+.btn-play{background:#2563eb;color:#fff}.btn-play:hover{background:#1d4ed8}
+.btn-pause{background:#64748b;color:#fff}.btn-pause:hover{background:#475569}
+.btn-step{background:#059669;color:#fff}.btn-step:hover{background:#047857}
+.btn-reset{background:#f1f5f9;color:#1e293b;border:1px solid #cbd5e1!important}.btn-reset:hover{background:#e2e8f0}
+.btn-copy{background:#fff;color:#2563eb;border:1px solid #bfdbfe!important;width:100%;padding:8px 0;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-copy:hover{background:#eff6ff}
+.readout-box{font-size:13px;line-height:1.7}
+.readout-box .rb-label{color:#64748b}
+.readout-box .rb-val{font-weight:700;color:#1e293b}
+.readout-box .rb-sol{color:#2563eb;font-size:15px;font-weight:700}
+.classroom-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px}
+.classroom-box h3{font-size:12px;color:#92400e;margin-bottom:6px;font-weight:700}
+.classroom-box p{font-size:12.5px;color:#78350f;line-height:1.6;margin-bottom:4px}
+.classroom-box p:last-child{margin-bottom:0}
+.step-g{transition:opacity .4s ease}
+.step-flip-anim{animation:flipPulse .6s ease}
+@keyframes flipPulse{0%,100%{opacity:1}50%{opacity:.4}}
+.boundary-pulse{animation:bPulse 1.2s ease 2}
+@keyframes bPulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="viz-panel">
+<svg id="mainSvg" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<clipPath id="nlClip"><rect x="50" y="455" width="900" height="65"/></clipPath>
+<filter id="shadow" x="-2%" y="-2%" width="104%" height="104%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity=".08"/></filter>
+</defs>
+<rect x="0" y="0" width="1000" height="720" rx="0" fill="#f8fafc"/>
+<g id="gTitle"></g>
+<g id="gIneq"></g>
+<g id="gSteps"></g>
+<g id="gDivider"></g>
+<g id="gNumLine"></g>
+<g id="gSolution"></g>
+</svg>
+</div>
+<div class="ctrl-panel">
+<div class="panel-section">
+<h3>参数控制</h3>
+<div class="slider-row"><label style="color:#2563eb">a</label><input type="range" id="sA" min="-5" max="5" step="1" value="2"><span class="sval" id="vA">2</span></div>
+<div class="slider-row"><label style="color:#dc2626">b</label><input type="range" id="sB" min="-10" max="10" step="1" value="-4"><span class="sval" id="vB">-4</span></div>
+<div class="slider-row"><label style="color:#059669">c</label><input type="range" id="sC" min="-10" max="10" step="1" value="6"><span class="sval" id="vC">6</span></div>
+</div>
+<div class="panel-section">
+<h3>动画控制</h3>
+<div class="btn-grid">
+<button class="btn-play" id="btnPlay">▶ 播放</button>
+<button class="btn-pause" id="btnPause">⏸ 暂停</button>
+<button class="btn-step" id="btnStep">⏭ 步进</button>
+<button class="btn-reset" id="btnReset">↺ 重置</button>
+</div>
+<button class="btn-copy" id="btnCopy" style="margin-top:8px">🔗 复制分享链接</button>
+</div>
+<div class="panel-section readout-box" id="readoutBox">
+<h3>实时信息</h3>
+<div id="readoutContent">调整参数开始探索</div>
+</div>
+<div class="classroom-box">
+<h3>💡 课堂思考</h3>
+<p>1. 先猜：a 变负数时，不等号方向会怎样？</p>
+<p>2. 验证：把 a=-1, b=3, c=1 带入，解集是什么？</p>
+</div>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const svgNS="http://www.w3.org/2000/svg";
+
+/* ─── State ─── */
+const S={a:2,b:-4,c:6,step:0,maxStep:3,playing:false,timer:null};
+
+/* ─── Helpers ─── */
+function fmt(n){return Number.isInteger(n)?String(n):parseFloat(n.toFixed(4)).toString()}
+function fmtCoeff(a){
+ if(a===0)return"0";if(a===1)return"";if(a===-1)return"-";
+ return fmt(a);
+}
+function fmtTerm(a,xLabel){
+ const c=fmtCoeff(a);
+ if(c==="")return xLabel;if(c==="0")return"0";return c+xLabel;
+}
+function fmtAdd(b){
+ if(b===0)return"";return(b>0?"+ ":"")+fmt(b);
+}
+function fmtSigned(n){return n>=0?fmt(n):"("+fmt(n)+")"}
+function svgX(v){return 50+(v+10)*45}
+
+/* ─── Math ─── */
+function computeSolution(a,b,c){
+ if(a===0){return b>c?{type:"all"}:{type:"none"}}
+ const val=(c-b)/a;
+ const dir=a>0?">":"<";
+ return{type:"interval",value:val,dir:dir,strict:true};
+}
+function getSteps(a,b,c){
+ const steps=[];
+ const rhs=c-b;
+ steps.push({id:0,label:"原式",lines:[fmtTerm(a,"x")+" "+fmtAdd(b)+" > "+fmt(c)]});
+ steps.push({id:1,label:"移项",lines:[
+  fmtTerm(a,"x")+" > "+fmt(c)+" "+fmtAdd(-b),
+  "即 "+fmtTerm(a,"x")+" > "+fmt(rhs)
+ ]});
+ if(a===0){
+  const sol=computeSolution(a,b,c);
+  steps.push({id:2,label:"特殊情形 a=0",lines:[
+   "系数 a = 0，不能做除法",
+   sol.type==="all"?"b = "+fmt(b)+" > c = "+fmt(c)+"，不等式恒成立":"b = "+fmt(b)+" ≤ c = "+fmt(c)+"，不等式无解"
+  ],isSpecial:true});
+ }else{
+  const sol=computeSolution(a,b,c);
+  const flipped=a<0;
+  steps.push({id:2,label:flipped?"除以负数·变号!":"系数化为1",lines:[
+   "两边除以 "+fmt(a)+"：",
+   "x "+sol.dir+" "+fmt(rhs)+" ÷ "+fmt(a),
+   "即 x "+sol.dir+" "+fmt(sol.value)
+  ],flipped:flipped,note:flipped?"⚠ 除以负数，不等号方向改变！":"a = "+fmt(a)+" > 0，不等号方向不变 ✓",noteColor:flipped?"#dc2626":"#059669"});
+ }
+ const sol=computeSolution(a,b,c);
+ if(sol.type==="interval"){
+  steps.push({id:3,label:"解集",lines:["∴ x "+sol.dir+" "+fmt(sol.value)],isFinal:true});
+ }else if(sol.type==="all"){
+  steps.push({id:3,label:"解集",lines:["∴ x ∈ ℝ（全体实数）"],isFinal:true});
+ }else{
+  steps.push({id:3,label:"解集",lines:["∴ 无解"],isFinal:true});
+ }
+ return steps;
+}
+
+/* ─── SVG helpers ─── */
+function el(tag,attrs,parent){
+ const e=document.createElementNS(svgNS,tag);
+ if(attrs)Object.keys(attrs).forEach(k=>e.setAttribute(k,attrs[k]));
+ if(parent)parent.appendChild(e);
+ return e;
+}
+function clear(g){while(g.firstChild)g.removeChild(g.firstChild)}
+function addText(parent,x,y,text,opts={}){
+ const t=el("text",{
+  x:x,y:y,
+  "font-size":opts.fontSize||16,
+  "font-weight":opts.fontWeight||"normal",
+  fill:opts.fill||"#1e293b",
+  "text-anchor":opts.anchor||"start",
+  "font-family":opts.fontFamily||"-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"Microsoft YaHei\",sans-serif"
+ },parent);
+ t.textContent=text;
+ if(opts.class)t.setAttribute("class",opts.class);
+ return t;
+}
+function addMultiline(parent,x,y,lines,opts={}){
+ const g=el("g",{},parent);
+ lines.forEach((line,i)=>{
+  addText(parent,x,y+i*(opts.lineH||28),line,opts);
+ });
+ return g;
+}
+
+/* ─── Render ─── */
+function render(){
+ renderTitle();
+ renderIneq();
+ renderSteps();
+ renderDivider();
+ renderNumLine();
+ renderSolutionOverlay();
+ updateReadout();
+}
+
+function renderTitle(){
+ const g=$("gTitle");clear(g);
+ addText(g,500,38,"一元一次不等式  ax + b > c",{fontSize:26,fontWeight:"bold",fill:"#1e293b",anchor:"middle"});
+}
+
+function renderIneq(){
+ const g=$("gIneq");clear(g);
+ el("rect",{x:40,y:52,width:920,height:68,rx:12,fill:"#eff6ff",stroke:"#bfdbfe","stroke-width":1.5,filter:"url(#shadow)"},g);
+ const mx=500,my=96;
+ const a=S.a,b=S.b,c=S.c;
+ const aStr=fmtTerm(a,"");
+ const bStr=fmtAdd(b);
+ const cStr=fmt(c);
+ const t=el("text",{x:mx,y:my,"font-size":30,"text-anchor":"middle","font-weight":"bold"},g);
+ el("tspan",{fill:"#2563eb"},t).textContent=aStr+(a!==0?"x ":"");
+ el("tspan",{fill:"#1e293b"},t).textContent=" "+bStr+" > ";
+ el("tspan",{fill:"#059669","font-weight":"bold"},t).textContent=cStr;
+}
+
+function renderSteps(){
+ const g=$("gSteps");clear(g);
+ const steps=getSteps(S.a,S.b,S.c);
+ const startY=135;
+ const lineH=20;
+ addText(g,60,startY,"求解过程",{fontSize:14,fontWeight:"bold",fill:"#64748b"});
+ let cy=startY+18;
+ steps.forEach((step,idx)=>{
+  const sg=el("g",{class:"step-g",id:"sg-"+idx,style:"opacity:"+(idx<=S.step?1:0)},g);
+  const hasNote=!!step.note;
+  const contentH=30+step.lines.length*lineH+(hasNote?lineH+4:0);
+  const bgH=contentH+10;
+  const bgY=cy-6;
+  const highlight=idx===S.step;
+  if(idx<=S.step&&highlight){
+   el("rect",{x:45,y:bgY,width:910,height:bgH,rx:8,fill:idx===3?"#f0fdf4":"#f8fafc",stroke:idx===3?"#86efac":"#e2e8f0","stroke-width":1.5},sg);
+  }
+  const labelPrefix=["①","②","③","∴"][idx]||(idx+1)+".";
+  const labelColor=step.flipped?"#dc2626":idx===3?"#059669":"#2563eb";
+  addText(sg,60,cy+8,labelPrefix+" "+step.label,{fontSize:13,fontWeight:"bold",fill:labelColor});
+  step.lines.forEach((line,li)=>{
+   addText(sg,90,cy+28+li*lineH,line,{fontSize:16,fontWeight:li===step.lines.length-1?"bold":"normal",fill:"#1e293b"});
+  });
+  if(step.note&&idx<=S.step){
+   addText(sg,90,cy+28+step.lines.length*lineH+2,step.note,{fontSize:12,fontWeight:"bold",fill:step.noteColor||"#64748b"});
+  }
+  cy+=bgH+6;
+ });
+}
+
+function renderDivider(){
+ const g=$("gDivider");clear(g);
+ el("line",{x1:50,y1:430,x2:950,y2:430,stroke:"#e2e8f0","stroke-width":1.5,"stroke-dasharray":"6,4"},g);
+ addText(g,500,448,"数轴表示",{fontSize:14,fontWeight:"bold",fill:"#64748b",anchor:"middle"});
+}
+
+function renderNumLine(){
+ const g=$("gNumLine");clear(g);
+ const lineY=478;
+ /* ticks and labels */
+ for(let v=-10;v<=10;v++){
+  const x=svgX(v);
+  const major=v%5===0;
+  el("line",{x1:x,y1:lineY-(major?10:5),x2:x,y2:lineY+(major?10:5),stroke:"#94a3b8","stroke-width":major?2:1.2},g);
+   addText(g,x,lineY+(major?22:18),fmt(v),{fontSize:major?12:10,fontWeight:major?"bold":"normal",fill:minorLabelColor(v),anchor:"middle"});
+ }
+ /* main line */
+ el("line",{x1:svgX(-10),y1:lineY,x2:svgX(10),y2:lineY,stroke:"#1e293b","stroke-width":2.5},g);
+ /* arrow */
+ const ax2=svgX(10);
+ el("polygon",{points:`${ax2},${lineY} ${ax2-10},${lineY-5} ${ax2-10},${lineY+5}`,fill:"#1e293b"},g);
+}
+function minorLabelColor(v){return v===0?"#1e293b":"#64748b"}
+
+function renderSolutionOverlay(){
+ const g=$("gSolution");clear(g);
+ const lineY=478;
+ const sol=computeSolution(S.a,S.b,S.c);
+ if(sol.type==="all"){
+  el("rect",{x:svgX(-10),y:lineY-12,width:svgX(10)-svgX(-10),height:24,rx:4,fill:"rgba(37,99,235,0.18)",stroke:"rgba(37,99,235,0.35)","stroke-width":1},g);
+  addText(g,500,lineY+42,"x ∈ ℝ",{fontSize:13,fontWeight:"bold",fill:"#2563eb",anchor:"middle"},g);
+  return;
+ }
+ if(sol.type==="none"){
+  addText(g,500,lineY+42,"无解",{fontSize:13,fontWeight:"bold",fill:"#dc2626",anchor:"middle"},g);
+  return;
+ }
+ const v=sol.value;
+ const dir=sol.dir;
+ const bx=svgX(v);
+ const clipped=Math.max(svgX(-10),Math.min(svgX(10),bx));
+ let shadeX,shadeW;
+ if(dir===">"){
+  shadeX=clipped;
+  shadeW=svgX(10)-clipped;
+ }else{
+  shadeX=svgX(-10);
+  shadeW=clipped-svgX(-10);
+ }
+ if(shadeW>0.5){
+  el("rect",{x:shadeX,y:lineY-12,width:shadeW,height:24,rx:3,fill:"rgba(37,99,235,0.18)",stroke:"rgba(37,99,235,0.35)","stroke-width":1,"clip-path":"url(#nlClip)"},g);
+ }
+ /* boundary circle */
+ const cx=clipped;
+ const circle=el("circle",{cx:cx,cy:lineY,r:7,fill:"#fff",stroke:"#dc2626","stroke-width":2.5},g);
+ circle.setAttribute("class","boundary-pulse");
+ /* solution label */
+ const labelX=dir===">"?Math.min(cx+35,svgX(10)-25):Math.max(cx-35,svgX(-10)+25);
+ addText(g,labelX,lineY+42,"x "+dir+" "+fmt(v),{fontSize:13,fontWeight:"bold",fill:"#2563eb",anchor:"middle"},g);
+ /* arrows on shaded side */
+ if(dir===">"&&shadeW>30){
+  const arrowX=shadeX+Math.min(22,shadeW/2);
+  el("polygon",{points:`${arrowX+7},${lineY} ${arrowX},${lineY-4} ${arrowX},${lineY+4}`,fill:"#2563eb",opacity:.5},g);
+ }
+ if(dir==="<"&&shadeW>30){
+  const arrowX=shadeX+shadeW-Math.min(22,shadeW/2);
+  el("polygon",{points:`${arrowX-7},${lineY} ${arrowX},${lineY-4} ${arrowX},${lineY+4}`,fill:"#2563eb",opacity:.5},g);
+ }
+}
+
+/* ─── Readout ─── */
+function updateReadout(){
+ const sol=computeSolution(S.a,S.b,S.c);
+ const steps=getSteps(S.a,S.b,S.c);
+ let html="";
+ html+='<div><span class="rb-label">当前步骤：</span><span class="rb-val">'+(S.step+1)+' / '+(S.maxStep+1)+'</span></div>';
+ html+='<div><span class="rb-label">步骤说明：</span><span class="rb-val">'+steps[Math.min(S.step,S.maxStep)].label+'</span></div>';
+ html+='<div style="margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0">';
+ if(sol.type==="interval"){
+  html+='<div class="rb-sol">解集：x '+sol.dir+' '+fmt(sol.value)+'</div>';
+ }else if(sol.type==="all"){
+  html+='<div class="rb-sol">解集：x ∈ ℝ</div>';
+ }else{
+  html+='<div class="rb-sol" style="color:#dc2626">解集：∅（无解）</div>';
+ }
+ html+='</div>';
+ if(S.a<0){
+  html+='<div style="margin-top:6px;color:#dc2626;font-size:12px;font-weight:600">⚠ a < 0：除以负数需变号</div>';
+ }
+ $('readoutContent').innerHTML=html;
+}
+
+/* ─── Animation ─── */
+function play(){
+ if(S.playing)return;
+ if(S.step>=S.maxStep){S.step=0;render();}
+ S.playing=true;
+ advance();
+}
+function advance(){
+ if(!S.playing)return;
+ if(S.step>=S.maxStep){S.playing=false;return;}
+ S.step++;
+ updateStepVis();
+ updateReadout();
+ const delay=S.step===2&&S.a<0?2200:1400;
+ S.timer=setTimeout(()=>{
+  if(S.playing)advance();
+ },delay);
+}
+function pause(){S.playing=false;if(S.timer){clearTimeout(S.timer);S.timer=null}}
+function step(){pause();if(S.step<S.maxStep){S.step++;updateStepVis();updateReadout()}}
+function reset(){pause();S.step=0;updateStepVis();updateReadout()}
+function reverse(){pause();if(S.step>0){S.step--;updateStepVis();updateReadout()}}
+function updateStepVis(){
+ for(let i=0;i<=S.maxStep;i++){
+  const g=$("sg-"+i);
+  if(g)g.style.opacity=i<=S.step?1:0;
+ }
+}
+
+/* ─── Verify ─── */
+function verify(){
+ const sol=computeSolution(S.a,S.b,S.c);
+ if(sol.type==="all"){
+  return{pass:true,message:"a=0, b="+fmt(S.b)+" > c="+fmt(S.c)+"，不等式恒成立，解集为 ℝ"};
+ }
+ if(sol.type==="none"){
+  return{pass:true,message:"a=0, b="+fmt(S.b)+" ≤ c="+fmt(S.c)+"，不等式无解"};
+ }
+ const dir=sol.dir;
+ const val=sol.value;
+ const a=S.a,b=S.b,c=S.c;
+ const correct=(a>0?(val*a+b>c):(val*a+b<c));
+ return{
+  pass:correct,
+  message:"解集 x "+dir+" "+fmt(val)+"。验证：取边界 "+fmt(val)+"，"+fmt(a)+"×"+fmt(val)+"+"+fmt(b)+" = "+fmt(a*val+b)+(correct?" ✓":" ✗")
+ };
+}
+
+/* ─── SetParams ─── */
+function setParams(p){
+ if(p.a!==undefined)S.a=p.a;
+ if(p.b!==undefined)S.b=p.b;
+ if(p.c!==undefined)S.c=p.c;
+ $('sA').value=S.a;$('vA').textContent=S.a;
+ $('sB').value=S.b;$('vB').textContent=S.b;
+ $('sC').value=S.c;$('vC').textContent=S.c;
+ reset();render();
+}
+
+/* ─── URL Params ─── */
+function readURL(){
+ const u=new URLSearchParams(window.location.search);
+ if(u.has("a"))S.a=parseInt(u.get("a"))||0;
+ if(u.has("b"))S.b=parseInt(u.get("b"))||0;
+ if(u.has("c"))S.c=parseInt(u.get("c"))||0;
+}
+function writeURL(){
+ const u=new URLSearchParams();
+ u.set("a",S.a);u.set("b",S.b);u.set("c",S.c);
+ history.replaceState(null,"","?"+u.toString());
+}
+function copyLink(){
+ const url=new URL(window.location.href);
+ url.searchParams.set("a",S.a);url.searchParams.set("b",S.b);url.searchParams.set("c",S.c);
+ navigator.clipboard.writeText(url.toString()).then(()=>{
+  $('btnCopy').textContent="✓ 已复制";
+  setTimeout(()=>$('btnCopy').textContent="🔗 复制分享链接",1500);
+ }).catch(()=>{
+  prompt("复制此链接：",url.toString());
+ });
+}
+
+/* ─── Events ─── */
+function bindEvents(){
+ $('sA').addEventListener("input",e=>{S.a=parseInt(e.target.value);$('vA').textContent=S.a;writeURL();reset();render()});
+ $('sB').addEventListener("input",e=>{S.b=parseInt(e.target.value);$('vB').textContent=S.b;writeURL();reset();render()});
+ $('sC').addEventListener("input",e=>{S.c=parseInt(e.target.value);$('vC').textContent=S.c;writeURL();reset();render()});
+ $('btnPlay').addEventListener("click",play);
+ $('btnPause').addEventListener("click",pause);
+ $('btnStep').addEventListener("click",step);
+ $('btnReset').addEventListener("click",reset);
+ $('btnCopy').addEventListener("click",copyLink);
+ document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT")return;
+  if(e.code==="Space"){e.preventDefault();S.playing?pause():play()}
+  if(e.code==="ArrowRight"){e.preventDefault();step()}
+  if(e.code==="KeyR"){e.preventDefault();reset()}
+  if(e.code==="ArrowLeft"){e.preventDefault();reverse()}
+ });
+}
+
+/* ─── SciDemo API ─── */
+window.SciDemo={
+ setParams:setParams,
+ play:play,
+ pause:pause,
+ step:step,
+ reset:reset,
+ reverse:reverse,
+ verify:verify,
+ getState:function(){return{a:S.a,b:S.b,c:S.c,step:S.step,maxStep:S.maxStep,solution:computeSolution(S.a,S.b,S.c),playing:S.playing}},
+ isReady:true
+};
+
+/* ─── Init ─── */
+function init(){
+ readURL();
+ $('sA').value=S.a;$('vA').textContent=S.a;
+ $('sB').value=S.b;$('vB').textContent=S.b;
+ $('sC').value=S.c;$('vC').textContent=S.c;
+ writeURL();
+ bindEvents();
+ render();
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);
+else init();
+})();
+</script>
+</body>
+</html>

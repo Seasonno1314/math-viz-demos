@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-G07 函数 · 映射箭头图（集合对应观点）</title>
+<style>
+:root{
+  --bg:#0b1420; --panel:#132238; --panel2:#0f1b2e;
+  --line:#24405f; --line2:#2f4d70;
+  --blue:#5DA9E9; --gold:#E8B964;
+  --red:#e0675f; --green:#7cc58a;
+  --text:#dbe8f5; --muted:#8aa3bd;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 800px at 72% -10%, #12304f 0%, var(--bg) 55%) fixed;
+  color:var(--text); font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  line-height:1.55;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+.title-card{
+  background:linear-gradient(135deg,#0d1c31 0%,#1b3556 55%,#122a45 100%);
+  border:1px solid #2f4d70;border-radius:16px;padding:22px 24px;margin-bottom:18px;
+  position:relative;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.4);
+}
+.title-card::before{content:'';position:absolute;top:-70px;right:-40px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(232,185,100,.16),transparent 70%)}
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.bd{font-size:12px;color:var(--blue);border:1px solid rgba(93,169,233,.5);border-radius:999px;padding:3px 12px;background:rgba(93,169,233,.08)}
+h1{font-size:30px;color:var(--gold);letter-spacing:2px;text-shadow:0 2px 12px rgba(232,185,100,.25)}
+.sub{color:var(--muted);font-size:14px;margin:4px 0 14px}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:880px){.chips{grid-template-columns:1fr}}
+.chip{background:rgba(10,20,35,.6);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--text)}
+.chip b{display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;border-radius:6px;background:var(--gold);color:#0b1420;margin-right:8px;font-weight:800}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:18px;align-items:start}
+@media(max-width:880px){.stage{grid-template-columns:1fr}}
+.svg-wrap{
+  position:relative;background:var(--panel2);
+  background-image:radial-gradient(rgba(93,169,233,.06) 1px,transparent 1.2px);background-size:24px 24px;
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+.svg-wrap svg{display:block;width:100%;height:auto;user-select:none}
+.set-ellipse{fill:none;stroke-width:2.5}
+.set-ellipse.a{stroke:var(--gold);stroke-dasharray:9 7;opacity:.85}
+.set-ellipse.b{stroke:var(--blue);stroke-dasharray:9 7;opacity:.85}
+.set-name{font-size:19px;font-weight:700;fill:var(--muted);letter-spacing:1px}
+.cap{font-size:22px;font-weight:800;fill:var(--gold);letter-spacing:1px}
+.elem{cursor:pointer}
+.ball{fill-opacity:.95}
+.ball-a{fill:var(--gold);stroke:#0f1b2e;stroke-width:2}
+.ball-b{fill:var(--blue);stroke:#0f1b2e;stroke-width:2}
+.ring{fill:none;stroke:rgba(255,255,255,.9);stroke-width:2.5;opacity:0;transition:opacity .15s;pointer-events:none}
+.elem:hover .ring{opacity:.6}
+.elem.selected .ring{opacity:1;stroke:var(--gold);animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.lbl{font-size:18px;font-weight:800;fill:#0c1626;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.arrow{fill:none;stroke:var(--blue);stroke-width:3;stroke-linecap:round;opacity:0;animation:arr .5s ease-out forwards;filter:drop-shadow(0 0 3px rgba(93,169,233,.45))}
+.arrow.rejected{stroke:var(--red);stroke-dasharray:8 6;stroke-width:3;filter:drop-shadow(0 0 3px rgba(224,103,95,.4))}
+@keyframes arr{from{opacity:0;stroke-width:8}to{opacity:1;stroke-width:3}}
+.hit{fill:none;stroke:transparent;stroke-width:18;cursor:pointer}
+.xmark{font-size:20px;font-weight:800;fill:var(--red);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.status{
+  position:absolute;top:14px;right:14px;z-index:5;max-width:430px;
+  padding:10px 14px;border-radius:10px;font-size:15px;font-weight:700;border:1.5px solid;
+  backdrop-filter:blur(3px);opacity:0;transform:translateY(-6px);transition:.25s;
+}
+.status.on{opacity:1;transform:none}
+.status.ok{background:rgba(18,45,30,.9);border-color:var(--green);color:#b9e6c0}
+.status.warn{background:rgba(58,28,28,.93);border-color:var(--red);color:#ffb9b4;box-shadow:0 0 18px rgba(224,103,95,.35)}
+.status.neutral{background:rgba(24,38,58,.92);border-color:var(--line);color:var(--muted)}
+.legend{position:absolute;left:14px;bottom:12px;display:flex;gap:16px;font-size:12.5px;color:var(--muted);background:rgba(10,20,35,.6);padding:6px 10px;border-radius:8px;border:1px solid var(--line)}
+.legend .lg{display:flex;align-items:center;gap:6px}
+.dot{width:22px;height:4px;border-radius:2px}
+.dot.ok{background:var(--blue)}
+.dot.rej{background:var(--red)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:16px}
+.panel h3{font-size:13px;letter-spacing:2px;color:var(--gold);border-left:3px solid var(--gold);padding-left:8px;margin-bottom:8px}
+button{font:inherit;color:var(--text);background:#162a45;border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer;transition:border-color .15s,background .15s,transform .1s}
+button:hover:not(:disabled){border-color:var(--blue);background:#1a3357;transform:translateY(-1px)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:linear-gradient(135deg,#5DA9E9,#3f7fc4);color:#0b1420;font-weight:700;border:none}
+button.gold{background:linear-gradient(135deg,#E8B964,#d09a3f);color:#0b1420;font-weight:700;border:none}
+button.active{outline:2px solid var(--gold);outline-offset:1px}
+.preset-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-row .wide{grid-column:1/-1}
+.selinfo{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.selinfo b{color:var(--gold);font-size:15px}
+.setedit{display:flex;flex-direction:column;gap:8px}
+.setedit>div{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.setedit>div span{flex:1}
+.setedit button{width:38px;height:32px;padding:0}
+.note{font-size:13px;color:var(--blue);background:rgba(93,169,233,.08);border:1px solid rgba(93,169,233,.35);border-radius:8px;padding:8px 10px}
+.kbd{font-size:12px;color:var(--muted);text-align:center;margin-top:2px}
+kbd{background:#0a1320;border:1px solid var(--line2);border-radius:4px;padding:1px 6px;font-family:Consolas,monospace;color:var(--blue)}
+.readout-wrap{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.readout-wrap h3{font-size:13px;letter-spacing:2px;color:var(--gold);border-left:3px solid var(--gold);padding-left:8px;margin-bottom:10px}
+#readout{background:#0a1320;border:1px solid var(--line2);border-radius:8px;padding:12px;font-family:"Cascadia Code",Consolas,monospace;font-size:12px;line-height:1.5;color:#9fd0f0;overflow:auto;max-height:300px;white-space:pre}
+.questions{margin-top:18px}
+.questions h2{font-size:18px;color:var(--gold);letter-spacing:2px;border-left:3px solid var(--gold);padding-left:8px;margin-bottom:12px}
+.qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media(max-width:880px){.qgrid{grid-template-columns:1fr}}
+.q{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.qn{position:absolute;top:10px;right:14px;font-size:30px;font-weight:800;color:rgba(232,185,100,.16)}
+.q h4{font-size:15px;color:var(--blue);margin-bottom:6px}
+.q p{font-size:13.5px;color:var(--muted)}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:24px;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="title-card">
+    <div class="badges">
+      <span class="bd">高02 · 函数概念升级</span>
+      <span class="bd">12 卷断层 3：变量依赖 → 集合对应</span>
+      <span class="bd">映射箭头图 · 对应规则 f: A → B</span>
+    </div>
+    <h1>C-G07 函数 · 映射箭头图</h1>
+    <p class="sub">集合对应观点 · 数形动一体 · 高中「函数概念升级」旗舰案例</p>
+    <div class="chips">
+      <span class="chip"><b>数</b>函数＝对应规则 f: A → B，每个 x 恰有一个 y 与之对应</span>
+      <span class="chip"><b>形</b>左右两个集合椭圆 + 箭头（射影 / 映射图），直观看对应关系</span>
+      <span class="chip"><b>动</b>选输入 → 选输出 → 连线；多对一 ✓ 允许，一对多 ✗ 被系统拒绝</span>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="svg-wrap">
+      <svg id="scene" viewBox="0 0 1000 720" role="img" aria-label="函数映射箭头图：集合A到集合B的对应">
+        <defs>
+          <marker id="mArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#5DA9E9"/></marker>
+          <marker id="mArrowR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="#e0675f"/></marker>
+        </defs>
+        <text class="cap" x="500" y="52" text-anchor="middle">对应规则 f : A → B</text>
+        <ellipse class="set-ellipse a" cx="240" cy="360" rx="140" ry="300"/>
+        <ellipse class="set-ellipse b" cx="760" cy="360" rx="140" ry="300"/>
+        <text class="set-name a" x="240" y="62" text-anchor="middle">集合 A · 定义域</text>
+        <text class="set-name b" x="760" y="62" text-anchor="middle">集合 B · 值域</text>
+        <g id="arrowLayer"></g>
+        <g id="elemLayer"></g>
+      </svg>
+      <div id="statusBox" class="status neutral">点击左侧集合元素选择输入，右侧选择输出，再点击「连线」</div>
+      <div class="legend">
+        <span class="lg"><span class="dot ok"></span>蓝箭头：有效对应</span>
+        <span class="lg"><span class="dot rej"></span>红虚线：一对多被拒</span>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div>
+        <h3>预设场景</h3>
+        <div class="preset-btns">
+          <button class="gold" data-preset="x2">y = x²</button>
+          <button data-preset="sqrt">y = √x</button>
+          <button data-preset="nonsqrt">y = ±√x（非函数）</button>
+          <button data-preset="free">自由模式</button>
+        </div>
+        <div id="note" class="note" style="margin-top:10px"></div>
+      </div>
+
+      <div>
+        <h3>连线操作</h3>
+        <div class="selinfo">
+          <span>输入（集合 A）：<b id="selA">—</b></span>
+          <span>输出（集合 B）：<b id="selB">—</b></span>
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+          <button id="btnConnect" class="primary wide" disabled>连线 →</button>
+          <button id="btnUndo">撤销</button>
+          <button id="btnClear">清空</button>
+        </div>
+      </div>
+
+      <div>
+        <h3>集合元素（2–6 个）</h3>
+        <div class="setedit">
+          <div><span>集合 A</span><button id="addA" title="增加 A 元素">+</button><button id="subA" title="删除 A 元素">−</button></div>
+          <div><span>集合 B</span><button id="addB" title="增加 B 元素">+</button><button id="subB" title="删除 B 元素">−</button></div>
+        </div>
+      </div>
+
+      <div>
+        <h3>演示控制</h3>
+        <div class="btn-row">
+          <button id="btnPlay" class="gold">▶ 播放</button>
+          <button id="btnPause">⏸ 暂停</button>
+          <button id="btnStep">步进 →</button>
+          <button id="btnReset">重置 R</button>
+        </div>
+        <div class="kbd" style="margin-top:8px"><kbd>Space</kbd> 播放/暂停 · <kbd>→</kbd> 步进 · <kbd>R</kbd> 重置</div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="readout-wrap">
+    <h3>实时数据 readout</h3>
+    <pre id="readout"></pre>
+  </section>
+
+  <section class="questions">
+    <h2>课堂提问（3 问）</h2>
+    <div class="qgrid">
+      <article class="q"><span class="qn">Q1</span><h4>哪些对应是函数？</h4><p>比较 y=x²、y=√x、y=±√x 三个箭头图，逐一判定每个对应是否构成函数，并说出你的判定依据（重点：一个 x 对应几个 y）。</p></article>
+      <article class="q"><span class="qn">Q2</span><h4>为什么一对多不行？</h4><p>一个 x 只能对应唯一 y，才能保证结果的「确定性」——所以多对一允许、一对多被系统拒绝。试举一个生活中的「多对一」与「一对多」实例来印证。</p></article>
+      <article class="q"><span class="qn">Q3</span><h4>值域与集合 B 的关系？</h4><p>集合 B 中未被箭头射中的元素会影响「它是函数」吗？箭头图中函数的值域与集合 B、集合 A 有什么关系？</p></article>
+    </div>
+  </section>
+
+  <footer>
+    C-G07 函数 · 映射箭头图　|　单文件零依赖　|　键盘：<kbd>Space</kbd> 播放/暂停 · <kbd>→</kbd> 步进 · <kbd>R</kbd> 重置<br>
+    URL 分享：<code>?preset=x2</code> | <code>?preset=sqrt</code> | <code>?preset=nonsqrt</code> | <code>?mode=free</code>
+  </footer>
+
+</div>
+<script>
+(function(){
+  var SVGNS='http://www.w3.org/2000/svg';
+  var PRESETS={
+    x2:{A:['−2','−1','1','2'],B:['1','4'],seq:[{a:0,b:1},{a:1,b:0},{a:2,b:0},{a:3,b:1}],note:'y = x²：多对一（−2、2→4；−1、1→1）→ 是函数 ✓'},
+    sqrt:{A:['0','1','4','9'],B:['0','1','2','3'],seq:[{a:0,b:0},{a:1,b:1},{a:2,b:2},{a:3,b:3}],note:'y = √x：一对一 → 是函数 ✓'},
+    nonsqrt:{A:['1','4'],B:['−2','−1','1','2'],seq:[{a:0,b:2},{a:1,b:3},{a:0,b:1},{a:1,b:0}],note:'y = ±√x：1 与 4 各对应两个 y（一对多）→ 不是函数 ✗'}
+  };
+  var AX=240,AY=360,BX=760,BY=360,RY=300;
+  var M={mode:'free',preset:null,setA:['1','2','3'],setB:['a','b','c'],arrows:[],rejected:[],seq:[],seqIndex:0,selA:null,selB:null,playing:false,timer:null,autoTimer:null,dirtyArrows:true,delay:850};
+  var $=function(s){return document.querySelector(s)};
+  var arrowLayer=$('#arrowLayer'),elemLayer=$('#elemLayer'),statusBox=$('#statusBox');
+  var ready=false;
+
+  function el(tag,attrs,text){
+    var e=document.createElementNS(SVGNS,tag);
+    for(var k in attrs)e.setAttribute(k,attrs[k]);
+    if(text!=null)e.textContent=text;
+    return e;
+  }
+  function nextALabel(){return String(M.setA.length+1)}
+  function nextBLabel(){return String.fromCharCode(97+M.setB.length)}
+  function posFor(set,i,n){
+    var c=set==='A'?AX:BX,top=AY-RY*0.76,bot=AY+RY*0.76;
+    var y=n===1?AY:top+i*((bot-top)/(n-1));
+    return {x:c,y:y};
+  }
+  function applyPreset(name){
+    var p=PRESETS[name];if(!p)return;
+    M.mode='preset';M.preset=name;
+    M.setA=p.A.slice();M.setB=p.B.slice();
+    M.seq=p.seq.map(function(s){return {a:s.a,b:s.b}});
+    M.seqIndex=0;M.arrows=[];M.rejected=[];M.selA=M.selB=null;M.dirtyArrows=true;
+  }
+  function applyFree(){
+    M.mode='free';M.preset=null;M.seq=[];M.seqIndex=0;
+    M.setA=['1','2','3'];M.setB=['a','b','c'];
+    M.arrows=[];M.rejected=[];M.selA=M.selB=null;M.dirtyArrows=true;
+  }
+  function connect(a,b){
+    if(M.arrows.some(function(ar){return ar.a===a&&ar.b===b}))return 'dup';
+    if(M.rejected.some(function(ar){return ar.a===a&&ar.b===b}))return 'reject';
+    if(M.arrows.some(function(ar){return ar.a===a})){M.rejected.push({a:a,b:b});M.dirtyArrows=true;return 'reject'}
+    M.arrows.push({a:a,b:b});M.dirtyArrows=true;return 'ok';
+  }
+  function removePair(a,b){
+    var ia=M.arrows.findIndex(function(ar){return ar.a===a&&ar.b===b});
+    if(ia>=0){M.arrows.splice(ia,1);M.dirtyArrows=true;return}
+    var ir=M.rejected.findIndex(function(ar){return ar.a===a&&ar.b===b});
+    if(ir>=0){M.rejected.splice(ir,1);M.dirtyArrows=true}
+  }
+  function statusInfo(){
+    if(M.rejected.length>0)return {cls:'warn',text:'⚠ 不是函数！一个 x 只能对应一个 y'};
+    if(M.arrows.length===0)return {cls:'neutral',text:'请点击左侧选输入、右侧选输出，再点「连线」，观察是否构成函数'};
+    return {cls:'ok',text:'✓ 这是函数：每个 x 对应唯一 y（多对一允许）'};
+  }
+  function verify(){
+    var attempts=M.arrows.concat(M.rejected),byInput={};
+    attempts.forEach(function(ar){(byInput[ar.a]=byInput[ar.a]||[]).push(ar.b)});
+    var oneToMany=[];
+    for(var k in byInput){var bs=byInput[k];if(new Set(bs).size>1)oneToMany.push({a:+k,bs:Array.from(new Set(bs))})}
+    var ok,reason;
+    if(M.rejected.length>0||oneToMany.length>0){ok=false;reason='不是函数：存在一对多，一个 x 对应了多个 y'}
+    else if(attempts.length===0){ok=false;reason='尚未建立对应关系（请先连线）'}
+    else{ok=true;reason='是函数：每个 x 恰对应唯一 y（多对一允许）'}
+    return {ok:ok,reason:reason,oneToMany:oneToMany,arrows:M.arrows.length,rejected:M.rejected.length};
+  }
+  function snapshot(){
+    return {mode:M.mode,preset:M.preset,setA:M.setA.slice(),setB:M.setB.slice(),
+      arrows:M.arrows.map(function(a){return {a:a.a,b:a.b}}),
+      rejected:M.rejected.map(function(a){return {a:a.a,b:a.b}}),
+      seq:M.seqIndex+'/'+M.seq.length,playing:M.playing,
+      selection:{a:M.selA,b:M.selB},verify:verify()};
+  }
+  function renderElements(){
+    elemLayer.innerHTML='';
+    var NA=M.setA.length,NB=M.setB.length;
+    M.setA.forEach(function(label,i){
+      var p=posFor('A',i,NA);
+      var g=el('g',{class:'elem'+(M.selA===i?' selected':''),transform:'translate('+p.x+','+p.y+')'});
+      g.appendChild(el('circle',{r:27,class:'ring'}));
+      g.appendChild(el('circle',{r:21,class:'ball ball-a'}));
+      g.appendChild(el('text',{class:'lbl',x:0,y:0},label));
+      g.addEventListener('click',function(){M.selA=(M.selA===i?null:i);render()});
+      elemLayer.appendChild(g);
+    });
+    M.setB.forEach(function(label,i){
+      var p=posFor('B',i,NB);
+      var g=el('g',{class:'elem'+(M.selB===i?' selected':''),transform:'translate('+p.x+','+p.y+')'});
+      g.appendChild(el('circle',{r:27,class:'ring'}));
+      g.appendChild(el('circle',{r:21,class:'ball ball-b'}));
+      g.appendChild(el('text',{class:'lbl',x:0,y:0},label));
+      g.addEventListener('click',function(){M.selB=(M.selB===i?null:i);render()});
+      elemLayer.appendChild(g);
+    });
+  }
+  function renderArrows(){
+    arrowLayer.innerHTML='';
+    var NA=M.setA.length,NB=M.setB.length;
+    var pairs=M.arrows.map(function(ar){return {a:ar.a,b:ar.b,r:false}})
+      .concat(M.rejected.map(function(ar){return {a:ar.a,b:ar.b,r:true}}));
+    pairs.forEach(function(ar){
+      var p1=posFor('A',ar.a,NA),p2=posFor('B',ar.b,NB);
+      var x1=p1.x+23,y1=p1.y,x2=p2.x-23,y2=p2.y;
+      var dd='M'+x1+','+y1+' L'+x2+','+y2;
+      var path=el('path',{class:'arrow'+(ar.r?' rejected':''),d:dd,pathLength:'1','marker-end':ar.r?'url(#mArrowR)':'url(#mArrow)'});
+      var hit=el('path',{class:'hit',d:dd});
+      hit.addEventListener('click',function(){removePair(ar.a,ar.b);render()});
+      var g=el('g');
+      g.appendChild(hit);g.appendChild(path);
+      if(ar.r)g.appendChild(el('text',{class:'xmark',x:(x1+x2)/2,y:(y1+y2)/2},'✕'));
+      arrowLayer.appendChild(g);
+    });
+  }
+  function updateStatus(){
+    var info=statusInfo();
+    statusBox.className='status '+info.cls+' on';
+    statusBox.textContent=info.text;
+    $('#selA').textContent=M.selA===null?'—':'x = '+M.setA[M.selA];
+    $('#selB').textContent=M.selB===null?'—':'y = '+M.setB[M.selB];
+    $('#btnConnect').disabled=!(M.selA!==null&&M.selB!==null);
+    $('#addA').disabled=M.setA.length>=6;
+    $('#addB').disabled=M.setB.length>=6;
+    $('#subA').disabled=M.setA.length<=2;
+    $('#subB').disabled=M.setB.length<=2;
+    $('#btnPlay').disabled=M.mode!=='preset'||M.playing||M.seqIndex>=M.seq.length;
+    $('#btnPause').disabled=!M.playing;
+    $('#btnStep').disabled=M.mode==='preset'&&M.seqIndex>=M.seq.length;
+    $('#note').textContent=M.mode==='preset'&&M.preset?PRESETS[M.preset].note:'自由模式：点选元素连线，试试「多对一」与「一对多」';
+    document.querySelectorAll('[data-preset]').forEach(function(b){
+      var v=b.dataset.preset;
+      b.classList.toggle('active',v==='free'?M.mode==='free':(M.mode==='preset'&&M.preset===v));
+    });
+  }
+  function updateReadout(){
+    $('#readout').textContent=JSON.stringify(snapshot(),null,2);
+  }
+  function render(){
+    renderElements();
+    if(M.dirtyArrows){renderArrows();M.dirtyArrows=false}
+    updateStatus();
+    updateReadout();
+  }
+  function pause(){
+    M.playing=false;
+    if(M.timer){clearInterval(M.timer);M.timer=null}
+    if(M.autoTimer){clearTimeout(M.autoTimer);M.autoTimer=null}
+  }
+  function step(){
+    if(M.mode==='preset'){
+      if(M.seqIndex<M.seq.length){
+        var s=M.seq[M.seqIndex];M.seqIndex++;
+        connect(s.a,s.b);render();
+      }
+      return;
+    }
+    if(M.selA!==null&&M.selB!==null){
+      connect(M.selA,M.selB);M.selA=M.selB=null;render();
+    }
+  }
+  function play(){
+    if(M.mode!=='preset'){step();return}
+    if(M.playing)return;
+    if(M.seqIndex>=M.seq.length)return;
+    M.playing=true;
+    step();
+    M.timer=setInterval(function(){
+      if(M.seqIndex>=M.seq.length){pause();return}
+      step();
+    },M.delay);
+    render();
+  }
+  function reset(){
+    pause();
+    if(M.mode==='preset'&&M.preset){
+      var p=PRESETS[M.preset];M.setA=p.A.slice();M.setB=p.B.slice();
+    }
+    M.seqIndex=0;M.arrows=[];M.rejected=[];M.selA=M.selB=null;M.dirtyArrows=true;
+    render();
+  }
+  function reverse(){
+    if(M.mode==='preset'&&M.seqIndex>0){
+      M.seqIndex--;
+      var s=M.seq[M.seqIndex];
+      removePair(s.a,s.b);
+    }else{
+      var last=M.arrows[M.arrows.length-1];
+      if(last)removePair(last.a,last.b);
+      else{
+        var lr=M.rejected[M.rejected.length-1];
+        if(lr)removePair(lr.a,lr.b);
+      }
+    }
+    render();
+  }
+  function updateUrl(){
+    var p=new URLSearchParams();
+    if(M.mode==='preset'&&M.preset)p.set('preset',M.preset);
+    else if(M.mode==='free')p.set('mode','free');
+    var qs=p.toString();
+    try{
+      history.replaceState(null,'',qs?location.pathname+'?'+qs+location.hash:location.pathname+location.hash);
+    }catch(e){}
+  }
+  function setParams(params){
+    pause();
+    if(!params)return;
+    if(params.preset&&PRESETS[params.preset])applyPreset(params.preset);
+    else if(params.mode==='free')applyFree();
+    updateUrl();
+    render();
+  }
+  function addElem(set){
+    if(set==='A'){if(M.setA.length>=6)return;M.setA.push(nextALabel())}
+    else{if(M.setB.length>=6)return;M.setB.push(nextBLabel())}
+    enterFreeOnSetEdit();render();
+  }
+  function subElem(set){
+    var arr=set==='A'?M.setA:M.setB;
+    if(arr.length<=2)return;
+    var idx=arr.length-1;arr.pop();
+    function fix(k){return k>idx?k-1:k}
+    M.arrows=M.arrows.filter(function(ar){return set==='A'?ar.a!==idx:ar.b!==idx})
+      .map(function(ar){return set==='A'?{a:fix(ar.a),b:ar.b}:{a:ar.a,b:fix(ar.b)}});
+    M.rejected=M.rejected.filter(function(ar){return set==='A'?ar.a!==idx:ar.b!==idx})
+      .map(function(ar){return set==='A'?{a:fix(ar.a),b:ar.b}:{a:ar.a,b:fix(ar.b)}});
+    if(set==='A')M.selA=null;else M.selB=null;
+    enterFreeOnSetEdit();render();
+  }
+  function enterFreeOnSetEdit(){
+    if(M.mode==='preset'){M.mode='free';M.preset=null;M.seq=[];M.seqIndex=0}
+    M.dirtyArrows=true;
+    updateUrl();
+  }
+  function clearAll(){
+    pause();M.seqIndex=0;M.arrows=[];M.rejected=[];M.selA=M.selB=null;M.dirtyArrows=true;render();
+  }
+  function init(){
+    $('#btnConnect').addEventListener('click',function(){
+      if(M.selA!==null&&M.selB!==null){connect(M.selA,M.selB);M.selA=M.selB=null;render()}
+    });
+    $('#btnUndo').addEventListener('click',reverse);
+    $('#btnClear').addEventListener('click',clearAll);
+    $('#btnPlay').addEventListener('click',play);
+    $('#btnPause').addEventListener('click',pause);
+    $('#btnStep').addEventListener('click',step);
+    $('#btnReset').addEventListener('click',reset);
+    $('#addA').addEventListener('click',function(){addElem('A')});
+    $('#subA').addEventListener('click',function(){subElem('A')});
+    $('#addB').addEventListener('click',function(){addElem('B')});
+    $('#subB').addEventListener('click',function(){subElem('B')});
+    document.querySelectorAll('[data-preset]').forEach(function(b){
+      b.addEventListener('click',function(){
+        setParams(b.dataset.preset==='free'?{mode:'free'}:{preset:b.dataset.preset});
+        if(b.dataset.preset!=='free'){
+          M.autoTimer=setTimeout(play,450);
+        }
+      });
+    });
+    window.addEventListener('keydown',function(e){
+      if(e.key===' '){e.preventDefault();M.playing?pause():play()}
+      else if(e.key==='ArrowRight'){step()}
+      else if(e.key==='r'||e.key==='R'){reset()}
+    });
+    var q=new URLSearchParams(location.search);
+    if(q.get('preset')&&PRESETS[q.get('preset')]){
+      applyPreset(q.get('preset'));
+      while(M.seqIndex<M.seq.length){
+        var s=M.seq[M.seqIndex++];connect(s.a,s.b);
+      }
+    }else if(q.get('mode')==='free'){
+      applyFree();
+    }
+    ready=true;
+    render();
+  }
+  init();
+  var SciDemo={
+    setParams:setParams,
+    play:play,
+    pause:pause,
+    step:step,
+    reset:reset,
+    reverse:reverse,
+    verify:verify
+  };
+  Object.defineProperty(SciDemo,'state',{get:snapshot,enumerable:true});
+  Object.defineProperty(SciDemo,'isReady',{get:function(){return ready},enumerable:true});
+  window.SciDemo=SciDemo;
+})();
+</script>
+</body>
+</html>

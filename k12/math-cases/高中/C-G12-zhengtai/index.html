@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-G12 正态曲线面积 = 概率 · 大数学交互交付</title>
+<style>
+:root{
+  --blue:#5DA9E9; --gold:#E8B964;
+  --bg:#0a131d; --card:#101d2b; --card2:#0d1825;
+  --line:#1f3448; --txt:#dfe9f3; --muted:#8aa2b8; --ok:#59d98a; --bad:#ff6b6b;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg);color:var(--txt);font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:16px 16px 44px}
+
+/* ── 深色标题卡 ── */
+.title-card{
+  background:linear-gradient(135deg,#0d1f30 0%,#132b44 55%,#0e2033 100%);
+  border:1px solid #25445f;border-radius:14px;padding:18px 20px 14px;margin-bottom:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+.tc-top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.tc-id{
+  font-family:"Consolas",monospace;font-weight:800;font-size:15px;color:#0a131d;
+  background:linear-gradient(90deg,var(--gold),#f0cd8f);padding:4px 10px;border-radius:6px;letter-spacing:1px;
+}
+.title-card h1{font-size:24px;font-weight:800;letter-spacing:2px;color:#fff;
+  background:linear-gradient(90deg,#fff,var(--blue));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.tc-sub{font-size:12px;color:var(--muted);letter-spacing:1px}
+.tc-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.tc-meta span{font-size:11px;color:var(--txt);background:rgba(93,169,233,.12);border:1px solid rgba(93,169,233,.35);
+  padding:3px 10px;border-radius:20px;letter-spacing:.5px}
+.tc-three{margin-top:12px;border-top:1px dashed #2b4a66;padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.tc-three .q{font-size:12.5px;line-height:1.6;color:#c9d9e8}
+.tc-three .q b{color:var(--gold);font-weight:800;margin-right:4px}
+.tc-three code{font-family:"Cambria Math","Times New Roman",serif;color:var(--blue)}
+
+/* ── 网格布局 ── */
+.grid{display:grid;grid-template-columns:1fr 310px;gap:16px;align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card h3{font-size:13px;color:var(--blue);font-weight:700;letter-spacing:1px;margin-bottom:10px;
+  border-bottom:1px solid #24435f;padding-bottom:6px;display:flex;align-items:center;gap:6px}
+.viz-card{padding:10px}
+.viz-card svg{width:100%;height:auto;display:block}
+.viz-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;
+  padding:8px 12px;border-radius:8px;background:var(--card2);border:1px solid var(--line);font-size:12px;color:var(--muted)}
+.viz-status .dot{width:9px;height:9px;border-radius:50%;background:#4a6178;display:inline-block;margin-right:6px;vertical-align:middle}
+.viz-status .dot.on{background:var(--gold);box-shadow:0 0 8px var(--gold);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.35}}
+
+/* ── 面板 ── */
+.panel{display:flex;flex-direction:column;gap:12px}
+.field{margin-bottom:12px}
+.flabel{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.flabel label{font-size:12.5px;font-weight:600;color:var(--txt)}
+.flabel label small{color:var(--muted);font-weight:400}
+.flabel output{font-size:13px;font-weight:800;color:var(--gold);font-family:"Consolas",monospace}
+input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;
+  background:linear-gradient(90deg,var(--blue),#3a6f9f);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--gold);border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--gold);border:2px solid #fff;cursor:pointer}
+.frange{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px}
+
+.band-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.band-btn{
+  background:var(--card2);color:var(--txt);border:1px solid #2a4a68;border-radius:8px;
+  padding:8px 2px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;line-height:1.35;
+}
+.band-btn small{display:block;font-size:10.5px;color:var(--muted);font-weight:500}
+.band-btn:hover{border-color:var(--blue)}
+.band-btn.active{background:linear-gradient(135deg,rgba(232,185,100,.22),rgba(232,185,100,.06));border-color:var(--gold);color:var(--gold)}
+.band-btn.active small{color:var(--gold)}
+
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btn{
+  border:none;border-radius:7px;padding:8px 4px;font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .15s;font-family:inherit;background:var(--card2);color:var(--txt);border:1px solid #2a4a68;
+}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.btn.primary{background:linear-gradient(135deg,var(--blue),#3a7fc4);color:#08131f;border:none}
+.btn.primary:hover{filter:brightness(1.12);color:#08131f}
+.btn.gold{background:linear-gradient(135deg,var(--gold),#d9a250);color:#221403;border:none}
+.btn.gold:hover{filter:brightness(1.08);color:#221403}
+
+.readout{font-size:12px;line-height:1.75;color:var(--muted)}
+.readout .row{display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dashed #1d3549}
+.readout .row span:last-child{font-weight:700;color:var(--txt);font-family:"Consolas",monospace}
+.readout .row.hl span:last-child{color:var(--gold);font-size:13.5px}
+.readout .row.good span:last-child{color:var(--ok)}
+.readout .row.warn span:last-child{color:#ffb84d}
+.formula-box{background:#0d2032;border:1px solid #2b5578;border-radius:7px;padding:8px 10px;
+  font-size:12px;color:var(--blue);text-align:center;margin-top:8px;
+  font-family:"Cambria Math","Times New Roman",serif;letter-spacing:.5px}
+.verify-box{margin-top:8px;padding:8px;border-radius:7px;font-size:12px;text-align:center;font-weight:700;transition:all .3s}
+.verify-ok{background:rgba(89,217,138,.12);border:1px solid var(--ok);color:var(--ok)}
+.verify-fail{background:rgba(255,107,107,.12);border:1px solid var(--bad);color:var(--bad)}
+.verify-idle{background:rgba(93,169,233,.08);border:1px dashed #3a6f9f;color:var(--muted)}
+
+details.qa{background:var(--card2);border:1px solid #243f5a;border-radius:8px;padding:8px 10px;margin-bottom:8px}
+details.qa:last-child{margin-bottom:0}
+details.qa summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--gold);list-style:none;line-height:1.5}
+details.qa summary::before{content:"▸ ";color:var(--blue)}
+details.qa[open] summary::before{content:"▾ "}
+details.qa summary small{color:var(--muted);font-weight:400;margin-left:6px}
+details.qa p{font-size:12px;line-height:1.75;color:#c3d4e4;margin-top:6px;padding-left:12px;border-left:2px solid #2b5578}
+
+.keys-hint{font-size:11px;color:var(--muted);line-height:1.9}
+.keys-hint kbd{background:#0a1a29;border:1px solid #2b4a66;border-bottom-width:2px;border-radius:4px;
+  padding:1px 6px;font-family:"Consolas",monospace;font-size:10.5px;color:var(--gold)}
+.hint-line{margin-top:8px;padding-top:8px;border-top:1px dashed #1d3549;font-size:11px;color:var(--muted);line-height:1.7}
+.hint-line b{color:var(--blue)}
+
+@media(max-width:880px){
+  .grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="title-card">
+    <div class="tc-top">
+      <span class="tc-id">C-G12</span>
+      <h1>正态曲线面积 = 概率</h1>
+      <span class="tc-sub">Normal Density · Area = Probability</span>
+    </div>
+    <div class="tc-meta">
+      <span>高17｜概率统计 × 函数联动</span>
+      <span>枢纽5｜概率统计</span>
+      <span>断层6｜概率公理化前奏</span>
+    </div>
+    <div class="tc-three">
+      <div class="q"><b>[数]</b><code>f(x) = 1/(σ√(2π))·e^(−(x−μ)²/2σ²)</code>，概率 = 曲线下面积（积分）</div>
+      <div class="q"><b>[形]</b>钟形曲线 + 直方图逼近 + 区间阴影</div>
+      <div class="q"><b>[动]</b>滑块动 μ（平移）/ 动 σ（胖瘦，一次一动）；柱数 n↑ → 面积收敛；P(μ−σ&lt;X&lt;μ+σ)≈68% 高亮</div>
+    </div>
+  </header>
+
+  <main class="grid">
+
+    <!-- 左侧：SVG 可视化 -->
+    <section class="card viz-card">
+      <svg id="chart" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
+        <g id="stage"></g>
+      </svg>
+      <div class="viz-status">
+        <span><span class="dot" id="animDot"></span><span id="statusText">就绪</span></span>
+        <span id="statusRight">直方图逼近 · 柱数 n</span>
+      </div>
+    </section>
+
+    <!-- 右侧：控制面板 -->
+    <aside class="panel">
+
+      <div class="card">
+        <h3>参数控制</h3>
+        <div class="field">
+          <div class="flabel"><label for="slMu">μ 均值（平移）</label><output id="outMu">0.00</output></div>
+          <input type="range" id="slMu" min="-3" max="3" step="0.05" value="0">
+          <div class="frange"><span>-3</span><span>0</span><span>+3</span></div>
+        </div>
+        <div class="field">
+          <div class="flabel"><label for="slSigma">σ 标准差（胖瘦）</label><output id="outSigma">1.00</output></div>
+          <input type="range" id="slSigma" min="0.5" max="2" step="0.05" value="1">
+          <div class="frange"><span>0.5（尖瘦）</span><span>1</span><span>2（宽扁）</span></div>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <div class="flabel"><label for="slN">n 直方图柱数（逼近）</label><output id="outN">12</output></div>
+          <input type="range" id="slN" min="5" max="80" step="1" value="12">
+          <div class="frange"><span>5</span><span>80</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>区间切换（阴影面积 = 概率）</h3>
+        <div class="band-row">
+          <button class="band-btn active" data-band="1">μ±σ<small>68.27%</small></button>
+          <button class="band-btn" data-band="2">μ±2σ<small>95.45%</small></button>
+          <button class="band-btn" data-band="3">μ±3σ<small>99.73%</small></button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>动画控制</h3>
+        <div class="btnrow">
+          <button class="btn primary" id="btnPlay">▶ 播放逼近</button>
+          <button class="btn" id="btnPause">⏸ 暂停</button>
+          <button class="btn" id="btnStep">→ 步进</button>
+          <button class="btn" id="btnReset">↺ 重置</button>
+          <button class="btn gold" id="btnVerify" style="grid-column:1/3">✔ 运行自检 verify()</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>实时数据</h3>
+        <div class="readout" id="readout"></div>
+        <div class="formula-box">P(μ−kσ &lt; X &lt; μ+kσ) = ∫<sub>μ−kσ</sub><sup>μ+kσ</sup> f(x)dx</div>
+        <div class="verify-box verify-idle" id="verifyBox">点击「自检」验证 68 / 95 / 99.7 与直方图收敛</div>
+      </div>
+
+      <div class="card">
+        <h3>课堂提问（3 问）</h3>
+        <details class="qa">
+          <summary>为什么曲线下总面积 = 1？<small>数</small></summary>
+          <p>f(x) 是「概率密度函数」：X 落在实数轴某处的总概率必须是 1，所以
+          ∫<sub>−∞</sub><sup>+∞</sup> f(x)dx = 1。这正是直方图逼近的终点——把柱数 n 拉大、柱子铺满整个区间，
+          直方图总面积就越来越接近 1（本图用柱宽×柱高求和来逼近积分）。「面积 = 概率」的根源在于：
+          所有可能结果发生的概率加起来必须等于 1。</p>
+        </details>
+        <details class="qa">
+          <summary>σ 变大，曲线怎样变化？<small>形</small></summary>
+          <p>σ 变大 → 曲线变矮、变宽（更「胖」更扁平）：最高点 1/(σ√(2π)) 变小，尾部更厚、数据更分散。
+          拖 σ 滑块即可看到钟形曲线与直方图一起「塌矮摊开」，但曲线下的总面积始终保持为 1——面积守恒。
+          σ 变小的反面是曲线变「尖」变「瘦」，峰值更高。</p>
+        </details>
+        <details class="qa">
+          <summary>为什么 68% / 95% / 99.7% 不随 μ、σ 改变？<small>动</small></summary>
+          <p>标准化：令 Z = (X−μ)/σ，则 Z ~ N(0,1)，区间 μ±kσ 恰好对应 Z ∈ (−k, k)。
+          μ 只负责左右平移（面积不变），σ 只负责整体缩放（比例不变），所以 P(μ−σ&lt;X&lt;μ+σ) 恒 ≈ 68.27%。
+          切换三个区间按钮并拖动 μ、σ 滑块：阴影面积数值几乎纹丝不动——这就是「面积与 μ、σ 无关」的直观证明。</p>
+        </details>
+      </div>
+
+      <div class="card">
+        <h3>快捷键 &amp; 分享</h3>
+        <div class="keys-hint">
+          <kbd>Space</kbd> 播放 / 暂停　<kbd>→</kbd> 柱数步进　<kbd>R</kbd> 重置
+        </div>
+        <div class="btnrow" style="margin-top:8px">
+          <button class="btn" id="btnShare" style="grid-column:1/3">🔗 复制分享链接（含参数）</button>
+        </div>
+        <div class="hint-line">
+          <b>实验建议：</b>一次只动一个滑块（μ 或 σ），观察「平移」与「胖瘦」各自的作用；再用
+          <kbd>Space</kbd> 播放柱数从 5 → 80 的逼近动画，看误差如何收敛。
+        </div>
+      </div>
+
+    </aside>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ══ 数学函数 ══ */
+function normalPDF(x){
+  const d=x-SD.mu, s=SD.sigma;
+  return Math.exp(-(d*d)/(2*s*s))/(s*Math.sqrt(2*Math.PI));
+}
+function simpson(f,a,b,N){
+  if(N%2) N++;
+  const h=(b-a)/N; let s=f(a)+f(b);
+  for(let i=1;i<N;i++) s+=f(a+i*h)*(i%2?4:2);
+  return s*h/3;
+}
+function clamp(v,lo,hi){return Math.min(hi,Math.max(lo,v))}
+function histArea(n,xMin,xMax){
+  const w=(xMax-xMin)/n; let s=0;
+  for(let i=0;i<n;i++) s+=normalPDF(xMin+(i+0.5)*w);
+  return s*w;
+}
+
+/* ══ 状态 ══ */
+const SD={mu:0,sigma:1,n:12,band:1,running:false,direction:1};
+const THEORY=[0.682689,0.954500,0.997300];
+const BAND_LABEL=["μ±σ","μ±2σ","μ±3σ"];
+let animId=null,lastT=0,verifyResult=null;
+
+/* ══ 布局 ══ */
+const W=1000,H=720,M={top:26,right:30,bottom:64,left:70};
+const cW=W-M.left-M.right,cH=H-M.top-M.bottom;
+const px=v=>M.left+(v-s.xMin)/(s.xMax-s.xMin)*cW;
+const py=v=>M.top+(1-v/s.yMax)*cH;
+
+function computeAll(){
+  const k=SD.band;
+  const lo=SD.mu-k*SD.sigma, hi=SD.mu+k*SD.sigma;
+  const xMin=Math.min(-5,SD.mu-4*SD.sigma), xMax=Math.max(5,SD.mu+4*SD.sigma);
+  const densMax=1/(SD.sigma*Math.sqrt(2*Math.PI));
+  const yMax=Math.max(0.36,1.06*densMax);
+  const bandArea=simpson(normalPDF,lo,hi,3000);
+  const curveArea=simpson(normalPDF,xMin,xMax,4000);
+  const theory=THEORY[k-1];
+  return {
+    mu:SD.mu,sigma:SD.sigma,n:SD.n,band:k,lo,hi,xMin,xMax,yMax,
+    bandArea,curveArea,theory,
+    areaError:Math.abs(bandArea-theory),
+    histArea:histArea(SD.n,xMin,xMax),
+    histError:Math.abs(histArea(SD.n,xMin,xMax)-curveArea),
+    label:BAND_LABEL[k-1]
+  };
+}
+let s=null;
+
+/* ══ SVG 渲染 ══ */
+const svg=document.getElementById("chart");
+const stage=document.getElementById("stage");
+
+function curvePath(fn,a,b,pts){
+  const n=pts||420; let d=`M ${px(a).toFixed(1)} ${py(0).toFixed(1)} `;
+  for(let i=0;i<=n;i++){
+    const x=a+(b-a)*i/n;
+    d+=`L ${px(x).toFixed(1)} ${py(fn(x)).toFixed(1)} `;
+  }
+  return d;
+}
+function bandPath(fn,a,b){
+  let d=`M ${px(a).toFixed(1)} ${py(0).toFixed(1)} `;
+  const n=240;
+  for(let i=0;i<=n;i++){
+    const x=a+(b-a)*i/n;
+    d+=`L ${px(x).toFixed(1)} ${py(fn(x)).toFixed(1)} `;
+  }
+  d+=`L ${px(b).toFixed(1)} ${py(0).toFixed(1)} Z`;
+  return d;
+}
+function niceStep(r){
+  const p=Math.pow(10,Math.floor(Math.log10(r)));
+  const m=r/p, s=m<1.5?1:m<3?2:m<7?5:10;
+  return s*p;
+}
+function fmtTick(v){return String(parseFloat(Math.abs(v)<1e-9?0:v.toFixed(2)))}
+
+function render(){
+  s=computeAll();
+  const {mu,sigma,n,band,lo,hi,xMin,xMax,yMax}=s;
+  const k=SD.band;
+
+  let h="";
+  /* 网格与坐标轴 */
+  const xStep=niceStep((xMax-xMin)/10);
+  for(let v=Math.ceil(xMin/xStep)*xStep; v<=xMax+1e-9; v+=xStep){
+    h+=`<line x1="${px(v).toFixed(1)}" y1="${M.top}" x2="${px(v).toFixed(1)}" y2="${py(0).toFixed(1)}" stroke="#16283c" stroke-width="1"/>`;
+    h+=`<text x="${px(v).toFixed(1)}" y="${py(0)+20}" text-anchor="middle" font-size="11" fill="#8aa2b8">${fmtTick(v)}</text>`;
+  }
+  const yStep=yMax>0.4?0.2:0.1;
+  for(let v=0;v<=yMax+1e-9;v+=yStep){
+    h+=`<line x1="${M.left}" y1="${py(v).toFixed(1)}" x2="${W-M.right}" y2="${py(v).toFixed(1)}" stroke="#16283c" stroke-width="1" stroke-dasharray="3,5"/>`;
+    h+=`<text x="${M.left-8}" y="${py(v)+4}" text-anchor="end" font-size="11" fill="#8aa2b8">${fmtTick(v)}</text>`;
+  }
+  h+=`<line x1="${M.left}" y1="${py(0).toFixed(1)}" x2="${W-M.right}" y2="${py(0).toFixed(1)}" stroke="#4a6a88" stroke-width="2"/>`;
+  h+=`<text x="${W-M.right}" y="${py(0)+20}" text-anchor="end" font-size="11" fill="#8aa2b8">x</text>`;
+  h+=`<text x="16" y="${M.top+20}" font-size="11" fill="#8aa2b8">f(x)</text>`;
+
+  /* 直方图逼近（柱） */
+  const w=(xMax-xMin)/n;
+  for(let i=0;i<n;i++){
+    const c=xMin+(i+0.5)*w, f=normalPDF(c);
+    const x0=px(c-w/2), x1=px(c+w/2), y0=py(f), yb=py(0);
+    h+=`<rect x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${Math.max(0.5,x1-x0).toFixed(1)}" height="${Math.max(0,yb-y0).toFixed(1)}"
+         fill="#5DA9E9" fill-opacity="0.26" stroke="#E8B964" stroke-opacity="0.45" stroke-width="1"/>`;
+  }
+
+  /* 区间阴影（概率） */
+  const fTop=mu>=lo&&mu<=hi?1/(sigma*Math.sqrt(2*Math.PI)):Math.max(normalPDF(lo),normalPDF(hi));
+  h+=`<path d="${bandPath(normalPDF,lo,hi)}" fill="#E8B964" fill-opacity="0.55" stroke="none"/>`;
+  h+=`<line x1="${px(lo).toFixed(1)}" y1="${py(0).toFixed(1)}" x2="${px(lo).toFixed(1)}" y2="${py(normalPDF(lo)).toFixed(1)}" stroke="#E8B964" stroke-width="2" stroke-dasharray="6,4"/>`;
+  h+=`<line x1="${px(hi).toFixed(1)}" y1="${py(0).toFixed(1)}" x2="${px(hi).toFixed(1)}" y2="${py(normalPDF(hi)).toFixed(1)}" stroke="#E8B964" stroke-width="2" stroke-dasharray="6,4"/>`;
+  h+=`<text x="${px(lo).toFixed(1)}" y="${py(normalPDF(lo))-7}" text-anchor="middle" font-size="12.5" fill="#E8B964" font-weight="700">${k===1?"μ−σ":k===2?"μ−2σ":"μ−3σ"}</text>`;
+  h+=`<text x="${px(hi).toFixed(1)}" y="${py(normalPDF(hi))-7}" text-anchor="middle" font-size="12.5" fill="#E8B964" font-weight="700">${k===1?"μ+σ":k===2?"μ+2σ":"μ+3σ"}</text>`;
+
+  /* 全曲线下面积（≈1 的浅色底） */
+  h+=`<path d="${curvePath(normalPDF,xMin,xMax,480)}Z" fill="#5DA9E9" fill-opacity="0.07" stroke="none"/>`;
+
+  /* μ 中心线 */
+  h+=`<line x1="${px(mu).toFixed(1)}" y1="${py(0).toFixed(1)}" x2="${px(mu).toFixed(1)}" y2="${py(normalPDF(mu)).toFixed(1)}" stroke="#dfe9f3" stroke-width="1.6" stroke-dasharray="3,4" opacity="0.75"/>`;
+  h+=`<text x="${px(mu).toFixed(1)}" y="${py(normalPDF(mu))-7}" text-anchor="middle" font-size="13" fill="#dfe9f3" font-weight="700">μ</text>`;
+
+  /* 钟形曲线 */
+  h+=`<path d="${curvePath(normalPDF,xMin,xMax,480)}" fill="none" stroke="#5DA9E9" stroke-width="3.2" stroke-linejoin="round"/>`;
+
+  /* 区间内概率标签 */
+  const mid=(lo+hi)/2, bw=Math.abs(px(hi)-px(lo)), fs=bw<120?12:bw<190?14:16.5;
+  const bym=(py(fTop)+py(0))/2;
+  h+=`<text x="${px(mid).toFixed(1)}" y="${bym}" text-anchor="middle" font-size="${fs}" fill="#0a131d" font-weight="800">
+        <tspan x="${px(mid).toFixed(1)}" dy="${fs>14?16:13}">P(${s.label})</tspan>
+        <tspan x="${px(mid).toFixed(1)}" dy="${fs+4}">= ${s.bandArea.toFixed(4)}</tspan>
+      </text>`;
+
+  /* 顶栏标题 */
+  h+=`<text x="${M.left}" y="20" font-size="17" fill="#fff" font-weight="800">正态密度曲线 &amp; 直方图逼近</text>`;
+  h+=`<text x="${W-M.right}" y="20" text-anchor="end" font-size="15" fill="#E8B964" font-weight="700">N(μ=${mu.toFixed(2)}, σ=${sigma.toFixed(2)}) · 柱数 n=${n}</text>`;
+  h+=`<text x="${W-M.right}" y="38" text-anchor="end" font-size="12.5" fill="#8aa2b8">直方图总面积 ≈ ${s.histArea.toFixed(4)} ｜ 曲线面积 ≈ ${s.curveArea.toFixed(4)} ｜ 误差 ${s.histError.toFixed(4)}${n<80?"  → 随 n 增大收敛中…":"  ✅ 已收敛"}</text>`;
+
+  /* 图例 */
+  h+=`<g transform="translate(690,652)" font-size="11.5" fill="#c9d9e8">
+        <line x1="0" y1="4" x2="26" y2="4" stroke="#5DA9E9" stroke-width="3.4"/><text x="32" y="8">密度曲线 f(x)</text>
+        <rect x="0" y="13" width="26" height="10" fill="#E8B964" opacity="0.55"/><text x="32" y="22">阴影区间 = 概率</text>
+        <rect x="0" y="28" width="26" height="10" fill="#5DA9E9" opacity="0.3" stroke="#E8B964" stroke-opacity="0.5"/><text x="32" y="37">直方图逼近（n 柱）</text>
+      </g>`;
+
+  stage.innerHTML=h;
+  renderReadout();
+}
+
+/* ══ 实时数据 ══ */
+function renderReadout(){
+  const s=computeAll();
+  const convErr5=Math.abs(histArea(5,s.xMin,s.xMax)-s.curveArea);
+  const convErr80=Math.abs(histArea(80,s.xMin,s.xMax)-s.curveArea);
+  document.getElementById("readout").innerHTML=`
+    <div class="row"><span>μ 均值</span><span>${s.mu.toFixed(2)}</span></div>
+    <div class="row"><span>σ 标准差</span><span>${s.sigma.toFixed(2)}</span></div>
+    <div class="row"><span>区间（${s.label}）</span><span>[${s.lo.toFixed(2)}, ${s.hi.toFixed(2)}]</span></div>
+    <div class="row hl"><span>阴影面积 P（数值积分）</span><span>${s.bandArea.toFixed(4)}</span></div>
+    <div class="row"><span>理论值</span><span>${s.theory.toFixed(4)}（${(s.theory*100).toFixed(2)}%）</span></div>
+    <div class="row ${s.areaError<0.005?"good":"warn"}"><span>面积误差 |P−理论|</span><span>${s.areaError.toFixed(5)}</span></div>
+    <div class="row"><span>直方图总面积（n=${s.n}）</span><span>${s.histArea.toFixed(4)}</span></div>
+    <div class="row"><span>曲线下面积（≈1）</span><span>${s.curveArea.toFixed(4)}</span></div>
+    <div class="row ${s.histError<0.01?"good":"warn"}"><span>逼近误差 |直方−曲线|</span><span>${s.histError.toFixed(4)}</span></div>
+    <div class="row"><span>收敛性（n=5→80）</span><span>${s.histError<convErr5?"↓ 误差递减":s.n>=80?"已收敛":"——"}</span></div>
+    <div class="row"><span>n=80 误差</span><span>${convErr80.toFixed(5)}</span></div>
+  `;
+  const dot=document.getElementById("animDot");
+  const st=document.getElementById("statusText");
+  if(SD.running){
+    dot.classList.add("on");
+    st.textContent=`逼近动画运行中 · n=${SD.n}${SD.direction>0?"（递增）":"（递减）"}`;
+    document.getElementById("btnPlay").textContent="⏸ 暂停";
+  }else{
+    dot.classList.remove("on");
+    st.textContent=SD.n>=80?"已收敛：直方图总面积≈曲线面积":"就绪";
+    document.getElementById("btnPlay").textContent="▶ 播放逼近";
+  }
+  document.getElementById("statusRight").textContent=`直方图逼近 · 柱数 n=${SD.n}`;
+}
+
+/* ══ 动画 ══ */
+function animFrame(t){
+  if(!SD.running) return;
+  if(!lastT) lastT=t;
+  let dt=t-lastT; lastT=t;
+  if(dt>120) dt=120;
+  const acc=Math.max(1,Math.round(dt/40));
+  let n=SD.n+SD.direction*acc, hit=false;
+  if(n>=80){n=80;hit=true}
+  if(n<=5){n=5;hit=true}
+  SD.n=n;
+  if(hit){pause()}else{animId=requestAnimationFrame(animFrame)}
+  render();
+}
+function play(){
+  if(SD.n>=80&&SD.direction>0) SD.n=5;
+  if(SD.n<=5&&SD.direction<0) SD.n=80;
+  SD.running=true; lastT=0;
+  if(animId) cancelAnimationFrame(animId);
+  animId=requestAnimationFrame(animFrame);
+  render();
+}
+function pause(){
+  SD.running=false;
+  if(animId){cancelAnimationFrame(animId);animId=null}
+  render();
+}
+function step(){
+  pause();
+  SD.n=Math.min(80,Math.max(5,SD.n+1));
+  render();
+}
+function reverse(){
+  SD.direction*=-1;
+  if(!SD.running) play(); else render();
+}
+function reset(){
+  pause();
+  SD.mu=0;SD.sigma=1;SD.n=12;SD.band=1;SD.direction=1;
+  syncSliders();render();updateURL();
+}
+
+/* ══ 参数 / URL ══ */
+function syncSliders(){
+  document.getElementById("slMu").value=SD.mu;
+  document.getElementById("slSigma").value=SD.sigma;
+  document.getElementById("slN").value=SD.n;
+  document.getElementById("outMu").textContent=SD.mu.toFixed(2);
+  document.getElementById("outSigma").textContent=SD.sigma.toFixed(2);
+  document.getElementById("outN").textContent=SD.n;
+  document.querySelectorAll(".band-btn").forEach(b=>b.classList.toggle("active",+b.dataset.band===SD.band));
+}
+function setParams(o){
+  if(o.mu!==undefined) SD.mu=clamp(+o.mu,-3,3);
+  if(o.sigma!==undefined) SD.sigma=clamp(+o.sigma,0.5,2);
+  if(o.n!==undefined) SD.n=Math.round(clamp(+o.n,5,80));
+  if(o.band!==undefined&&[1,2,3].includes(+o.band)) SD.band=+o.band;
+  syncSliders();render();updateURL();
+  return getState();
+}
+function updateURL(){
+  const p=new URLSearchParams({mu:SD.mu,sigma:SD.sigma,n:SD.n,band:SD.band});
+  history.replaceState(null,"","?"+p.toString());
+}
+function getState(){
+  const c=computeAll();
+  return {mu:SD.mu,sigma:SD.sigma,n:SD.n,band:SD.band,running:SD.running,direction:SD.direction,
+          lo:c.lo,hi:c.hi,bandArea:c.bandArea,theory:c.theory,areaError:c.areaError,
+          histArea:c.histArea,curveArea:c.curveArea,histError:c.histError,label:c.label};
+}
+
+/* ══ 自检 ══ */
+function verify(){
+  const c=computeAll();
+  const checks=[];
+  const bands=[{k:1,t:0.682689,n:"μ±σ"},{k:2,t:0.954500,n:"μ±2σ"},{k:3,t:0.997300,n:"μ±3σ"}];
+  for(const b of bands){
+    const a=simpson(normalPDF,c.mu-b.k*c.sigma,c.mu+b.k*c.sigma,4000);
+    const err=Math.abs(a-b.t);
+    checks.push({name:`P(${b.n}) = ${a.toFixed(5)}（理论 ${b.t.toFixed(4)}）`,err,pass:err<0.01});
+  }
+  const err5=Math.abs(histArea(5,c.xMin,c.xMax)-c.curveArea);
+  const err80=Math.abs(histArea(80,c.xMin,c.xMax)-c.curveArea);
+  checks.push({name:`直方图 n=80 总面积 ${histArea(80,c.xMin,c.xMax).toFixed(5)} ≈ 曲线面积 ${c.curveArea.toFixed(5)}`,err:err80,pass:err80<0.01});
+  checks.push({name:`收敛：误差随 n 增大递减 ${err5.toFixed(5)} → ${err80.toFixed(5)}`,err:err5-err80,pass:err80<err5});
+
+  const passed=checks.filter(x=>x.pass).length;
+  const ok=passed===checks.length;
+  verifyResult={ok,passed,total:checks.length,checks};
+  const box=document.getElementById("verifyBox");
+  box.className="verify-box "+(ok?"verify-ok":"verify-fail");
+  box.innerHTML=ok
+    ?`✅ 自检通过 ${passed}/${checks.length} 项<br><small style="font-weight:400">68/95/99.7 与直方图收敛均达标（误差 &lt; 0.01）</small>`
+    :`⚠ 自检未通过 ${passed}/${checks.length} 项<br><small style="font-weight:400">${checks.filter(x=>!x.pass).map(x=>x.name).join("；")}</small>`;
+  console.log("[SciDemo verify]",verifyResult);
+  return verifyResult;
+}
+
+/* ══ 事件 ══ */
+document.getElementById("slMu").addEventListener("input",e=>{setParams({mu:+e.target.value})});
+document.getElementById("slSigma").addEventListener("input",e=>{setParams({sigma:+e.target.value})});
+document.getElementById("slN").addEventListener("input",e=>{setParams({n:+e.target.value})});
+document.querySelectorAll(".band-btn").forEach(b=>b.addEventListener("click",()=>setParams({band:+b.dataset.band})));
+document.getElementById("btnPlay").addEventListener("click",()=>SD.running?pause():play());
+document.getElementById("btnPause").addEventListener("click",pause);
+document.getElementById("btnStep").addEventListener("click",step);
+document.getElementById("btnReset").addEventListener("click",reset);
+document.getElementById("btnVerify").addEventListener("click",verify);
+document.getElementById("btnShare").addEventListener("click",()=>{
+  updateURL();
+  navigator.clipboard.writeText(location.href).then(()=>{
+    const b=document.getElementById("btnShare");
+    b.textContent="✓ 已复制";
+    setTimeout(()=>b.textContent="🔗 复制分享链接（含参数）",1200);
+  }).catch(()=>{});
+});
+document.addEventListener("keydown",e=>{
+  const onRange=e.target.tagName==="INPUT"&&e.target.type==="range";
+  if(e.code==="Space"){e.preventDefault();SD.running?pause():play()}
+  else if(onRange&&(e.code==="ArrowRight"||e.code==="ArrowLeft")){return}
+  else if(e.code==="ArrowRight"){e.preventDefault();step()}
+  else if(e.code==="ArrowLeft"){e.preventDefault();SD.n=Math.max(5,SD.n-1);render()}
+  else if(e.code==="KeyR"&&!e.ctrlKey&&!e.metaKey){e.preventDefault();reset()}
+});
+
+/* ══ 初始参数（URL 分享） ══ */
+(function initFromURL(){
+  const sp=new URLSearchParams(location.search);
+  if(sp.has("mu")){const v=+sp.get("mu");if(!isNaN(v))SD.mu=clamp(v,-3,3)}
+  if(sp.has("sigma")){const v=+sp.get("sigma");if(!isNaN(v))SD.sigma=clamp(v,0.5,2)}
+  if(sp.has("n")){const v=+sp.get("n");if(!isNaN(v))SD.n=Math.round(clamp(v,5,80))}
+  if(sp.has("band")){const v=+sp.get("band");if([1,2,3].includes(v))SD.band=v}
+  syncSliders();
+})();
+
+/* ══ SciDemo 协议 ══ */
+window.SciDemo={
+  setParams,
+  play,
+  pause,
+  step,
+  reset,
+  reverse,
+  verify,
+  get state(){return getState()},
+  get isReady(){return true}
+};
+
+render();
+})();
+</script>
+</body>
+</html>

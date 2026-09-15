@@ -1,0 +1,25 @@
+{
+  "id": "C-G01",
+  "subject": "math",
+  "title": "导数概念：割线逼近切线",
+  "audience": "高中",
+  "concept": "导数 · 割线斜率 → 切线斜率 2x₀",
+  "desc": "P 沿抛物线滑向 A，蓝色割线逐帧逼近红色切线，斜率从 (x₁²-x₀²)/(x₁-x₀) 收敛到 2x₀。",
+  "engine": "svg",
+  "html": "math-cases/高中/C-G01-daoshu/index.html",
+  "mp4": "math-cases/高中/C-G01-daoshu/out/C-G01.mp4",
+  "gif": "math-cases/高中/C-G01-daoshu/out/C-G01-preview.gif",
+  "webp": "math-cases/高中/C-G01-daoshu/out/C-G01-preview.webp",
+  "cover": "math-cases/高中/C-G01-daoshu/out/C-G01-preview-cover.jpg",
+  "record": {
+    "params": { "x0": 1, "dx": 1.6 },
+    "seconds": 8,
+    "fps": 30
+  },
+  "sources": [
+    { "name": "Desmos", "url": "https://www.desmos.com/calculator" },
+    { "name": "GeoGebra", "url": "https://www.geogebra.org/materials" }
+  ],
+  "status": "ready",
+  "note": "替代 Manim 高01；粗线 + 图例背景条 + 独立数据面板"
+}

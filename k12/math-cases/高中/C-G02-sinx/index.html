@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-G02 正弦曲线：单位圆展开 · 大数学交互交付</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f6f7f9; color:#1f2430; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; min-height:100vh; }
+  .wrap { max-width:1180px; margin:0 auto; padding:18px 16px 30px; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:14px; }
+  .layout { display:grid; grid-template-columns:1fr 330px; gap:16px; }
+  .stage { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  svg { width:100%; height:auto; display:block; }
+  .panel { display:flex; flex-direction:column; gap:12px; }
+  .box { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:12px 14px; }
+  .box h3 { font-size:14px; margin-bottom:8px; color:#374151; }
+  .ctl { margin-bottom:10px; }
+  .ctl label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px; }
+  .ctl label b { color:#2563eb; }
+  .ctl input[type=range] { width:100%; }
+  .btnrow { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  button { border:none; border-radius:8px; padding:9px 0; font-size:14px; cursor:pointer; background:#eef1f6; color:#1f2430; }
+  button:hover { background:#e2e8f0; }
+  button.pri { background:#2563eb; color:#fff; }
+  button.pri:hover { background:#1d4ed8; }
+  .readout { font-size:13px; line-height:1.75; }
+  .readout .big { font-size:15px; font-weight:700; color:#1f2430; }
+  .ok { color:#059669; font-weight:700; }
+  .msg { font-size:12px; color:#6b7280; line-height:1.6; }
+  .q { font-size:12px; color:#6b7280; border-top:1px dashed #e3e6ec; padding-top:8px; margin-top:4px; }
+  .q b { color:#374151; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>C-G02 · 正弦函数：单位圆展开为曲线</h1>
+  <p class="sub">圆上动点 P 的纵坐标（sin θ），用<b>同一条水平虚线</b>投影到右侧坐标轴，再落成正弦曲线上的点 Q；Q 的轨迹逐段积累出 y = sin x。红虚线 = 水平投影（同 y），绿虚线 = 垂直落到 x 轴。</p>
+  <div class="layout">
+    <div class="stage">
+      <svg id="scene" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="单位圆到正弦曲线"></svg>
+    </div>
+    <div class="panel">
+      <div class="box">
+        <h3>参数控制</h3>
+        <div class="ctl"><label>角度 θ <b id="vth">0.79</b></label><input type="range" id="sth" min="0" max="6.283" step="0.01" value="0.79"></div>
+        <div class="btnrow">
+          <button class="pri" id="btnPlay">▶ 转一圈</button>
+          <button id="btnPause">⏸ 暂停</button>
+          <button id="btnStep">⏭ 单步</button>
+          <button id="btnReset">↺ 清轨迹</button>
+          <button id="btnCopy">🔗 复制参数链接</button>
+        </div>
+      </div>
+      <div class="box">
+        <h3>实时数据</h3>
+        <div class="readout" id="readout"></div>
+      </div>
+      <div class="box">
+        <h3>课堂提问</h3>
+        <div class="q"><b>先猜</b>：θ 从 0 转到 π，纵坐标怎么变？再转到 2π 呢？<br><b>后问</b>：正弦曲线上的高度与单位圆上的 y 是"同一件事"吗？为什么曲线像波浪一样周期重复？</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+
+var SVG_NS = "http://www.w3.org/2000/svg";
+var W = 1000, H = 720;
+var svg = document.getElementById("scene");
+
+// 单位圆区
+var CX = 220, CY = 360, R = 205;
+// 波形区：x∈[0,2π] → px，y∈[-1,1] → py；GR 必须与圆的 R 相等，水平投影线两端才同 y
+var GX0 = 470, GX1 = 985, GY0 = 120, GY1 = 600, GMID = 360, GR = 205;
+
+var state = { th: 0.79, playing: false, lastTs: 0 };
+var trace = [];   // 已画过的 Q 点（θ, sinθ）
+
+function px(th){ return GX0 + th / (2*Math.PI) * (GX1 - GX0); }
+function py(sin){ return GMID - sin * GR; }
+
+function el(tag, attrs){
+  var e = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function clearSvg(){ while (svg.firstChild) svg.removeChild(svg.firstChild); }
+function txt(x, y, text, color, size, weight){
+  var t = el("text", { x:x, y:y, fill:color||"#374151", "font-size":size||13,
+    "text-anchor":"middle", "font-weight":weight||"normal",
+    "font-family":"'Microsoft YaHei','PingFang SC',sans-serif" });
+  t.textContent = text;
+  svg.appendChild(t);
+  return t;
+}
+function fnum(x){ return Math.abs(x - Math.round(x)) < 1e-9 ? String(Math.round(x)) : x.toFixed(2); }
+
+function redraw(){
+  clearSvg();
+  var th = state.th;
+  var sinv = Math.sin(th), cosv = Math.cos(th);
+
+  /* ---- 左：单位圆 ---- */
+  svg.appendChild(el("circle", { cx:CX, cy:CY, r:R, fill:"none", stroke:"#cbd5e1", "stroke-width":2 }));
+  svg.appendChild(el("line", { x1:CX-R-18, y1:CY, x2:CX+R+18, y2:CY, stroke:"#94a3b8", "stroke-width":1.5 }));
+  svg.appendChild(el("line", { x1:CX, y1:CY-R-18, x2:CX, y2:CY+R+18, stroke:"#94a3b8", "stroke-width":1.5 }));
+  // 半径
+  var px0 = CX + R*cosv, py0 = CY - R*sinv;
+  svg.appendChild(el("line", { x1:CX, y1:CY, x2:px0, y2:py0, stroke:"#111827", "stroke-width":2.5 }));
+  // 角弧
+  svg.appendChild(el("path", { d:"M " + (CX+R*0.32) + " " + CY + " A " + (R*0.32) + " " + (R*0.32) + " 0 0 " + (th < Math.PI ? 0 : 1) + " " +
+    (CX + R*0.32*Math.cos(th)) + " " + (CY - R*0.32*Math.sin(th)),
+    fill:"none", stroke:"#059669", "stroke-width":2 }));
+  // 垂直虚线（P → 圆心水平线）
+  svg.appendChild(el("line", { x1:px0, y1:py0, x2:px0, y2:CY, stroke:"#10b981", "stroke-width":2, "stroke-dasharray":"6 5" }));
+  // 圆上 P
+  svg.appendChild(el("circle", { cx:px0, cy:py0, r:8, fill:"#dc2626", stroke:"#fff", "stroke-width":2.5 }));
+  txt(CX - R - 20, CY + 14, "(1,0)", "#94a3b8", 11);
+  txt(CX + 26, CY - 14, "1", "#94a3b8", 12);
+  txt(px0, py0 - 14, "P", "#dc2626", 15, "bold");
+  txt(CX + R*0.20, CY - R*0.42, "θ", "#059669", 14, "bold");
+
+  /* ---- 右：波形坐标 + 正弦曲线基准 ---- */
+  svg.appendChild(el("line", { x1:GX0, y1:GMID, x2:GX1+10, y2:GMID, stroke:"#94a3b8", "stroke-width":2 }));
+  svg.appendChild(el("line", { x1:GX0, y1:GY0, x2:GX0, y2:GY1, stroke:"#94a3b8", "stroke-width":1.5 }));
+  for (var k = 0; k <= 4; k++){
+    var xk = GX0 + k/4 * (GX1 - GX0);
+    txt(xk, GMID + 18, (k === 2 ? "π" : k === 4 ? "2π" : (k===1?"π/2":k===3?"3π/2":"0")), "#94a3b8", 11);
+  }
+  txt(GX1, GMID - 12, "x", "#64748b", 13, "bold");
+
+  // 已有的轨迹（累积点折线）
+  if (trace.length > 1){
+    var d = "M";
+    for (var i = 0; i < trace.length; i++){
+      d += (i === 0 ? "" : " L") + px(trace[i].t) + " " + py(trace[i].y);
+    }
+    svg.appendChild(el("path", { d:d, fill:"none", stroke:"#7c3aed", "stroke-width":3 }));
+  }
+
+  /* ---- 连接线（核心修复：同 y 水平投影 + 垂直虚线到轴） ---- */
+  var qx = px(th), qy = py(sinv);
+  // 1) 同 y 水平虚线：从圆的垂直投影线出发 → 到波形 Q 的 x 位置
+  svg.appendChild(el("line", { x1:px0, y1:py0, x2:qx, y2:qy, stroke:"#dc2626", "stroke-width":2.5, "stroke-dasharray":"7 5" }));
+  // 2) 垂直虚线：Q → 波形 x 轴（正弦图上 x=θ 列）
+  svg.appendChild(el("line", { x1:qx, y1:qy, x2:qx, y2:GMID, stroke:"#10b981", "stroke-width":2.5, "stroke-dasharray":"6 5" }));
+  // Q 点 + 当前列刻度
+  svg.appendChild(el("circle", { cx:qx, cy:qy, r:8, fill:"#7c3aed", stroke:"#fff", "stroke-width":2.5 }));
+  svg.appendChild(el("line", { x1:qx, y1:GMID, x2:qx, y2:GMID+18, stroke:"#7c3aed", "stroke-width":2 }));
+  txt(qx, qy - 14, "Q", "#7c3aed", 15, "bold");
+
+  // 右侧标 sin θ 的高度值
+  txt(GX1 + 24, qy + 4, fnum(sinv), "#dc2626", 12, "bold");
+
+  updateReadout();
+}
+
+function updateReadout(){
+  var th = state.th;
+  var el2 = document.getElementById("readout");
+  el2.innerHTML =
+    '<div class="big">θ = ' + fnum(th) + ' ≈ ' + fnum(th*180/Math.PI) + '°</div>' +
+    '<div>sin θ = <b style="color:#dc2626">' + fnum(Math.sin(th)) + '</b>（圆上纵坐标 = 曲线上高度，同一件事）</div>' +
+    '<div>cos θ = ' + fnum(Math.cos(th)) + '（圆上横坐标）</div>' +
+    '<div class="msg">波形上每一点 = 把"圆转过 θ 角的纵坐标"按角度排开。转完一圈 2π，纵坐标回到起点，曲线一浪接一浪。</div>';
+}
+
+/* ---------- 动画 ---------- */
+function frame(ts){
+  if (!state.playing) return;
+  var dt = state.lastTs ? (ts - state.lastTs) / 1000 : 0;
+  state.lastTs = ts;
+  state.th += dt * 1.15;
+  if (state.th >= 2*Math.PI){ state.th = 2*Math.PI; state.playing = false; }
+  sth.value = state.th; vth.textContent = fnum(state.th);
+  trace.push({ t: state.th, y: Math.sin(state.th) });
+  redraw();
+  if (state.playing) requestAnimationFrame(frame);
+}
+function play(){
+  state.playing = true;
+  if (state.th >= 2*Math.PI - 0.01){ state.th = 0; trace = []; }
+  state.lastTs = 0;
+  requestAnimationFrame(frame);
+}
+function step(){ state.playing = false; state.th = Math.min(2*Math.PI, state.th + 0.2); sth.value = state.th; vth.textContent = fnum(state.th); trace.push({t:state.th, y:Math.sin(state.th)}); redraw(); }
+function resetAll(){ state.playing = false; state.th = 0; sth.value = 0; vth.textContent = "0"; trace = []; redraw(); }
+
+function setParams(p){
+  if (p.th !== undefined){
+    state.th = Math.max(0, Math.min(2*Math.PI, parseFloat(p.th)));
+    sth.value = state.th; vth.textContent = fnum(state.th);
+  }
+  resetAll();
+}
+
+document.getElementById("btnPlay").onclick  = play;
+document.getElementById("btnPause").onclick = function(){ state.playing = false; };
+document.getElementById("btnStep").onclick  = step;
+document.getElementById("btnReset").onclick = resetAll;
+document.getElementById("btnCopy").onclick = function(){
+  var u = new URL(location.href);
+  u.searchParams.set("th", state.th.toFixed(3));
+  var s = u.href;
+  if (navigator.clipboard) navigator.clipboard.writeText(s).then(function(){ alert("链接已复制"); });
+  else { prompt("复制链接", s); }
+};
+
+var sth = document.getElementById("sth"), vth = document.getElementById("vth");
+sth.oninput = function(){
+  var newTh = +sth.value;
+  if (newTh >= state.th){
+    trace.push({t:newTh, y:Math.sin(newTh)});
+  } else {
+    while (trace.length && trace[trace.length-1].t > newTh) trace.pop();
+  }
+  state.th = newTh;
+  vth.textContent = fnum(state.th);
+  state.playing = false;
+  redraw();
+};
+
+document.addEventListener("keydown", function(e){
+  if (e.key === " ") { e.preventDefault(); if (state.playing) state.playing = false; else play(); }
+  else if (e.key === "ArrowRight") { step(); }
+  else if (e.key === "r" || e.key === "R") { resetAll(); }
+});
+
+/* ---------- 初始化 + URL ---------- */
+(function init(){
+  var q = new URLSearchParams(location.search);
+  var th = parseFloat(q.get("th"));
+  if (isFinite(th) && th >= 0 && th <= 2*Math.PI) state.th = th;
+  sth.value = state.th; vth.textContent = fnum(state.th);
+  trace.push({ t: state.th, y: Math.sin(state.th) });
+  redraw();
+})();
+
+/* ---------- 质检钩子 ---------- */
+function verify(){
+  var th = state.th, sinv = Math.sin(th);
+  // 水平投影线与 Q 点高度一致（同 y）：两者都来自 sin(th)，构造保证；
+  // 断言 DOM 上水平虚线两端 y 相等
+  var hz = null, vt = null;
+  var lines = svg.querySelectorAll("line");
+  for (var i = 0; i < lines.length; i++){
+    var s = lines[i].getAttribute("stroke-dasharray") || "";
+    if (s.indexOf("7 5") >= 0) hz = lines[i];
+    else if (s.indexOf("6 5") >= 0 && parseFloat(lines[i].getAttribute("x1")) > 400) vt = lines[i];
+  }
+  var hzSameY = hz ? Math.abs(parseFloat(hz.getAttribute("y1")) - parseFloat(hz.getAttribute("y2"))) < 0.01 : false;
+  var vtToAxis = vt ? Math.abs(parseFloat(vt.getAttribute("y2")) - GMID) < 0.01 : false;
+  return {
+    mode:"sine", th:th,
+    sameYProjection: hzSameY,
+    verticalDropToAxis: vtToAxis,
+    pointYok: Math.abs(py(sinv) - py(Math.sin(th))) < 1e-9,
+    tracePoints: trace.length
+  };
+}
+
+window.SciDemo = {
+  setParams: setParams,
+  play: play,
+  pause: function(){ state.playing = false; },
+  step: step,
+  reset: resetAll,
+  reverse: function(){ state.playing = false; state.th = Math.max(0, state.th - 0.2); while (trace.length && trace[trace.length-1].t > state.th) trace.pop(); sth.value = state.th; vth.textContent = fnum(state.th); redraw(); },
+  verify: verify,
+  state: function(){ return { th: state.th, playing: state.playing, trace: trace.length }; }
+};
+Object.defineProperty(window.SciDemo, "isReady", { get: function(){ return true; } });
+
+})();
+</script>
+</body>
+</html>

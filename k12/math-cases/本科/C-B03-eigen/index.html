@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-B03 特征值与特征向量 · 大数学交互交付</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#2563eb;--blue-light:rgba(37,99,235,.12);
+  --red:#dc2626;--red-light:rgba(220,38,38,.1);
+  --gold:#E8B964;--gold-light:rgba(232,185,100,.1);
+  --green:#059669;--green-light:rgba(5,150,105,.08);
+  --gray:#9ca3af;--gray-light:#e5e7eb;
+  --bg:#f8fafc;--panel:#fff;--border:#e2e8f0;
+  --text:#1e293b;--text-dim:#64748b;
+  --radius:10px;--shadow:0 1px 3px rgba(0,0,0,.08)
+}
+html{font-size:14px}
+body{font-family:'SF Pro Text','Segoe UI','PingFang SC','Noto Sans SC',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.layout{display:grid;grid-template-columns:1fr 310px;max-width:1180px;margin:0 auto;gap:16px;padding:16px;align-items:start}
+.svg-wrap{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden}
+.svg-wrap svg{display:block;width:100%;height:auto}
+.panel{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:12px;position:sticky;top:16px}
+.panel h2{font-size:.92rem;font-weight:700;border-bottom:2px solid var(--blue);padding-bottom:5px}
+.panel h3{font-size:.8rem;font-weight:600;color:var(--text-dim);margin-top:2px}
+.slider-row{display:grid;grid-template-columns:22px 1fr 48px;gap:6px;align-items:center}
+.slider-row label{font-weight:700;font-size:.85rem;text-align:center}
+.slider-row input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:3px;background:var(--gray-light);outline:none;cursor:pointer}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--blue);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.slider-row .val{font-size:.8rem;font-variant-numeric:tabular-nums;text-align:right;background:#f1f5f9;border-radius:4px;padding:2px 6px;font-weight:600}
+.mat-display{background:#f1f5f9;border-radius:6px;padding:8px;font-family:'Courier New',monospace;font-size:.88rem;text-align:center;line-height:1.6;border:1px solid var(--border)}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.readout-item{background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:.76rem;line-height:1.4}
+.readout-item .label{color:var(--text-dim);font-weight:600}
+.readout-item .value{font-weight:700;font-variant-numeric:tabular-nums}
+.readout-item.eigen1{border-left:3px solid var(--red)}
+.readout-item.eigen2{border-left:3px solid var(--gold)}
+.readout-item.full{grid-column:1/-1}
+.char-eq{background:#f1f5f9;border-radius:6px;padding:7px;font-family:'Courier New',monospace;font-size:.8rem;text-align:center;border:1px solid var(--border);line-height:1.5}
+.btn-row{display:flex;flex-wrap:wrap;gap:5px}
+.btn{flex:1;min-width:0;padding:6px 3px;border:1px solid var(--border);border-radius:6px;background:#fff;font-size:.76rem;font-weight:600;cursor:pointer;transition:all .15s;text-align:center;white-space:nowrap}
+.btn:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn.primary:hover{background:#1d4ed8}
+.btn.danger{color:var(--red)}
+.btn.danger:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.btn.verify-btn{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.verify-btn:hover{background:#047857}
+.verify-result{font-size:.76rem;padding:6px 8px;border-radius:6px;line-height:1.5;display:none;white-space:pre-wrap;font-family:'Courier New',monospace}
+.verify-result.show{display:block}
+.verify-result.pass{background:var(--green-light);color:var(--green);border:1px solid rgba(5,150,105,.25)}
+.verify-result.fail{background:var(--red-light);color:var(--red);border:1px solid rgba(220,38,38,.25)}
+.questions{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:10px;font-size:.78rem;line-height:1.6}
+.questions strong{color:#92400e}
+.questions .q{margin-bottom:5px}
+.questions .q:last-child{margin-bottom:0}
+.progress-bar{height:3px;background:var(--gray-light);border-radius:2px;overflow:hidden}
+.progress-bar .fill{height:100%;background:var(--blue);border-radius:2px;transition:width .05s linear}
+.title-bar{max-width:1180px;margin:0 auto;padding:12px 16px 0}
+.title-bar h1{font-size:1.12rem;font-weight:800}
+.title-bar .sub{font-size:.76rem;color:var(--text-dim);margin-top:2px}
+.footer-info{text-align:center;font-size:.7rem;color:var(--text-dim);padding:8px 0 4px}
+@media(max-width:880px){
+  .layout{grid-template-columns:1fr;max-width:640px}
+  .panel{position:static}
+}
+</style>
+</head>
+<body>
+
+<div class="title-bar">
+  <h1>C-B03 特征值与特征向量 · 大数学交互交付</h1>
+  <div class="sub">Eigenvalues &amp; Eigenvectors — 2×2 矩阵变换可视化 · 键盘: Space 播放/暂停 · → 单步 · R 重置</div>
+</div>
+
+<div class="layout">
+<div class="svg-wrap">
+  <svg id="mainSvg" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrowRed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0,10 3.5,0 7" fill="#dc2626"/>
+      </marker>
+      <marker id="arrowGold" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0,10 3.5,0 7" fill="#E8B964"/>
+      </marker>
+      <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0,8 3,0 6" fill="#2563eb" opacity=".5"/>
+      </marker>
+      <marker id="axisArr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0,8 3,0 6" fill="#64748b"/>
+      </marker>
+      <clipPath id="clipMain"><rect x="0" y="0" width="1000" height="720"/></clipPath>
+    </defs>
+    <g clip-path="url(#clipMain)">
+      <rect width="1000" height="720" fill="#fff"/>
+      <g id="gridGroup"></g>
+      <g id="unitCircleGroup"></g>
+      <g id="transformGroup"></g>
+      <g id="eigenGroup"></g>
+      <g id="labelGroup"></g>
+    </g>
+  </svg>
+</div>
+
+<div class="panel">
+  <h2>矩阵参数</h2>
+  <div class="mat-display">
+    A = <span id="mDisp">[2.0, 1.0; 1.0, 2.0]</span>
+  </div>
+
+  <div class="slider-row"><label>a</label><input type="range" id="sa" min="-5" max="5" step="0.1" value="2"><span class="val" id="va">2.0</span></div>
+  <div class="slider-row"><label>b</label><input type="range" id="sb" min="-5" max="5" step="0.1" value="1"><span class="val" id="vb">1.0</span></div>
+  <div class="slider-row"><label>c</label><input type="range" id="sc" min="-5" max="5" step="0.1" value="1"><span class="val" id="vc">1.0</span></div>
+  <div class="slider-row"><label>d</label><input type="range" id="sd" min="-5" max="5" step="0.1" value="2"><span class="val" id="vd">2.0</span></div>
+
+  <h3>特征方程 det(A−λI) = 0</h3>
+  <div class="char-eq" id="charEq"></div>
+
+  <h3>特征值 &amp; 特征向量</h3>
+  <div class="readout">
+    <div class="readout-item eigen1"><span class="label">λ₁ =</span> <span class="value" id="lam1">&mdash;</span></div>
+    <div class="readout-item eigen2"><span class="label">λ₂ =</span> <span class="value" id="lam2">&mdash;</span></div>
+    <div class="readout-item eigen1"><span class="label">v₁ =</span> <span class="value" id="vec1">&mdash;</span></div>
+    <div class="readout-item eigen2"><span class="label">v₂ =</span> <span class="value" id="vec2">&mdash;</span></div>
+    <div class="readout-item full"><span class="label">det(A) =</span> <span class="value" id="detVal">&mdash;</span> &nbsp;&nbsp; <span class="label">tr(A) =</span> <span class="value" id="trVal">&mdash;</span></div>
+  </div>
+
+  <h2>控制</h2>
+  <div class="btn-row">
+    <button class="btn primary" id="btnPlay">&#9654; 播放</button>
+    <button class="btn" id="btnPause">&#9208; 暂停</button>
+    <button class="btn" id="btnStep">&#9193; 单步</button>
+    <button class="btn danger" id="btnReset">&#8634; 重置</button>
+  </div>
+  <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+  <div class="btn-row">
+    <button class="btn" id="btnReverse">&#9194; 反向</button>
+    <button class="btn verify-btn" id="btnVerify">&#10003; 验证 Av=λv</button>
+    <button class="btn" id="btnCopyLink">&#128279; 复制链接</button>
+  </div>
+  <div class="verify-result" id="verifyResult"></div>
+
+  <div class="questions">
+    <strong>课堂思考题</strong>
+    <div class="q">先猜: a=2, b=1, c=1, d=2 的特征值是几?</div>
+    <div class="q">验证: 特征向量方向在变换后是否真的不变?</div>
+  </div>
+</div>
+</div>
+
+<div class="footer-info">C-B03 特征值与特征向量 · Self-contained HTML5 Visualization · No External Dependencies</div>
+
+<script>
+(function(){
+"use strict";
+
+var CX_MIN=-5, CX_MAX=5, CY_MIN=-5, CY_MAX=5;
+var SVG_W=1000, SVG_H=720;
+var OX=SVG_W/2, OY=SVG_H/2;
+var SX=SVG_W/(CX_MAX-CX_MIN), SY=SVG_H/(CY_MAX-CY_MIN);
+
+function toSvg(x,y){ return [OX+x*SX, OY-y*SY]; }
+
+var S={a:2,b:1,c:1,d:2,t:0,playing:false,dir:1,raf:null,lastTime:0,eigenpairs:[],hasRealEigen:true,tr:0,det:0};
+
+var NS="http://www.w3.org/2000/svg";
+function el(tag,attrs,parent){
+  var e=document.createElementNS(NS,tag);
+  if(attrs) for(var k in attrs) if(attrs.hasOwnProperty(k)) e.setAttribute(k,attrs[k]);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+function clearGroup(id){var g=document.getElementById(id);while(g.firstChild)g.removeChild(g.firstChild);return g;}
+
+function drawGrid(){
+  var g=clearGroup('gridGroup');
+  el('rect',{x:0,y:0,width:SVG_W,height:SVG_H,fill:'#fafbfc'},g);
+  var i,j,x1,y1,x2,y2,tx,ty;
+  for(i=CX_MIN;i<=CX_MAX;i++){
+    if(i===0)continue;
+    var p1=toSvg(i,CY_MIN), p2=toSvg(i,CY_MAX);
+    el('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:'#e2e8f0','stroke-width':1},g);
+    var tp=toSvg(i,0);
+    el('text',{x:tp[0],y:tp[1]+15,'text-anchor':'middle',fill:'#94a3b8','font-size':'11'},g).textContent=i;
+  }
+  for(j=CY_MIN;j<=CY_MAX;j++){
+    if(j===0)continue;
+    var q1=toSvg(CX_MIN,j), q2=toSvg(CX_MAX,j);
+    el('line',{x1:q1[0],y1:q1[1],x2:q2[0],y2:q2[1],stroke:'#e2e8f0','stroke-width':1},g);
+    var tq=toSvg(0,j);
+    el('text',{x:tq[0]-14,y:tq[1]+4,'text-anchor':'middle',fill:'#94a3b8','font-size':'11'},g).textContent=j;
+  }
+  var ax1=toSvg(CX_MIN,0), ax2=toSvg(CX_MAX,0);
+  el('line',{x1:ax1[0],y1:ax1[1],x2:ax2[0],y2:ax2[1],stroke:'#64748b','stroke-width':1.5},g);
+  var ay1=toSvg(0,CY_MIN), ay2=toSvg(0,CY_MAX);
+  el('line',{x1:ay1[0],y1:ay1[1],x2:ay2[0],y2:ay2[1],stroke:'#64748b','stroke-width':1.5},g);
+  el('polygon',{points:(ax2[0])+','+(ax2[1]-3)+' '+(ax2[0]-8)+','+(ax2[1]-7)+' '+(ax2[0]-8)+','+(ax2[1]+1),fill:'#64748b'},g);
+  el('polygon',{points:(ay2[0]-3)+','+(ay2[1])+' '+(ay2[0]-7)+','+(ay2[1]+8)+' '+(ay2[0]+1)+','+(ay2[1]+8),fill:'#64748b'},g);
+  var o=toSvg(0,0);
+  el('text',{x:o[0]-8,y:o[1]+14,'text-anchor':'middle',fill:'#64748b','font-size':'12','font-weight':'600'},g).textContent='O';
+}
+
+function drawUnitCircle(){
+  var g=clearGroup('unitCircleGroup');
+  var c=toSvg(0,0);
+  var r=SX;
+  el('ellipse',{cx:c[0],cy:c[1],rx:r,ry:r,fill:'none',stroke:'#9ca3af','stroke-width':1.5,'stroke-dasharray':'6,4',opacity:.6},g);
+  el('text',{x:c[0]+r+6,y:c[1]-8,fill:'#9ca3af','font-size':'10',opacity:.7},g).textContent='\u5355\u4f4d\u5706';
+}
+
+function computeEigen(){
+  var a=S.a, b=S.b, c=S.c, d=S.d;
+  var tr=a+d;
+  var det=a*d-b*c;
+  var disc=tr*tr-4*det;
+  S.tr=tr; S.det=det;
+
+  if(disc<-1e-12){
+    S.hasRealEigen=false;
+    S.eigenpairs=[];
+    return;
+  }
+  S.hasRealEigen=true;
+  var sq=Math.sqrt(Math.max(0,disc));
+  var l1=(tr+sq)/2, l2=(tr-sq)/2;
+
+  function eigvec(lam){
+    var m00=a-lam, m01=b, m10=c, m11=d-lam;
+    if(Math.abs(m00)>1e-10||Math.abs(m01)>1e-10){
+      if(Math.abs(m01)>1e-10){
+        var vy=-m00/m01;
+        var n=Math.sqrt(1+vy*vy);
+        return [1/n, vy/n];
+      } else {
+        return [0,1];
+      }
+    } else {
+      if(Math.abs(m10)>1e-10){
+        var vx=-m11/m10;
+        var n2=Math.sqrt(vx*vx+1);
+        return [vx/n2, 1/n2];
+      } else {
+        return [1,0];
+      }
+    }
+  }
+
+  S.eigenpairs=[
+    {lam:l1, vec:eigvec(l1), color:'#dc2626'},
+    {lam:l2, vec:eigvec(l2), color:'#E8B964'}
+  ];
+}
+
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function drawDynamic(){
+  var gT=clearGroup('transformGroup');
+  var gE=clearGroup('eigenGroup');
+  var gL=clearGroup('labelGroup');
+  var a=S.a, b=S.b, c=S.c, d=S.d;
+  var t=S.t;
+  var ma=lerp(1,a,t), mb=lerp(0,b,t), mc=lerp(0,c,t), md=lerp(1,d,t);
+
+  var N=120;
+  var pts=[];
+  for(var i=0;i<=N;i++){
+    var th=2*Math.PI*i/N;
+    var ux=Math.cos(th), uy=Math.sin(th);
+    var tx=ma*ux+mb*uy;
+    var ty=mc*ux+md*uy;
+    var sp=toSvg(tx,ty);
+    pts.push(sp[0].toFixed(2)+','+sp[1].toFixed(2));
+  }
+  el('polygon',{points:pts.join(' '),fill:'rgba(37,99,235,.08)',stroke:'#2563eb','stroke-width':2},gT);
+
+  /* eigenvectors */
+  if(S.hasRealEigen && S.eigenpairs.length>0){
+    S.eigenpairs.forEach(function(ep,idx){
+      var vx=ep.vec[0], vy=ep.vec[1];
+      var lam=ep.lam;
+      var tvx=lerp(vx,vx*lam,t);
+      var tvy=lerp(vy,vy*lam,t);
+      var p1=toSvg(0,0);
+      var p2=toSvg(tvx,tvy);
+      var mid=toSvg(vx*0.12,vy*0.12);
+      el('line',{x1:p1[0],y1:p1[1],x2:p2[0],y2:p2[1],stroke:ep.color,'stroke-width':2.5,'marker-end':'url(#arrow'+(idx===0?'Red':'Gold')+')',opacity:.9},gE);
+      el('circle',{cx:p2[0],cy:p2[1],r:4,fill:ep.color},gE);
+
+      var lbl=idx===0?'v\u2081':'v\u2082';
+      var ang=Math.atan2(-(tvy),tvx);
+      var lx=p2[0]+14*Math.cos(ang);
+      var ly=p2[1]+14*Math.sin(ang);
+      el('text',{x:lx,y:ly,'text-anchor':'middle','dominant-baseline':'middle',fill:ep.color,'font-size':'13','font-weight':'700'},gL).textContent=lbl;
+
+      /* faint original direction */
+      var po=toSvg(vx,vy);
+      el('line',{x1:p1[0],y1:p1[1],x2:po[0],y2:po[1],stroke:ep.color,'stroke-width':1.5,'stroke-dasharray':'4,4',opacity:.3},gE);
+    });
+  } else {
+    el('text',{x:SVG_W/2,y:40,'text-anchor':'middle',fill:'#94a3b8','font-size':'13','font-weight':'600'},gL).textContent='\u590d\u6570\u7279\u5f81\u503c \u2014 \u65e0\u5b9e\u7279\u5f81\u5411\u91cf';
+  }
+
+  /* annotation */
+  var ann=toSvg(0,0);
+  el('text',{x:24,y:SVG_H-24,'font-size':'12','font-family':'Courier New,monospace',fill:'#475569','font-weight':'600'},gL)
+    .textContent='t='+t.toFixed(2)+'  M(t)=[['+ma.toFixed(2)+','+mb.toFixed(2)+'],['+mc.toFixed(2)+','+md.toFixed(2)+']]';
+}
+
+function updateReadouts(){
+  document.getElementById('mDisp').textContent='['+S.a.toFixed(1)+', '+S.b.toFixed(1)+'; '+S.c.toFixed(1)+', '+S.d.toFixed(1)+']';
+  document.getElementById('detVal').textContent=S.det.toFixed(2);
+  document.getElementById('trVal').textContent=S.tr.toFixed(2);
+
+  if(S.hasRealEigen && S.eigenpairs.length===2){
+    var e1=S.eigenpairs[0], e2=S.eigenpairs[1];
+    document.getElementById('lam1').textContent=fmtNum(e1.lam);
+    document.getElementById('lam2').textContent=fmtNum(e2.lam);
+    document.getElementById('vec1').textContent='('+fmtNum(e1.vec[0])+', '+fmtNum(e1.vec[1])+')';
+    document.getElementById('vec2').textContent='('+fmtNum(e2.vec[0])+', '+fmtNum(e2.vec[1])+')';
+    var a=S.a, b=S.b, c=S.c, d=S.d;
+    var A='(\u03bb\u00b2-'+fmtNum(S.tr)+'\u03bb+'+fmtNum(S.det)+')=0';
+    document.getElementById('charEq').innerHTML=
+      '\u03bb\u00b2 &minus; '+fmtNum(S.tr)+'\u03bb + '+fmtNum(S.det)+' = 0<br><span style="font-size:.72rem;color:#64748b">'+A+'</span>';
+  } else {
+    document.getElementById('lam1').textContent='\u590d\u6570';
+    document.getElementById('lam2').textContent='\u590d\u6570';
+    document.getElementById('vec1').textContent='\u2014';
+    document.getElementById('vec2').textContent='\u2014';
+    document.getElementById('charEq').innerHTML='\u03bb\u00b2 &minus; '+fmtNum(S.tr)+'\u03bb + '+fmtNum(S.det)+' = 0<br><span style="color:#94a3b8;font-size:.72rem">\u2206 = '+fmtNum(S.tr*S.tr-4*S.det)+' &lt; 0, \u65e0\u5b9e\u6839</span>';
+  }
+}
+
+function fmtNum(v){
+  if(Math.abs(v-Math.round(v))<1e-9) return String(Math.round(v));
+  return v.toFixed(2);
+}
+
+function render(){
+  computeEigen();
+  updateReadouts();
+  drawDynamic();
+  document.getElementById('progressFill').style.width=(S.t*100)+'%';
+}
+
+/* ── Sliders ── */
+var sliders=['sa','sb','sc','sd'];
+var keys=['a','b','c','d'];
+var valIds=['va','vb','vc','vd'];
+sliders.forEach(function(id,i){
+  var sl=document.getElementById(id);
+  sl.addEventListener('input',function(){
+    S[keys[i]]=parseFloat(sl.value);
+    document.getElementById(valIds[i]).textContent=parseFloat(sl.value).toFixed(1);
+    render();
+  });
+});
+
+/* ── Animation ── */
+var ANIM_DURATION=2000;
+function tick(now){
+  if(!S.playing)return;
+  if(S.lastTime<0){S.lastTime=now;S.raf=requestAnimationFrame(tick);return;}
+  var dt=now-S.lastTime;
+  S.lastTime=now;
+  S.t+=S.dir*dt/ANIM_DURATION;
+  if(S.t>=1){S.t=1; S.playing=false;}
+  if(S.t<=0){S.t=0; S.playing=false;}
+  render();
+  if(S.playing) S.raf=requestAnimationFrame(tick);
+  updatePlayBtn();
+}
+function updatePlayBtn(){
+  document.getElementById('btnPlay').textContent=S.playing?'\u23f8 \u64ad\u653e':'\u25b6 \u64ad\u653e';
+}
+
+/* ── SciDemo protocol ── */
+window.SciDemo={
+  setParams:function(p){
+    if(p.a!==undefined){S.a=parseFloat(p.a);document.getElementById('sa').value=S.a;document.getElementById('va').textContent=S.a.toFixed(1);}
+    if(p.b!==undefined){S.b=parseFloat(p.b);document.getElementById('sb').value=S.b;document.getElementById('vb').textContent=S.b.toFixed(1);}
+    if(p.c!==undefined){S.c=parseFloat(p.c);document.getElementById('sc').value=S.c;document.getElementById('vc').textContent=S.c.toFixed(1);}
+    if(p.d!==undefined){S.d=parseFloat(p.d);document.getElementById('sd').value=S.d;document.getElementById('vd').textContent=S.d.toFixed(1);}
+    render();
+  },
+  play:function(){
+    if(S.t>=1) S.t=0;
+    S.playing=true; S.dir=1; S.lastTime=-1;
+    updatePlayBtn();
+    S.raf=requestAnimationFrame(tick);
+  },
+  pause:function(){
+    S.playing=false;
+    if(S.raf) cancelAnimationFrame(S.raf);
+    updatePlayBtn();
+  },
+  step:function(){
+    S.playing=false;
+    if(S.raf) cancelAnimationFrame(S.raf);
+    S.t=Math.min(1,S.t+0.05);
+    render();
+    updatePlayBtn();
+  },
+  reset:function(){
+    S.playing=false;
+    if(S.raf) cancelAnimationFrame(S.raf);
+    S.t=0; S.dir=1;
+    render();
+    updatePlayBtn();
+  },
+  reverse:function(){
+    if(S.t<=0) S.t=1;
+    S.playing=true; S.dir=-1; S.lastTime=-1;
+    updatePlayBtn();
+    S.raf=requestAnimationFrame(tick);
+  },
+  verify:function(){
+    var vr=document.getElementById('verifyResult');
+    if(!S.hasRealEigen){
+      vr.className='verify-result show fail';
+      vr.textContent='\u590d\u6570\u7279\u5f81\u503c\uff0c\u65e0\u5b9e\u7279\u5f81\u5411\u91cf\u53ef\u9a8c\u8bc1\u3002';
+      return;
+    }
+    var a=S.a, b=S.b, c=S.c, d=S.d;
+    var allPass=true;
+    var lines=['Av = \u03bbv \u9a8c\u8bc1 (tol=1e-6):\n'];
+    S.eigenpairs.forEach(function(ep,idx){
+      var lam=ep.lam, vx=ep.vec[0], vy=ep.vec[1];
+      var avx=a*vx+b*vy;
+      var avy=c*vx+d*vy;
+      var lvx=lam*vx;
+      var lvy=lam*vy;
+      var err=Math.sqrt((avx-lvx)*(avx-lvx)+(avy-lvy)*(avy-lvy));
+      var pass=err<1e-6;
+      if(!pass) allPass=false;
+      var tag=idx===0?'\u03bb\u2081':'\u03bb\u2082';
+      lines.push(tag+': v=('+vx.toFixed(4)+','+vy.toFixed(4)+'), \u03bb='+lam.toFixed(4));
+      lines.push('  Av=('+avx.toFixed(4)+','+avy.toFixed(4)+')');
+      lines.push('  \u03bbv=('+lvx.toFixed(4)+','+lvy.toFixed(4)+')');
+      lines.push('  error='+err.toExponential(2)+' '+(pass?'\u2713':'\u2717')+'\n');
+    });
+    vr.className='verify-result show '+(allPass?'pass':'fail');
+    vr.textContent=lines.join('\n');
+  },
+  state:function(){return JSON.parse(JSON.stringify(S));},
+  isReady:function(){return true;}
+};
+
+/* ── Button bindings ── */
+document.getElementById('btnPlay').onclick=function(){window.SciDemo.play();};
+document.getElementById('btnPause').onclick=function(){window.SciDemo.pause();};
+document.getElementById('btnStep').onclick=function(){window.SciDemo.step();};
+document.getElementById('btnReset').onclick=function(){window.SciDemo.reset();};
+document.getElementById('btnReverse').onclick=function(){window.SciDemo.reverse();};
+document.getElementById('btnVerify').onclick=function(){window.SciDemo.verify();};
+document.getElementById('btnCopyLink').onclick=function(){
+  var url=location.origin+location.pathname+'?a='+S.a+'&b='+S.b+'&c='+S.c+'&d='+S.d;
+  navigator.clipboard.writeText(url).then(function(){
+    document.getElementById('btnCopyLink').textContent='\u2713 \u5df2\u590d\u5236';
+    setTimeout(function(){document.getElementById('btnCopyLink').textContent='\ud83d\udd17 \u590d\u5236\u94fe\u63a5';},1500);
+  });
+};
+
+/* ── Keyboard ── */
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT') return;
+  if(e.code==='Space'){e.preventDefault();S.playing?window.SciDemo.pause():window.SciDemo.play();}
+  if(e.code==='ArrowRight'){e.preventDefault();window.SciDemo.step();}
+  if(e.code==='KeyR'){window.SciDemo.reset();}
+});
+
+/* ── URL params init ── */
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  var p={};
+  if(params.has('a')) p.a=parseFloat(params.get('a'));
+  if(params.has('b')) p.b=parseFloat(params.get('b'));
+  if(params.has('c')) p.c=parseFloat(params.get('c'));
+  if(params.has('d')) p.d=parseFloat(params.get('d'));
+  if(Object.keys(p).length>0) window.SciDemo.setParams(p);
+})();
+
+/* ── Init ── */
+drawGrid();
+drawUnitCircle();
+render();
+
+})();
+</script>
+</body>
+</html>

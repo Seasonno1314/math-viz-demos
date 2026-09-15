@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-J04 二次函数图像 · 大数学交互交付</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#f6f7f9; color:#1f2430; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; min-height:100vh; }
+  .wrap { max-width:1180px; margin:0 auto; padding:18px 16px 30px; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .sub { color:#6b7280; font-size:13px; margin-bottom:14px; }
+  .layout { display:grid; grid-template-columns:1fr 310px; gap:16px; }
+  .stage { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:8px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  svg { width:100%; height:auto; display:block; }
+  .panel { display:flex; flex-direction:column; gap:12px; }
+  .box { background:#fff; border:1px solid #e3e6ec; border-radius:12px; padding:12px 14px; }
+  .box h3 { font-size:14px; margin-bottom:8px; color:#374151; }
+  .ctl { margin-bottom:10px; }
+  .ctl label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px; }
+  .ctl label b { color:#2563eb; }
+  .ctl input[type=range] { width:100%; }
+  .btnrow { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  button { border:none; border-radius:8px; padding:9px 0; font-size:14px; cursor:pointer; background:#eef1f6; color:#1f2430; }
+  button:hover { background:#e2e8f0; }
+  button.pri { background:#2563eb; color:#fff; }
+  button.pri:hover { background:#1d4ed8; }
+  .readout { font-size:13px; line-height:1.75; }
+  .readout .big { font-size:15px; font-weight:700; }
+  .blu { color:#2563eb; }
+  .red { color:#dc2626; }
+  .grn { color:#059669; }
+  .ok { color:#059669; font-weight:700; }
+  .warn { color:#d97706; }
+  .msg { font-size:12px; color:#6b7280; line-height:1.6; }
+  .q { font-size:12px; color:#6b7280; border-top:1px dashed #e3e6ec; padding-top:8px; margin-top:4px; }
+  .q b { color:#374151; }
+  @media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>C-J04 · 二次函数图像：y = ax² + bx + c</h1>
+  <p class="sub">拖动 a、b、c 滑块，观察抛物线形状、顶点、对称轴和根的实时变化。蓝线 = 抛物线，红点 = 顶点，灰虚线 = 对称轴，绿色 × = 实数根。</p>
+  <div class="layout">
+    <div class="stage">
+      <svg id="scene" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="二次函数抛物线图像"></svg>
+    </div>
+    <div class="panel">
+      <div class="box">
+        <h3>参数控制</h3>
+        <div class="ctl"><label>a（开口方向与大小） <b id="va">1.00</b></label><input type="range" id="sa" min="-3" max="3" step="0.1" value="1"></div>
+        <div class="ctl"><label>b（一次项系数） <b id="vb">-2.00</b></label><input type="range" id="sb" min="-6" max="6" step="0.1" value="-2"></div>
+        <div class="ctl"><label>c（常数项） <b id="vc">-3.00</b></label><input type="range" id="sc" min="-5" max="5" step="0.1" value="-3"></div>
+        <div class="btnrow">
+          <button class="pri" id="btnPlay">▶ 变形动画</button>
+          <button id="btnPause">⏸ 暂停</button>
+          <button id="btnStep">⏭ 单步</button>
+          <button id="btnReset">↺ 复位</button>
+          <button id="btnCopy">🔗 复制参数链接</button>
+        </div>
+      </div>
+      <div class="box">
+        <h3>实时数据</h3>
+        <div class="readout" id="readout"></div>
+      </div>
+      <div class="box">
+        <h3>课堂提问</h3>
+        <div class="q"><b>先猜</b>：a 从正变负，抛物线会怎样？<br><b>验证</b>：a=1, b=-2, c=-3 的顶点坐标是什么？</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+
+var SVG_NS = "http://www.w3.org/2000/svg";
+var W = 1000, H = 720, PAD = 48;
+var XMIN = -8, XMAX = 8, YMIN = -10, YMAX = 10;
+var svg = document.getElementById("scene");
+
+var state = { a: 1, b: -2, c: -3, playing: false, lastTs: 0, animT: 0 };
+
+var morphFrom = { a: 1, b: -2, c: -3 };
+var morphTo   = { a: 1, b: -2, c: -3 };
+
+function sx(x){ return PAD + (x - XMIN) / (XMAX - XMIN) * (W - PAD * 2); }
+function sy(y){ return H - PAD - (y - YMIN) / (YMAX - YMIN) * (H - PAD * 2); }
+
+function el(tag, attrs){
+  var e = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function clearSvg(){ while (svg.firstChild) svg.removeChild(svg.firstChild); }
+function txt(x, y, text, color, size, weight, anchor){
+  var t = el("text", { x:x, y:y, fill:color||"#374151", "font-size":size||13,
+    "text-anchor": anchor || "middle", "font-weight": weight||"normal",
+    "font-family":"'Microsoft YaHei','PingFang SC',sans-serif" });
+  t.textContent = text;
+  svg.appendChild(t);
+  return t;
+}
+function fnum(x){
+  if (Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));
+  return x.toFixed(2);
+}
+function lerp(a, b, t){ return a + (b - a) * t; }
+function easeInOut(t){ return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
+
+function f(x, a, b, c){ return a * x * x + b * x + c; }
+
+function vertex(a, b, c){
+  if (Math.abs(a) < 1e-12) return { x: 0, y: c };
+  return { x: -b / (2 * a), y: c - b * b / (4 * a) };
+}
+
+function roots(a, b, c){
+  if (Math.abs(a) < 1e-12){
+    if (Math.abs(b) < 1e-12) return [];
+    return [-c / b];
+  }
+  var disc = b * b - 4 * a * c;
+  if (disc < -1e-9) return [];
+  if (Math.abs(disc) < 1e-9) return [-b / (2 * a)];
+  var sq = Math.sqrt(disc);
+  var r1 = (-b - sq) / (2 * a);
+  var r2 = (-b + sq) / (2 * a);
+  return [r1, r2];
+}
+
+function redraw(){
+  clearSvg();
+  var a = state.a, b = state.b, c = state.c;
+
+  // Grid lines
+  for (var gx = XMIN; gx <= XMAX; gx++){
+    svg.appendChild(el("line", { x1:sx(gx), y1:sy(YMIN), x2:sx(gx), y2:sy(YMAX), stroke:"#eef0f4", "stroke-width":1 }));
+  }
+  for (var gy = YMIN; gy <= YMAX; gy++){
+    svg.appendChild(el("line", { x1:sx(XMIN), y1:sy(gy), x2:sx(XMAX), y2:sy(gy), stroke:"#eef0f4", "stroke-width":1 }));
+  }
+
+  // Axes
+  svg.appendChild(el("line", { x1:sx(XMIN), y1:sy(0), x2:sx(XMAX), y2:sy(0), stroke:"#94a3b8", "stroke-width":2 }));
+  svg.appendChild(el("line", { x1:sx(0), y1:sy(YMAX), x2:sx(0), y2:sy(YMIN), stroke:"#94a3b8", "stroke-width":2 }));
+
+  // Axis ticks
+  for (var tx = XMIN; tx <= XMAX; tx++){
+    if (tx !== 0) txt(sx(tx), sy(0) + 18, String(tx), "#94a3b8", 11);
+  }
+  for (var ty = YMIN; ty <= YMAX; ty++){
+    if (ty !== 0) txt(sx(0) - 16, sy(ty) + 4, String(ty), "#94a3b8", 11);
+  }
+
+  // Axis labels
+  txt(sx(XMAX) - 6, sy(0) - 10, "x", "#64748b", 13, "bold", "end");
+  txt(sx(0) + 14, sy(YMAX) + 10, "y", "#64748b", 13, "bold", "start");
+
+  // Origin label
+  txt(sx(0) - 12, sy(0) + 16, "O", "#94a3b8", 11, "normal", "end");
+
+  // Axis of symmetry (gray dashed)
+  var vtx = vertex(a, b, c);
+  if (Math.abs(a) > 1e-12){
+    svg.appendChild(el("line", {
+      x1:sx(vtx.x), y1:sy(YMAX), x2:sx(vtx.x), y2:sy(YMIN),
+      stroke:"#94a3b8", "stroke-width":2, "stroke-dasharray":"8 5"
+    }));
+    txt(sx(vtx.x) + 6, sy(YMAX) + 14, "x=" + fnum(vtx.x), "#94a3b8", 11, "normal", "start");
+  }
+
+  // Parabola curve (smooth path with many points)
+  var path = "";
+  var firstPt = true;
+  for (var x = XMIN; x <= XMAX; x += 0.04){
+    var y = f(x, a, b, c);
+    if (y < YMIN - 5 || y > YMAX + 5){
+      firstPt = true;
+      continue;
+    }
+    if (firstPt){
+      path += (path ? " M" : "M") + sx(x) + " " + sy(y);
+      firstPt = false;
+    } else {
+      path += " L" + sx(x) + " " + sy(y);
+    }
+  }
+  if (path){
+    svg.appendChild(el("path", { d:path, fill:"none", stroke:"#2563eb", "stroke-width":3.5, "stroke-linejoin":"round", "stroke-linecap":"round" }));
+  }
+
+  // Roots (green ×)
+  var rs = roots(a, b, c);
+  for (var i = 0; i < rs.length; i++){
+    var rx = rs[i], ry = 0;
+    if (rx < XMIN - 1 || rx > XMAX + 1) continue;
+    var px = sx(rx), py = sy(ry);
+    var sz = 8;
+    svg.appendChild(el("line", { x1:px-sz, y1:py-sz, x2:px+sz, y2:py+sz, stroke:"#059669", "stroke-width":3.5, "stroke-linecap":"round" }));
+    svg.appendChild(el("line", { x1:px+sz, y1:py-sz, x2:px-sz, y2:py+sz, stroke:"#059669", "stroke-width":3.5, "stroke-linecap":"round" }));
+    txt(px, py + 22, fnum(rx), "#059669", 12, "bold");
+  }
+
+  // Vertex dot (red)
+  if (vtx.x >= XMIN - 1 && vtx.x <= XMAX + 1 && vtx.y >= YMIN - 1 && vtx.y <= YMAX + 1){
+    svg.appendChild(el("circle", { cx:sx(vtx.x), cy:sy(vtx.y), r:8, fill:"#dc2626", stroke:"#fff", "stroke-width":2.5 }));
+    txt(sx(vtx.x) + 12, sy(vtx.y) - 12, "(" + fnum(vtx.x) + ", " + fnum(vtx.y) + ")", "#dc2626", 12, "bold", "start");
+  }
+
+  // Legend
+  var lg = el("g", {});
+  lg.appendChild(el("rect", { x:W-230, y:12, width:210, height:84, rx:8, fill:"#f8fafc", "fill-opacity":0.92, stroke:"#e2e8f0", "stroke-width":1 }));
+  lg.appendChild(el("line", { x1:W-210, y1:30, x2:W-160, y2:30, stroke:"#2563eb", "stroke-width":3.5 }));
+  lg.appendChild(el("circle", { cx:W-185, cy:56, r:6, fill:"#dc2626", stroke:"#fff", "stroke-width":2 }));
+  lg.appendChild(el("line", { x1:W-210, y1:56, x2:W-160, y2:56, stroke:"#94a3b8", "stroke-width":2, "stroke-dasharray":"6 4" }));
+  var xmark1x = W-185, xmark1y = 80;
+  lg.appendChild(el("line", { x1:xmark1x-6, y1:xmark1y-6, x2:xmark1x+6, y2:xmark1y+6, stroke:"#059669", "stroke-width":3, "stroke-linecap":"round" }));
+  lg.appendChild(el("line", { x1:xmark1x+6, y1:xmark1y-6, x2:xmark1x-6, y2:xmark1y+6, stroke:"#059669", "stroke-width":3, "stroke-linecap":"round" }));
+  txt(W-108, 34, "抛物线", "#2563eb", 12, "bold");
+  txt(W-108, 60, "顶点", "#dc2626", 12, "bold");
+  txt(W-108, 84, "实数根", "#059669", 12, "bold");
+  svg.appendChild(lg);
+
+  updateReadout();
+}
+
+function updateReadout(){
+  var a = state.a, b = state.b, c = state.c;
+  var vtx = vertex(a, b, c);
+  var rs = roots(a, b, c);
+  var disc = b * b - 4 * a * c;
+  var el2 = document.getElementById("readout");
+
+  var discStr;
+  if (Math.abs(a) < 1e-12){
+    discStr = '<span class="blu">a ≈ 0，退化为一次函数</span>';
+  } else if (disc > 1e-9){
+    discStr = '<span class="grn">Δ = ' + fnum(disc) + ' > 0，两个不同实根</span>';
+  } else if (Math.abs(disc) < 1e-9){
+    discStr = '<span class="warn">Δ = 0，一个重根（顶点在 x 轴上）</span>';
+  } else {
+    discStr = '<span class="red">Δ = ' + fnum(disc) + ' < 0，无实数根</span>';
+  }
+
+  var eqStr = '<span class="blu">y = ' + fnum(a) + 'x²' + (b >= 0 ? ' + ' : ' − ') + fnum(Math.abs(b)) + 'x' + (c >= 0 ? ' + ' : ' − ') + fnum(Math.abs(c)) + '</span>';
+
+  el2.innerHTML =
+    '<div class="big">' + eqStr + '</div>' +
+    '<div>顶点: <b class="red">(' + fnum(vtx.x) + ', ' + fnum(vtx.y) + ')</b></div>' +
+    '<div>对称轴: x = <b>' + fnum(vtx.x) + '</b></div>' +
+    '<div>' + discStr + '</div>' +
+    (rs.length > 0 ? '<div>根: <b class="grn">' + rs.map(fnum).join(', ') + '</b></div>' : '<div class="msg" style="margin-top:2px">无实数根，图像不与 x 轴相交</div>') +
+    '<div class="msg">a>0 开口向上，a<0 开口向下；|a| 越大开口越窄。改变 a 的正负试试看！</div>';
+}
+
+/* ---------- Morph Animation ---------- */
+function frame(ts){
+  if (!state.playing) return;
+  var dt = state.lastTs ? (ts - state.lastTs) / 1000 : 0;
+  state.lastTs = ts;
+  state.animT = Math.min(1, state.animT + dt * 0.7);
+
+  var t = easeInOut(state.animT);
+  state.a = lerp(morphFrom.a, morphTo.a, t);
+  state.b = lerp(morphFrom.b, morphTo.b, t);
+  state.c = lerp(morphFrom.c, morphTo.c, t);
+
+  syncSliders();
+
+  if (state.animT >= 1){
+    state.playing = false;
+  }
+
+  redraw();
+  if (state.playing) requestAnimationFrame(frame);
+}
+
+function play(){
+  state.playing = true;
+  morphFrom.a = state.a; morphFrom.b = state.b; morphFrom.c = state.c;
+  // Cycle to a preset shape
+  var presets = [
+    { a: 1, b: 0, c: 0 },
+    { a: -1, b: 0, c: 4 },
+    { a: 0.5, b: -2, c: -3 },
+    { a: -2, b: 4, c: 0 },
+    { a: 1, b: -2, c: -3 }
+  ];
+  // Pick next preset that differs from current
+  var cur = state.a.toFixed(1) + "," + state.b.toFixed(1) + "," + state.c.toFixed(1);
+  var best = presets[0], bestDist = Infinity;
+  for (var i = 0; i < presets.length; i++){
+    var d = Math.abs(presets[i].a - state.a) + Math.abs(presets[i].b - state.b) + Math.abs(presets[i].c - state.c);
+    if (d > 0.5 && d < bestDist){ bestDist = d; best = presets[i]; }
+  }
+  morphTo = best;
+  state.animT = 0;
+  state.lastTs = 0;
+  requestAnimationFrame(frame);
+}
+
+function step(){
+  state.playing = false;
+  // Step: change a slightly
+  state.a = Math.max(-3, Math.min(3, state.a + (state.a < 0 ? -0.3 : 0.3)));
+  syncSliders();
+  redraw();
+}
+
+function resetAll(){
+  state.playing = false;
+  state.a = 1; state.b = -2; state.c = -3;
+  syncSliders();
+  redraw();
+}
+
+function syncSliders(){
+  sa.value = state.a; va.textContent = fnum(state.a);
+  sb.value = state.b; vb.textContent = fnum(state.b);
+  sc.value = state.c; vc.textContent = fnum(state.c);
+}
+
+function setParams(p){
+  if (p.a !== undefined) state.a = Math.max(-3, Math.min(3, parseFloat(p.a)));
+  if (p.b !== undefined) state.b = Math.max(-6, Math.min(6, parseFloat(p.b)));
+  if (p.c !== undefined) state.c = Math.max(-5, Math.min(5, parseFloat(p.c)));
+  syncSliders();
+  redraw();
+}
+
+/* ---------- Button bindings ---------- */
+document.getElementById("btnPlay").onclick  = play;
+document.getElementById("btnPause").onclick = function(){ state.playing = false; };
+document.getElementById("btnStep").onclick  = step;
+document.getElementById("btnReset").onclick = resetAll;
+document.getElementById("btnCopy").onclick = function(){
+  var u = new URL(location.href);
+  u.searchParams.set("a", state.a.toFixed(2));
+  u.searchParams.set("b", state.b.toFixed(2));
+  u.searchParams.set("c", state.c.toFixed(2));
+  var s = u.href;
+  if (navigator.clipboard) navigator.clipboard.writeText(s).then(function(){ alert("链接已复制"); });
+  else { prompt("复制链接", s); }
+};
+
+/* ---------- Slider bindings ---------- */
+var sa = document.getElementById("sa"), va = document.getElementById("va");
+var sb = document.getElementById("sb"), vb = document.getElementById("vb");
+var sc = document.getElementById("sc"), vc = document.getElementById("vc");
+
+function onSlider(){
+  state.a = +sa.value; state.b = +sb.value; state.c = +sc.value;
+  va.textContent = fnum(state.a); vb.textContent = fnum(state.b); vc.textContent = fnum(state.c);
+  state.playing = false;
+  redraw();
+}
+sa.oninput = onSlider; sb.oninput = onSlider; sc.oninput = onSlider;
+
+/* ---------- Keyboard ---------- */
+document.addEventListener("keydown", function(e){
+  if (e.key === " ") { e.preventDefault(); if (state.playing) state.playing = false; else play(); }
+  else if (e.key === "ArrowRight") { step(); }
+  else if (e.key === "r" || e.key === "R") { resetAll(); }
+});
+
+/* ---------- Init + URL ---------- */
+(function init(){
+  var q = new URLSearchParams(location.search);
+  var a = parseFloat(q.get("a")), b = parseFloat(q.get("b")), c = parseFloat(q.get("c"));
+  if (isFinite(a) && a >= -3 && a <= 3) state.a = a;
+  if (isFinite(b) && b >= -6 && b <= 6) state.b = b;
+  if (isFinite(c) && c >= -5 && c <= 5) state.c = c;
+  syncSliders();
+  redraw();
+})();
+
+/* ---------- verify ---------- */
+function verify(){
+  var a = state.a, b = state.b, c = state.c;
+  var vtx = vertex(a, b, c);
+  var expectedX = Math.abs(a) < 1e-12 ? 0 : -b / (2 * a);
+  var expectedY = Math.abs(a) < 1e-12 ? c : c - b * b / (4 * a);
+  var xOk = Math.abs(vtx.x - expectedX) < 1e-9;
+  var yOk = Math.abs(vtx.y - expectedY) < 1e-9;
+  return {
+    mode: "quadratic",
+    a: a, b: b, c: c,
+    vertex: { x: vtx.x, y: vtx.y },
+    expectedVertex: { x: expectedX, y: expectedY },
+    vertexXok: xOk,
+    vertexYok: yOk,
+    discriminant: b * b - 4 * a * c,
+    roots: roots(a, b, c)
+  };
+}
+
+window.SciDemo = {
+  setParams: setParams,
+  play: play,
+  pause: function(){ state.playing = false; },
+  step: step,
+  reset: resetAll,
+  reverse: function(){
+    state.playing = false;
+    var tmp = { a: morphTo.a, b: morphTo.b, c: morphTo.c };
+    morphTo = { a: morphFrom.a, b: morphFrom.b, c: morphFrom.c };
+    morphFrom = tmp;
+    state.animT = 0;
+    state.playing = true;
+    state.lastTs = 0;
+    requestAnimationFrame(frame);
+  },
+  verify: verify,
+  state: function(){ return { a: state.a, b: state.b, c: state.c, playing: state.playing }; }
+};
+Object.defineProperty(window.SciDemo, "isReady", { get: function(){ return true; } });
+
+})();
+</script>
+</body>
+</html>

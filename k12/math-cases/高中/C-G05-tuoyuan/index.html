@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-G05 椭圆及其焦点 · 大数学交互交付</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+h1{font-size:1.2rem;font-weight:600;color:#94a3b8;letter-spacing:.05em;padding:14px 0 8px;text-align:center}
+.main{width:100%;max-width:1180px;display:grid;grid-template-columns:1fr 310px;gap:0;padding:0 12px 24px}
+.svg-wrap{background:#1e293b;border-radius:12px;overflow:hidden;position:relative}
+.svg-wrap svg{display:block;width:100%;height:auto}
+.panel{background:#1e293b;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;max-height:720px;overflow-y:auto}
+.ctrl-group{display:flex;flex-direction:column;gap:6px}
+.ctrl-group label{font-size:.78rem;color:#94a3b8;display:flex;justify-content:space-between;align-items:center}
+.ctrl-group label span{color:#e2e8f0;font-weight:600;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;background:#334155;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:#2563eb;cursor:pointer;border:2px solid #1e293b}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#2563eb;cursor:pointer;border:2px solid #1e293b}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap}
+.btn{padding:6px 12px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#cbd5e1;font-size:.78rem;cursor:pointer;transition:all .15s}
+.btn:hover{background:#1e293b;border-color:#60a5fa;color:#e2e8f0}
+.btn.active{background:#2563eb;border-color:#2563eb;color:#fff}
+.readout{background:#0f172a;border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:.78rem}
+.readout .item{display:flex;justify-content:space-between}
+.readout .item .lbl{color:#64748b}
+.readout .item .val{color:#e2e8f0;font-weight:600;font-variant-numeric:tabular-nums}
+.readout .sum-item{grid-column:1/-1;justify-content:center;text-align:center;padding-top:6px;border-top:1px solid #1e293b}
+.readout .sum-item .val{color:#059669;font-size:.92rem}
+.questions{background:#0f172a;border-radius:8px;padding:10px 12px;font-size:.75rem;color:#94a3b8;line-height:1.6}
+.questions strong{color:#fbbf24;font-weight:600}
+.verify-msg{text-align:center;font-size:.8rem;padding:4px;border-radius:4px;margin-top:2px;min-height:1.6em}
+.verify-msg.pass{color:#059669}
+.verify-msg.fail{color:#dc2626}
+@media(max-width:880px){
+.main{grid-template-columns:1fr;gap:12px}
+.panel{max-height:none}
+}
+</style>
+</head>
+<body>
+<h1>C-G05 椭圆及其焦点 · 大数学交互交付</h1>
+<div class="main">
+  <div class="svg-wrap">
+    <svg id="canvas" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <div class="panel">
+    <div class="ctrl-group">
+      <label>半长轴 a <span id="lblA">5.00</span></label>
+      <input type="range" id="sliderA" min="2" max="8" step="0.1" value="5">
+    </div>
+    <div class="ctrl-group">
+      <label>半短轴 b <span id="lblB">3.00</span></label>
+      <input type="range" id="sliderB" min="1" max="7" step="0.1" value="3">
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="btnPlay" title="Space">▶ 播放</button>
+      <button class="btn" id="btnPause" title="Space">⏸ 暂停</button>
+      <button class="btn" id="btnStep" title="→">⏭ 步进</button>
+      <button class="btn" id="btnReset" title="R">↺ 重置</button>
+      <button class="btn" id="btnCopy" title="复制链接">🔗 复制链接</button>
+    </div>
+    <div class="readout" id="readout">
+      <div class="item"><span class="lbl">a</span><span class="val" id="rA">5.00</span></div>
+      <div class="item"><span class="lbl">b</span><span class="val" id="rB">3.00</span></div>
+      <div class="item"><span class="lbl">c (半焦距)</span><span class="val" id="rC">4.00</span></div>
+      <div class="item"><span class="lbl">离心率 e</span><span class="val" id="rE">0.80</span></div>
+      <div class="item sum-item"><span class="lbl">|PF₁| + |PF₂| = </span><span class="val" id="rSum">10.00</span></div>
+    </div>
+    <div class="verify-msg" id="verifyMsg"></div>
+    <div class="questions">
+      <strong>课堂思考</strong><br>
+      ① 先猜：a=5, b=3 时焦点在哪？<br>
+      ② 验证：把 P 拖到长轴端点，|PF₁|+|PF₂| 是否等于 2a？
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById("canvas");
+const sliderA = document.getElementById("sliderA");
+const sliderB = document.getElementById("sliderB");
+const lblA = document.getElementById("lblA");
+const lblB = document.getElementById("lblB");
+const btnPlay = document.getElementById("btnPlay");
+const btnPause = document.getElementById("btnPause");
+const btnStep = document.getElementById("btnStep");
+const btnReset = document.getElementById("btnReset");
+const btnCopy = document.getElementById("btnCopy");
+const rA = document.getElementById("rA");
+const rB = document.getElementById("rB");
+const rC = document.getElementById("rC");
+const rE = document.getElementById("rE");
+const rSum = document.getElementById("rSum");
+const verifyMsg = document.getElementById("verifyMsg");
+
+const W = 1000, H = 720;
+const xMin = -10, xMax = 10, yMin = -8, yMax = 8;
+const scaleX = W / (xMax - xMin);
+const scaleY = H / (yMax - yMin);
+const ox = -xMin * scaleX;
+const oy = yMax * scaleY;
+
+let a = 5, b = 3;
+let angle = 0;
+let playing = false;
+let animId = null;
+let dragging = false;
+const TOLERANCE = 0.01;
+
+function cx(v){ return ox + v * scaleX; }
+function cy(v){ return oy - v * scaleY; }
+function fcx(v){ return (v - ox) / scaleX; }
+function fcy(v){ return (oy - v) / scaleY; }
+
+function el(tag, attrs, parent){
+  const e = document.createElementNS(SVG_NS, tag);
+  if(attrs) for(const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+
+const gGrid = el("g", null, svg);
+const gAxes = el("g", null, svg);
+const gEllipse = el("g", null, svg);
+const gFoci = el("g", null, svg);
+const gLines = el("g", null, svg);
+const gLabels = el("g", null, svg);
+const gPoint = el("g", null, svg);
+
+function buildGrid(){
+  gGrid.innerHTML = "";
+  for(let x = Math.ceil(xMin); x <= Math.floor(xMax); x++){
+    if(x === 0) continue;
+    el("line",{x1:cx(x),y1:cy(yMin),x2:cx(x),y2:cy(yMax),stroke:"#1e293b","stroke-width":1},gGrid);
+  }
+  for(let y = Math.ceil(yMin); y <= Math.floor(yMax); y++){
+    if(y === 0) continue;
+    el("line",{x1:cx(xMin),y1:cy(y),x2:cx(xMax),y2:cy(y),stroke:"#1e293b","stroke-width":1},gGrid);
+  }
+}
+
+function buildAxes(){
+  gAxes.innerHTML = "";
+  el("line",{x1:cx(xMin),y1:cy(0),x2:cx(xMax),y2:cy(0),stroke:"#475569","stroke-width":1.5},gAxes);
+  el("line",{x1:cx(0),y1:cy(yMin),x2:cx(0),y2:cy(yMax),stroke:"#475569","stroke-width":1.5},gAxes);
+  for(let x = Math.ceil(xMin); x <= Math.floor(xMax); x++){
+    if(x === 0) continue;
+    el("line",{x1:cx(x),y1:cy(0)-4,x2:cx(x),y2:cy(0)+4,stroke:"#475569","stroke-width":1},gAxes);
+    el("text",{x:cx(x),y:cy(0)+16,"text-anchor":"middle",fill:"#64748b","font-size":"11"},gAxes).textContent = x;
+  }
+  for(let y = Math.ceil(yMin); y <= Math.floor(yMax); y++){
+    if(y === 0) continue;
+    el("line",{x1:cx(0)-4,y1:cy(y),x2:cx(0)+4,y2:cy(y),stroke:"#475569","stroke-width":1},gAxes);
+    el("text",{x:cx(0)-10,y:cy(y)+4,"text-anchor":"end",fill:"#64748b","font-size":"11"},gAxes).textContent = y;
+  }
+  el("text",{x:cx(xMax)-6,y:cy(0)-8,fill:"#94a3b8","font-size":"13","font-weight":"600"},gAxes).textContent = "x";
+  el("text",{x:cx(0)+10,y:cy(yMax)+16,fill:"#94a3b8","font-size":"13","font-weight":"600"},gAxes).textContent = "y";
+}
+
+function ellipsePath(a, b, steps){
+  let d = "";
+  for(let i = 0; i <= steps; i++){
+    const t = (i / steps) * 2 * Math.PI;
+    const px = a * Math.cos(t);
+    const py = b * Math.sin(t);
+    d += (i === 0 ? "M" : "L") + cx(px).toFixed(2) + "," + cy(py).toFixed(2);
+  }
+  return d;
+}
+
+let ellipsePathEl, fociDots = [], focusLabels = [], pf1Line, pf2Line, pf1Label, pf2Label, pointDot, pointLabel;
+
+function buildEllipse(){
+  gEllipse.innerHTML = "";
+  ellipsePathEl = el("path",{
+    d: ellipsePath(a, b, 200),
+    fill:"none", stroke:"#2563eb", "stroke-width":2.5, "stroke-linecap":"round"
+  }, gEllipse);
+}
+
+function buildFoci(){
+  gFoci.innerHTML = ""; gLabels.innerHTML = "";
+  const c = Math.sqrt(a*a - b*b);
+  fociDots[0] = el("circle",{cx:cx(-c),cy:cy(0),r:6,fill:"#dc2626",stroke:"#fff","stroke-width":1.5},gFoci);
+  fociDots[1] = el("circle",{cx:cx(c),cy:cy(0),r:6,fill:"#dc2626",stroke:"#fff","stroke-width":1.5},gFoci);
+  focusLabels[0] = el("text",{x:cx(-c),y:cy(0)+22,"text-anchor":"middle",fill:"#fca5a5","font-size":"12","font-weight":"600"},gLabels);
+  focusLabels[0].textContent = "F₁";
+  focusLabels[1] = el("text",{x:cx(c),y:cy(0)+22,"text-anchor":"middle",fill:"#fca5a5","font-size":"12","font-weight":"600"},gLabels);
+  focusLabels[1].textContent = "F₂";
+}
+
+function buildLines(){
+  gLines.innerHTML = "";
+  pf1Line = el("line",{stroke:"#fbbf24","stroke-width":2,"stroke-dasharray":"6,3","stroke-linecap":"round"},gLines);
+  pf2Line = el("line",{stroke:"#fbbf24","stroke-width":2,"stroke-dasharray":"6,3","stroke-linecap":"round"},gLines);
+  pf1Label = el("text",{fill:"#fbbf24","font-size":"12","font-weight":"600"},gLabels);
+  pf2Label = el("text",{fill:"#fbbf24","font-size":"12","font-weight":"600"},gLabels);
+}
+
+function buildPoint(){
+  gPoint.innerHTML = "";
+  pointDot = el("circle",{r:8,fill:"#E8B964",stroke:"#fff","stroke-width":2,style:"cursor:grab;filter:drop-shadow(0 0 6px rgba(232,185,100,.5))"},gPoint);
+  pointLabel = el("text",{fill:"#E8B964","font-size":"13","font-weight":"700","text-anchor":"middle"},gPoint);
+  pointLabel.textContent = "P";
+}
+
+function getPointPos(){
+  return { x: a * Math.cos(angle), y: b * Math.sin(angle) };
+}
+
+function update(){
+  const c = Math.sqrt(Math.max(0, a*a - b*b));
+  const e = a > 0 ? c / a : 0;
+  const P = getPointPos();
+  const F1 = {x: -c, y: 0};
+  const F2 = {x: c, y: 0};
+  const d1 = Math.sqrt((P.x - F1.x)**2 + (P.y - F1.y)**2);
+  const d2 = Math.sqrt((P.x - F2.x)**2 + (P.y - F2.y)**2);
+  const sum = d1 + d2;
+
+  ellipsePathEl.setAttribute("d", ellipsePath(a, b, 200));
+
+  fociDots[0].setAttribute("cx", cx(-c));
+  fociDots[0].setAttribute("cy", cy(0));
+  fociDots[1].setAttribute("cx", cx(c));
+  fociDots[1].setAttribute("cy", cy(0));
+  focusLabels[0].setAttribute("x", cx(-c));
+  focusLabels[0].setAttribute("y", cy(0) + 22);
+  focusLabels[1].setAttribute("x", cx(c));
+  focusLabels[1].setAttribute("y", cy(0) + 22);
+
+  pf1Line.setAttribute("x1", cx(P.x));
+  pf1Line.setAttribute("y1", cy(P.y));
+  pf1Line.setAttribute("x2", cx(F1.x));
+  pf1Line.setAttribute("y2", cy(F1.y));
+  pf2Line.setAttribute("x1", cx(P.x));
+  pf2Line.setAttribute("y1", cy(P.y));
+  pf2Line.setAttribute("x2", cx(F2.x));
+  pf2Line.setAttribute("y2", cy(F2.y));
+
+  const mx1 = (P.x + F1.x) / 2;
+  const my1 = (P.y + F1.y) / 2;
+  const mx2 = (P.x + F2.x) / 2;
+  const my2 = (P.y + F2.y) / 2;
+  pf1Label.setAttribute("x", cx(mx1) - 10);
+  pf1Label.setAttribute("y", cy(my1) - 6);
+  pf1Label.textContent = "|PF₁|=" + d1.toFixed(2);
+  pf2Label.setAttribute("x", cx(mx2) + 10);
+  pf2Label.setAttribute("y", cy(my2) - 6);
+  pf2Label.textContent = "|PF₂|=" + d2.toFixed(2);
+
+  pointDot.setAttribute("cx", cx(P.x));
+  pointDot.setAttribute("cy", cy(P.y));
+  pointLabel.setAttribute("x", cx(P.x));
+  pointLabel.setAttribute("y", cy(P.y) - 14);
+
+  rA.textContent = a.toFixed(2);
+  rB.textContent = b.toFixed(2);
+  rC.textContent = c.toFixed(2);
+  rE.textContent = e.toFixed(4);
+  rSum.textContent = sum.toFixed(2);
+  lblA.textContent = a.toFixed(2);
+  lblB.textContent = b.toFixed(2);
+
+  const match = Math.abs(sum - 2*a) < TOLERANCE;
+  rSum.style.color = match ? "#059669" : "#dc2626";
+}
+
+function build(){
+  svg.innerHTML = "";
+  gGrid.innerHTML = "";
+  gAxes.innerHTML = "";
+  gEllipse.innerHTML = "";
+  gFoci.innerHTML = "";
+  gLines.innerHTML = "";
+  gLabels.innerHTML = "";
+  gPoint.innerHTML = "";
+  svg.appendChild(gGrid);
+  svg.appendChild(gAxes);
+  svg.appendChild(gEllipse);
+  svg.appendChild(gFoci);
+  svg.appendChild(gLines);
+  svg.appendChild(gLabels);
+  svg.appendChild(gPoint);
+  buildGrid();
+  buildAxes();
+  buildEllipse();
+  buildFoci();
+  buildLines();
+  buildPoint();
+  update();
+}
+
+function animate(){
+  if(!playing) return;
+  angle += 0.012;
+  if(angle > 2 * Math.PI) angle -= 2 * Math.PI;
+  update();
+  animId = requestAnimationFrame(animate);
+}
+
+function play(){
+  if(playing) return;
+  playing = true;
+  btnPlay.classList.add("active");
+  btnPause.classList.remove("active");
+  animate();
+}
+
+function pause(){
+  playing = false;
+  btnPlay.classList.remove("active");
+  if(animId){ cancelAnimationFrame(animId); animId = null; }
+}
+
+function step(){
+  pause();
+  angle += 0.03;
+  if(angle > 2 * Math.PI) angle -= 2 * Math.PI;
+  update();
+}
+
+function reset(){
+  pause();
+  angle = 0;
+  const params = new URLSearchParams(window.location.search);
+  a = parseFloat(params.get("a")) || 5;
+  b = parseFloat(params.get("b")) || 3;
+  if(a < 2) a = 2; if(a > 8) a = 8;
+  if(b < 1) b = 1; if(b > 7) b = 7;
+  if(b >= a) b = a - 0.1;
+  sliderA.value = a;
+  sliderB.value = b;
+  build();
+  verifyMsg.textContent = "";
+  verifyMsg.className = "verify-msg";
+}
+
+function verify(){
+  const c = Math.sqrt(Math.max(0, a*a - b*b));
+  const P = getPointPos();
+  const d1 = Math.sqrt((P.x + c)**2 + P.y**2);
+  const d2 = Math.sqrt((P.x - c)**2 + P.y**2);
+  const sum = d1 + d2;
+  const diff = Math.abs(sum - 2*a);
+  if(diff < TOLERANCE){
+    verifyMsg.textContent = "✓ 验证通过：|PF₁|+|PF₂| = " + sum.toFixed(4) + " ≈ 2a = " + (2*a).toFixed(2);
+    verifyMsg.className = "verify-msg pass";
+  } else {
+    verifyMsg.textContent = "✗ 差值 = " + diff.toFixed(4) + " (|PF₁|+|PF₂| = " + sum.toFixed(2) + ", 2a = " + (2*a).toFixed(2) + ")";
+    verifyMsg.className = "verify-msg fail";
+  }
+}
+
+function copyLink(){
+  const url = new URL(window.location.href);
+  url.searchParams.set("a", a.toFixed(1));
+  url.searchParams.set("b", b.toFixed(1));
+  const text = url.toString();
+  navigator.clipboard.writeText(text).then(()=>{
+    btnCopy.textContent = "✓ 已复制";
+    setTimeout(()=>{ btnCopy.textContent = "🔗 复制链接"; }, 1500);
+  }).catch(()=>{
+    prompt("复制此链接：", text);
+  });
+}
+
+function enforceBConstraint(){
+  if(b >= a) b = a - 0.1;
+  sliderB.max = (a - 0.1).toFixed(1);
+  sliderB.value = b;
+}
+
+sliderA.addEventListener("input", ()=>{
+  a = parseFloat(sliderA.value);
+  enforceBConstraint();
+  build();
+});
+
+sliderB.addEventListener("input", ()=>{
+  b = parseFloat(sliderB.value);
+  if(b >= a){ b = a - 0.1; sliderB.value = b; }
+  build();
+});
+
+btnPlay.addEventListener("click", play);
+btnPause.addEventListener("click", pause);
+btnStep.addEventListener("click", step);
+btnReset.addEventListener("click", reset);
+btnCopy.addEventListener("click", copyLink);
+
+document.addEventListener("keydown", (e)=>{
+  if(e.target.tagName === "INPUT") return;
+  if(e.code === "Space"){ e.preventDefault(); playing ? pause() : play(); }
+  else if(e.code === "ArrowRight"){ e.preventDefault(); step(); }
+  else if(e.code === "KeyR"){ e.preventDefault(); reset(); }
+});
+
+let dragAngleStart = null;
+let dragAngleBase = null;
+
+function svgCoords(evt){
+  const rect = svg.getBoundingClientRect();
+  const sx = W / rect.width;
+  const sy = H / rect.height;
+  let clientX, clientY;
+  if(evt.touches){
+    clientX = evt.touches[0].clientX;
+    clientY = evt.touches[0].clientY;
+  } else {
+    clientX = evt.clientX;
+    clientY = evt.clientY;
+  }
+  const svgX = (clientX - rect.left) * sx;
+  const svgY = (clientY - rect.top) * sy;
+  return { x: fcx(svgX), y: fcy(svgY) };
+}
+
+function findAngleFromMouse(mx, my){
+  let best = Math.atan2(my / b, mx / a);
+  if(best < 0) best += 2 * Math.PI;
+  return best;
+}
+
+svg.addEventListener("mousedown", (e)=>{
+  const p = svgCoords(e);
+  const P = getPointPos();
+  const dist = Math.sqrt((p.x - P.x)**2 + (p.y - P.y)**2);
+  if(dist < 0.6){
+    dragging = true;
+    pause();
+    dragAngleBase = angle;
+    svg.style.cursor = "grabbing";
+    e.preventDefault();
+  }
+});
+
+svg.addEventListener("mousemove", (e)=>{
+  if(!dragging) return;
+  const p = svgCoords(e);
+  angle = findAngleFromMouse(p.x, p.y);
+  update();
+  e.preventDefault();
+});
+
+window.addEventListener("mouseup", ()=>{
+  if(dragging){
+    dragging = false;
+    svg.style.cursor = "";
+  }
+});
+
+svg.addEventListener("touchstart", (e)=>{
+  const p = svgCoords(e);
+  const P = getPointPos();
+  const dist = Math.sqrt((p.x - P.x)**2 + (p.y - P.y)**2);
+  if(dist < 1.0){
+    dragging = true;
+    pause();
+    e.preventDefault();
+  }
+}, {passive: false});
+
+svg.addEventListener("touchmove", (e)=>{
+  if(!dragging) return;
+  const p = svgCoords(e);
+  angle = findAngleFromMouse(p.x, p.y);
+  update();
+  e.preventDefault();
+}, {passive: false});
+
+svg.addEventListener("touchend", ()=>{
+  dragging = false;
+});
+
+const state = ()=>({ a, b, c: Math.sqrt(a*a - b*b), angle, playing });
+const isReady = ()=> true;
+
+const params = new URLSearchParams(window.location.search);
+if(params.has("a")) a = parseFloat(params.get("a")) || 5;
+if(params.has("b")) b = parseFloat(params.get("b")) || 3;
+a = Math.max(2, Math.min(8, a));
+b = Math.max(1, Math.min(7, b));
+if(b >= a) b = a - 0.1;
+sliderA.value = a;
+sliderB.value = b;
+sliderB.max = (a - 0.1).toFixed(1);
+
+window.SciDemo = {
+  setParams(p){
+    if(p.a !== undefined){ a = Math.max(2, Math.min(8, parseFloat(p.a))); sliderA.value = a; }
+    if(p.b !== undefined){ b = Math.max(1, Math.min(7, parseFloat(p.b))); }
+    if(b >= a) b = a - 0.1;
+    sliderB.value = b;
+    sliderB.max = (a - 0.1).toFixed(1);
+    build();
+  },
+  play, pause, step, reset, reverse(){ angle = -angle; },
+  verify,
+  state,
+  isReady
+};
+
+build();
+})();
+</script>
+</body>
+</html>

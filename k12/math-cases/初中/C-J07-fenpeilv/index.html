@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="C-J07 乘法分配律 · 面积→代数式（符号化跃迁）：先形后符，三问驱动，拖动滑块观察两块面积与整块实时联动。">
+<title>C-J07 乘法分配律 · 面积→代数式（符号化跃迁）</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --blue:#5DA9E9; --gold:#E8B964; --bg:#0c1420; --card:#121b29;
+    --card2:#182338; --line:#243349; --ink:#e9f0f8; --muted:#8ba0ba;
+    --ok:#6fd08a; --bad:#e97b7b;
+  }
+  html,body{background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 22px 70px}
+
+  .title-card{
+    position:relative;overflow:hidden;border-radius:16px;
+    background:linear-gradient(135deg,#152238 0%,#0e1726 55%,#16203a 100%);
+    border:1px solid var(--line);border-top:2px solid var(--blue);
+    box-shadow:0 12px 34px rgba(0,0,0,.38), inset 0 0 0 1px rgba(93,169,233,.08);
+    padding:20px 26px;
+  }
+  .title-card::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+    background:linear-gradient(90deg,var(--blue),var(--gold),transparent 82%);}
+  .kicker{font-size:12px;letter-spacing:.14em;color:var(--gold);font-weight:600}
+  .title-card h1{font-size:25px;font-weight:700;margin:7px 0 5px}
+  .title-card h1 .sub{color:var(--muted);font-weight:400;font-size:17px;margin-left:6px}
+  .tagline{font-size:13px;color:var(--muted)}
+  .tagline b{color:var(--ink)}
+
+  .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+  .chip{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);
+    border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--muted);line-height:1.55}
+  .chip b{color:var(--ink);display:block;margin-bottom:2px}
+  .chip:nth-child(2){border-left-color:var(--gold)}
+  .chip:nth-child(3){border-left-color:#9db9d4}
+  @media(max-width:900px){.trio{grid-template-columns:1fr}}
+
+  .grid{display:grid;grid-template-columns:1fr 310px;gap:16px;align-items:start}
+  @media(max-width:880px){.grid{grid-template-columns:1fr}}
+
+  .stage{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px}
+  .stage svg{width:100%;height:auto;display:block}
+
+  .panel{display:flex;flex-direction:column;gap:14px}
+  .p-sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .p-sec h2{font-size:14px;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:8px;font-weight:700}
+  .p-sec h2::before{content:"";width:8px;height:8px;background:var(--blue);border-radius:2px;display:inline-block}
+
+  .sl{display:grid;grid-template-columns:64px 1fr 46px;gap:10px;align-items:center;margin:9px 0}
+  .sl label{font-size:13px;color:var(--muted)}
+  .sl label b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .sl input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer}
+  .sl .val{font-size:17px;font-weight:700;text-align:right;color:var(--blue);font-variant-numeric:tabular-nums}
+  .sl .val.gold{color:var(--gold)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:10px}
+  .sw{width:12px;height:12px;display:inline-block;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+  .btn{background:var(--card2);border:1px solid var(--line);color:var(--ink);
+    border-radius:8px;padding:7px 10px;font-size:13px;cursor:pointer;transition:.15s;font-family:inherit}
+  .btn:hover{border-color:var(--blue);color:#fff}
+  .playbtns{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .playbtns .btn{padding:8px 2px;font-size:12px}
+  .btn-verify{width:100%;padding:10px;font-size:13.5px;font-weight:600;
+    background:linear-gradient(90deg,rgba(93,169,233,.18),rgba(232,185,100,.18));
+    border-color:var(--blue)}
+  .btn-verify:hover{box-shadow:0 0 0 1px var(--blue),0 8px 20px rgba(93,169,233,.28)}
+  .status{min-height:20px;font-size:12.5px;color:var(--muted);margin-top:9px;line-height:1.55}
+  .status.ok{color:var(--ok);font-weight:600;animation:pop .5s ease}
+  .status.bad{color:var(--bad);font-weight:600;animation:pop .5s ease}
+  @keyframes pop{0%{transform:scale(.92);opacity:.4}60%{transform:scale(1.04)}100%{transform:scale(1);opacity:1}}
+
+  .rd{width:100%;border-collapse:collapse;font-size:13px}
+  .rd td{padding:5px 6px;border-bottom:1px dashed var(--line)}
+  .rd td:first-child{color:var(--muted)}
+  .rd td:last-child{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+  .rd tr:last-child td{border-bottom:none}
+  .rd .ok{color:var(--ok)}
+  .rd .bad{color:var(--bad)}
+
+  .qcard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:var(--card2)}
+  .qcard:last-child{margin-bottom:0}
+  .qcard h3{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .qtext{font-size:12.5px;color:var(--muted);margin-bottom:8px;line-height:1.5}
+  .qopts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .qopts button{background:var(--card);border:1px solid var(--line);color:var(--muted);border-radius:8px;
+    padding:7px 6px;font-size:12.5px;cursor:pointer;transition:.15s;font-family:inherit;line-height:1.35}
+  .qopts button:hover{border-color:var(--blue);color:var(--ink)}
+  .qopts button.sel{border-color:var(--blue);color:#fff;background:rgba(93,169,233,.16)}
+  .qopts button.ok-ans{border-color:var(--ok);color:var(--ok);background:rgba(111,208,138,.1)}
+  .qopts button.bad-ans{border-color:var(--bad);color:var(--bad);background:rgba(233,123,123,.1)}
+  .qreveal{width:100%;margin-top:8px;font-size:12.5px}
+  .qans{display:none;margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);line-height:1.6}
+  .qans.show{display:block}
+  .qverdict{color:var(--ok);font-weight:700}
+  .qverdict.bad{color:var(--bad)}
+
+  .p-hint{font-size:12px;color:var(--muted);line-height:2}
+  .p-hint kbd{background:var(--card2);border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:5px;padding:1px 7px;font-size:11px;color:var(--ink);font-family:inherit}
+  .p-hint b{color:var(--ink)}
+
+  svg text{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+  .dwTag{fill:var(--gold);font-size:15px;font-weight:700;letter-spacing:.12em}
+  .numA{fill:var(--blue);font-weight:700}
+  .numB{fill:var(--gold);font-weight:700}
+  .numC{fill:#cfe3f5;font-weight:700}
+  .dwRow1{font-size:26px;fill:var(--ink)}
+  .dwRow2{font-size:29px;fill:var(--ink);font-weight:600}
+  .dwPanel{fill:#0e1726;stroke:var(--line);stroke-width:1}
+  .stageLabel{font-size:14px;fill:var(--gold);letter-spacing:.16em;font-weight:600}
+  .animHint{font-size:19px;fill:var(--muted)}
+  .lbWord{fill:var(--muted);font-size:20px;font-weight:600}
+  .lbBig{fill:var(--ink);font-size:44px;font-weight:700}
+  .lbVal{fill:var(--muted);font-size:28px}
+  .axLab{fill:var(--muted);font-size:18px}
+  .dimMain{fill:var(--ink);font-size:22px;font-weight:600}
+  .eqText{font-size:31px;fill:var(--ink);font-weight:600}
+  .eqSubT{font-size:25px;fill:var(--muted);font-weight:500}
+  .eqAB{fill:var(--blue);font-weight:800}
+  .eqBb{fill:var(--gold);font-weight:800}
+  .eqC{fill:#cfe3f5;font-weight:800}
+  .eqRes{fill:var(--gold);font-weight:800}
+  .roLine{font-size:19px;fill:var(--muted);font-family:Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="title-card">
+    <div class="kicker">初中代数 · 初03 代数式 / 分配律 · 12 卷断层 1</div>
+    <h1>C-J07 乘法分配律 <span class="sub">面积 → 代数式（符号化跃迁）</span></h1>
+    <div class="tagline">符号化"先形后符"旗舰案例 —— 一块矩形，先看<b>形</b>、再逼出<b>符</b>。&nbsp;键盘：<b>Space</b> 播放 · <b>→</b> 单步 · <b>R</b> 重置</div>
+  </header>
+
+  <div class="trio">
+    <div class="chip"><b>① 问数</b>(a+b)×c 与 a×c + b×c —— 数值是否恒等？</div>
+    <div class="chip"><b>② 问形</b>矩形被竖线切成两块 —— 面积如何对应？</div>
+    <div class="chip"><b>③ 问动</b>拖动 a / b / c 滑块 —— 两块与整块实时联动</div>
+  </div>
+
+  <main class="grid">
+
+    <section class="stage">
+      <svg id="mainSvg" viewBox="0 0 1000 720" role="img"
+           aria-label="矩形被竖线切成左右两块，左块 a×c，右块 b×c，整块 (a+b)×c">
+        <defs>
+          <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+            <circle cx="1.2" cy="1.2" r="1.2" fill="#26344a"/>
+          </pattern>
+          <linearGradient id="gBlue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#5DA9E9" stop-opacity=".38"/>
+            <stop offset="1" stop-color="#3a6ea8" stop-opacity=".16"/>
+          </linearGradient>
+          <linearGradient id="gGold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#E8B964" stop-opacity=".38"/>
+            <stop offset="1" stop-color="#b98a3f" stop-opacity=".16"/>
+          </linearGradient>
+        </defs>
+
+        <rect width="1000" height="720" fill="url(#dots)"/>
+        <rect x="2" y="2" width="996" height="716" rx="12" fill="none" stroke="#243349" stroke-width="1" opacity=".7"/>
+
+        <text id="stageLabel" class="stageLabel" x="40" y="30">先形后符 · 双写栏</text>
+        <text id="animHint" class="animHint" x="985" y="46" text-anchor="end">拖动滑块 · 观察两块与整块联动</text>
+
+        <rect id="dualP1" class="dwPanel" x="28" y="40" width="944" height="42" rx="8"/>
+        <rect id="dualP2" class="dwPanel" x="28" y="96" width="944" height="54" rx="8" stroke="#2b3c57"/>
+
+        <text id="dualRow1" class="dwRow1" x="44" y="68">
+          <tspan class="dwTag">先 · 形</tspan>
+          <tspan dx="20">左块</tspan>
+          <tspan id="r1a" class="numA">3</tspan>
+          <tspan>×</tspan>
+          <tspan id="r1c" class="numC">4</tspan>
+          <tspan dx="26">+</tspan>
+          <tspan dx="26">右块</tspan>
+          <tspan id="r1b" class="numB">5</tspan>
+          <tspan>×</tspan>
+          <tspan id="r1cc" class="numC">4</tspan>
+        </text>
+
+        <text id="dualRow2" class="dwRow2" x="44" y="132">
+          <tspan class="dwTag">后 · 符</tspan>
+          <tspan dx="20">(</tspan>
+          <tspan id="r2a" class="numA">3</tspan>
+          <tspan>+</tspan>
+          <tspan id="r2b" class="numB">5</tspan>
+          <tspan>)×</tspan>
+          <tspan id="r2c" class="numC">4</tspan>
+          <tspan dx="24">=</tspan>
+          <tspan dx="24"></tspan>
+          <tspan id="r2l" class="numA">3</tspan>
+          <tspan>×</tspan>
+          <tspan id="r2lc" class="numC">4</tspan>
+          <tspan>+</tspan>
+          <tspan id="r2r" class="numB">5</tspan>
+          <tspan>×</tspan>
+          <tspan id="r2rc" class="numC">4</tspan>
+        </text>
+
+        <rect id="wholeOutline" x="140" y="170" width="720" height="360" rx="2"
+              fill="none" stroke="#e9f0f8" stroke-width="2.2" opacity=".85"/>
+        <text id="wholeTag" x="500" y="154" text-anchor="middle" fill="#E8B964" font-size="18" font-weight="700">整块</text>
+
+        <line id="cutLine" x1="500" y1="162" x2="500" y2="538"
+              stroke="#E8B964" stroke-width="2.4" stroke-dasharray="7 7" opacity=".95"/>
+
+        <g id="lg">
+          <rect id="lRect" x="140" y="170" width="240" height="360" rx="2"
+                fill="url(#gBlue)" stroke="#5DA9E9" stroke-width="2.4"/>
+          <text id="lbWord" class="lbWord" x="260" y="202" text-anchor="middle">左块</text>
+          <text id="lbBig" class="lbBig" x="260" y="354" text-anchor="middle">3 × 4</text>
+          <text id="lbVal" class="lbVal" x="260" y="392" text-anchor="middle">= 12</text>
+          <text id="daText" class="axLab" x="260" y="540" text-anchor="middle">a = 3</text>
+        </g>
+
+        <g id="rg">
+          <rect id="rRect" x="380" y="170" width="480" height="360" rx="2"
+                fill="url(#gGold)" stroke="#E8B964" stroke-width="2.4"/>
+          <text id="rbWord" class="lbWord" x="620" y="202" text-anchor="middle">右块</text>
+          <text id="rbBig" class="lbBig" x="620" y="354" text-anchor="middle">5 × 4</text>
+          <text id="rbVal" class="lbVal" x="620" y="392" text-anchor="middle">= 20</text>
+          <text id="dbText" class="axLab" x="620" y="540" text-anchor="middle">b = 5</text>
+        </g>
+
+        <g id="bracW">
+          <path id="bwLine" d="M 140 540 L 860 540" stroke="#8ba0ba" stroke-width="1.6"/>
+          <path id="bwTick1" d="M 140 534 L 140 546" stroke="#8ba0ba" stroke-width="1.6"/>
+          <path id="bwTick2" d="M 860 534 L 860 546" stroke="#8ba0ba" stroke-width="1.6"/>
+          <text id="dab" class="dimMain" x="500" y="566" text-anchor="middle">a + b = 8</text>
+        </g>
+
+        <g id="bracH">
+          <path id="bhLine" d="M 120 170 L 120 530" stroke="#8ba0ba" stroke-width="1.6"/>
+          <path id="bhTick1" d="M 114 170 L 126 170" stroke="#8ba0ba" stroke-width="1.6"/>
+          <path id="bhTick2" d="M 114 530 L 126 530" stroke="#8ba0ba" stroke-width="1.6"/>
+          <text id="dcText" class="dimMain" x="110" y="354" text-anchor="end">c = 4</text>
+        </g>
+
+        <text id="eqMain" class="eqText" x="500" y="622" text-anchor="middle">
+          整块 = ( <tspan id="ebA" class="eqAB">3</tspan> + <tspan id="ebB" class="eqBb">5</tspan> ) × <tspan id="ebC" class="eqC">4</tspan> = <tspan id="ebRes" class="eqRes">32</tspan>
+        </text>
+        <text id="eqSub" class="eqText eqSubT" x="500" y="666" text-anchor="middle">
+          左块 <tspan id="ebLA" class="eqAB">3</tspan> × <tspan id="ebLC" class="eqC">4</tspan> + 右块 <tspan id="ebRB" class="eqBb">5</tspan> × <tspan id="ebRC" class="eqC">4</tspan> = <tspan id="ebSubRes" class="eqRes">32</tspan>
+        </text>
+
+        <text id="roLine" class="roLine" x="40" y="700">a=3 b=5 c=4 │ 左块 12 + 右块 20 = 整块 32 ✓</text>
+      </svg>
+    </section>
+
+    <aside class="panel">
+
+      <div class="p-sec">
+        <h2>参数控制 · 动</h2>
+        <div class="sl">
+          <label>a <b>左块宽</b></label>
+          <input id="sl_a" type="range" min="1" max="9" step="1" value="3">
+          <div class="val" id="v_a">3</div>
+        </div>
+        <div class="sl">
+          <label>b <b>右块宽</b></label>
+          <input id="sl_b" type="range" min="1" max="9" step="1" value="5">
+          <div class="val gold" id="v_b">5</div>
+        </div>
+        <div class="sl">
+          <label>c <b>高</b></label>
+          <input id="sl_c" type="range" min="1" max="9" step="1" value="4">
+          <div class="val" id="v_c" style="color:#cfe3f5">4</div>
+        </div>
+        <div class="legend">
+          <span><span class="sw" style="background:var(--blue)"></span>a · 左块宽</span>
+          <span><span class="sw" style="background:var(--gold)"></span>b · 右块宽</span>
+          <span><span class="sw" style="background:#cfe3f5"></span>c · 高</span>
+        </div>
+      </div>
+
+      <div class="p-sec">
+        <h2>分块动画</h2>
+        <div class="playbtns">
+          <button class="btn" id="btnPlay" title="Space">▶ 播放</button>
+          <button class="btn" id="btnPause" title="Space">⏸ 暂停</button>
+          <button class="btn" id="btnStep" title="→">⏭ 单步</button>
+          <button class="btn" id="btnRev" title="←">⏪ 反向</button>
+          <button class="btn" id="btnReset" title="R">↺ 重置</button>
+        </div>
+        <div class="legend">动画只让两块<b>分开再合拢</b>，面积数值不变 —— 观察"和不变"。</div>
+      </div>
+
+      <div class="p-sec">
+        <h2>赋值检验 · 数</h2>
+        <button class="btn btn-verify" id="btnVerify">🎲 随机赋值并检验两边</button>
+        <div class="status" id="verifyStatus">点击按钮：随机取 a / b / c，检验 (a+b)×c 与 a×c+b×c 是否相等。</div>
+      </div>
+
+      <div class="p-sec">
+        <h2>实时数据 readout</h2>
+        <table class="rd">
+          <tr><td>a（左块宽）</td><td id="ro_a">3</td></tr>
+          <tr><td>b（右块宽）</td><td id="ro_b">5</td></tr>
+          <tr><td>c（高）</td><td id="ro_c">4</td></tr>
+          <tr><td>左块 a×c</td><td id="ro_left">12</td></tr>
+          <tr><td>右块 b×c</td><td id="ro_right">20</td></tr>
+          <tr><td>整块 (a+b)×c</td><td id="ro_whole">32</td></tr>
+          <tr><td>a×c + b×c</td><td id="ro_sum">32</td></tr>
+          <tr><td>两边相等</td><td id="ro_eq" class="ok">✓ 相等</td></tr>
+        </table>
+      </div>
+
+      <div class="p-sec">
+        <h2>课堂提问 · 先猜后验</h2>
+
+        <div class="qcard">
+          <h3>① 问数</h3>
+          <div class="qtext">对任意 a、b、c，(a+b)×c 与 a×c + b×c 一定相等吗？</div>
+          <div class="qopts" data-q="0">
+            <button data-g="0">一定相等</button>
+            <button data-g="1">有时不等</button>
+          </div>
+          <button class="btn qreveal" data-q="0">揭晓</button>
+          <div class="qans"><b class="qverdict"></b> <span class="qexp"></span></div>
+        </div>
+
+        <div class="qcard">
+          <h3>② 问形</h3>
+          <div class="qtext">竖线把整块矩形切成两块后，哪两个图形面积有加法关系？</div>
+          <div class="qopts" data-q="1">
+            <button data-g="0">左块 + 右块 = 整块</button>
+            <button data-g="1">左块 + 整块 = 右块</button>
+          </div>
+          <button class="btn qreveal" data-q="1">揭晓</button>
+          <div class="qans"><b class="qverdict"></b> <span class="qexp"></span></div>
+        </div>
+
+        <div class="qcard">
+          <h3>③ 问动</h3>
+          <div class="qtext">拖动滑块后两块面积会变，但两块的"和"会变吗？</div>
+          <div class="qopts" data-q="2">
+            <button data-g="0">和不变，仍等于整块</button>
+            <button data-g="1">和随滑块变化</button>
+          </div>
+          <button class="btn qreveal" data-q="2">揭晓</button>
+          <div class="qans"><b class="qverdict"></b> <span class="qexp"></span></div>
+        </div>
+      </div>
+
+      <div class="p-sec p-hint">
+        快捷操作：<kbd>Space</kbd> 播放 / 暂停 · <kbd>→</kbd> 单步 · <kbd>←</kbd> 反向 · <kbd>R</kbd> 重置<br>
+        <b>分享</b>：a / b / c 参数已同步到地址栏，复制链接即可分享当前状态。
+      </div>
+
+    </aside>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var U = 40;                 /* 1 单位 = 40px */
+  var STEP = 0.03, HOLD = 40; /* 分块动画步长 / 停顿帧数 */
+
+  var a = 3, b = 5, c = 4;
+  var splitT = 0, phase = 'idle', holdFrames = 0, raf = null;
+  var ready = false;
+
+  function $id(id) { return document.getElementById(id); }
+
+  var els = {};
+  ['sl_a','sl_b','sl_c','v_a','v_b','v_c',
+   'r1a','r1b','r1c','r1cc','r2a','r2b','r2c','r2l','r2lc','r2r','r2rc',
+   'lg','rg','lRect','rRect','wholeOutline','wholeTag','cutLine',
+   'lbWord','lbBig','lbVal','rbWord','rbBig','rbVal','daText','dbText',
+   'bwLine','bwTick1','bwTick2','dab','bhLine','bhTick1','bhTick2','dcText',
+   'eqMain','eqSub','ebA','ebB','ebC','ebRes','ebLA','ebLC','ebRB','ebRC','ebSubRes',
+   'roLine','animHint',
+   'ro_a','ro_b','ro_c','ro_left','ro_right','ro_whole','ro_sum','ro_eq',
+   'btnVerify','verifyStatus','btnPlay','btnPause','btnStep','btnRev','btnReset'
+  ].forEach(function (id) { els[id] = $id(id); });
+
+  function clamp(n) { return Math.min(9, Math.max(1, Math.round(n))); }
+
+  /* ---------- 三问 · 数据 ---------- */
+  function left()  { return a * c; }
+  function right() { return b * c; }
+  function whole() { return (a + b) * c; }
+  function eq()    { return left() + right() === whole(); }
+
+  function state() {
+    return {
+      a: a, b: b, c: c,
+      left: left(), right: right(), whole: whole(),
+      side1: whole(), side2: left() + right(),
+      eq: eq(),
+      phase: phase,
+      splitT: Math.round(splitT * 1000) / 1000
+    };
+  }
+
+  /* ---------- 文本层（先形后符双写栏 / 块标签 / 等式 / readout） ---------- */
+  function updateTexts() {
+    var s = state();
+    els.r1a.textContent = a; els.r1b.textContent = b;
+    els.r1c.textContent = c; els.r1cc.textContent = c;
+    els.r2a.textContent = a; els.r2b.textContent = b; els.r2c.textContent = c;
+    els.r2l.textContent = a; els.r2lc.textContent = c;
+    els.r2r.textContent = b; els.r2rc.textContent = c;
+    els.lbWord.textContent = '左块';
+    els.rbWord.textContent = '右块';
+    els.lbVal.textContent = '= ' + s.left;
+    els.rbVal.textContent = '= ' + s.right;
+    els.daText.textContent = 'a = ' + a;
+    els.dbText.textContent = 'b = ' + b;
+    els.dab.textContent = 'a + b = ' + (a + b);
+    els.dcText.textContent = 'c = ' + c;
+    els.ebA.textContent = a; els.ebB.textContent = b; els.ebC.textContent = c;
+    els.ebRes.textContent = s.whole;
+    els.ebLA.textContent = a; els.ebLC.textContent = c;
+    els.ebRB.textContent = b; els.ebRC.textContent = c;
+    els.ebSubRes.textContent = s.whole;
+    els.wholeTag.textContent = '整块';
+    els.roLine.textContent =
+      'a=' + a + ' b=' + b + ' c=' + c +
+      ' │ 左块 ' + s.left + '  +  右块 ' + s.right +
+      '  =  整块 ' + s.whole + '  ' + (s.eq ? '✓' : '✗');
+  }
+
+  /* ---------- 几何层 ---------- */
+  function geometry() {
+    var W = (a + b) * U, H = c * U;
+    var rectY = Math.max(170, 350 - H / 2);
+    var baseL = (1000 - W) / 2;
+    var dx = splitT * 70;
+    return { W: W, H: H, rectY: rectY, baseL: baseL, dx: dx };
+  }
+
+  function updateGeom() {
+    var g = geometry();
+    var W = g.W, H = g.H, rectY = g.rectY, baseL = g.baseL, dx = g.dx;
+    var leftW = a * U, rightW = b * U;
+    var bracY = rectY + H + 10;
+    var cxL = baseL + leftW / 2, cxR = baseL + leftW + rightW / 2;
+
+    els.lg.setAttribute('transform', 'translate(' + (-dx) + ',0)');
+    els.rg.setAttribute('transform', 'translate(' + dx + ',0)');
+
+    els.lRect.setAttribute('x', baseL);
+    els.lRect.setAttribute('y', rectY);
+    els.lRect.setAttribute('width', leftW);
+    els.lRect.setAttribute('height', H);
+    els.rRect.setAttribute('x', baseL + leftW);
+    els.rRect.setAttribute('y', rectY);
+    els.rRect.setAttribute('width', rightW);
+    els.rRect.setAttribute('height', H);
+
+    els.wholeOutline.setAttribute('x', baseL);
+    els.wholeOutline.setAttribute('y', rectY);
+    els.wholeOutline.setAttribute('width', W);
+    els.wholeOutline.setAttribute('height', H);
+    els.wholeTag.setAttribute('x', baseL + W / 2);
+    els.wholeTag.setAttribute('y', rectY - 16);
+
+    var cutX = baseL + leftW;
+    els.cutLine.setAttribute('x1', cutX);
+    els.cutLine.setAttribute('x2', cutX);
+    els.cutLine.setAttribute('y1', rectY - 8);
+    els.cutLine.setAttribute('y2', rectY + H + 8);
+
+    var bx1 = baseL - dx, bx2 = baseL + W + dx;
+    els.bwLine.setAttribute('d', 'M ' + bx1 + ' ' + bracY + ' L ' + bx2 + ' ' + bracY);
+    els.bwTick1.setAttribute('d', 'M ' + bx1 + ' ' + (bracY - 6) + ' L ' + bx1 + ' ' + (bracY + 6));
+    els.bwTick2.setAttribute('d', 'M ' + bx2 + ' ' + (bracY - 6) + ' L ' + bx2 + ' ' + (bracY + 6));
+    els.dab.setAttribute('x', (bx1 + bx2) / 2);
+    els.dab.setAttribute('y', bracY + 26);
+
+    els.daText.setAttribute('x', cxL);
+    els.daText.setAttribute('y', bracY + 6);
+    els.dbText.setAttribute('x', cxR);
+    els.dbText.setAttribute('y', bracY + 6);
+
+    var hx = baseL - 20;
+    els.bhLine.setAttribute('d', 'M ' + hx + ' ' + rectY + ' L ' + hx + ' ' + (rectY + H));
+    els.bhTick1.setAttribute('d', 'M ' + (hx - 6) + ' ' + rectY + ' L ' + (hx + 6) + ' ' + rectY);
+    els.bhTick2.setAttribute('d', 'M ' + (hx - 6) + ' ' + (rectY + H) + ' L ' + (hx + 6) + ' ' + (rectY + H));
+    els.dcText.setAttribute('x', hx - 10);
+    els.dcText.setAttribute('y', (rectY + rectY + H) / 2 + 7);
+
+    /* 左块内标签：小高度时压缩字号、隐藏产值行 */
+    var compact = H < 60;
+    els.lbWord.style.display = compact ? 'none' : 'block';
+    els.lbVal.style.display = (compact || H < 110) ? 'none' : 'block';
+    els.lbWord.setAttribute('x', cxL);
+    els.lbWord.setAttribute('y', rectY + 30);
+    els.lbBig.setAttribute('x', cxL);
+    els.lbBig.setAttribute('y', rectY + H / 2 + 4);
+    els.lbBig.setAttribute('font-size', compact ? 21 : 44);
+    els.lbBig.textContent = compact ? (a + '×' + c + '=' + (a * c)) : (a + ' × ' + c);
+    els.lbVal.setAttribute('x', cxL);
+    els.lbVal.setAttribute('y', Math.min(rectY + H / 2 + 42, rectY + H - 8));
+    els.rbWord.setAttribute('x', cxR);
+    els.rbWord.setAttribute('y', rectY + 30);
+    els.rbBig.setAttribute('x', cxR);
+    els.rbBig.setAttribute('y', rectY + H / 2 + 4);
+    els.rbBig.setAttribute('font-size', compact ? 21 : 44);
+    els.rbBig.textContent = compact ? (b + '×' + c + '=' + (b * c)) : (b + ' × ' + c);
+    els.rbVal.setAttribute('x', cxR);
+    els.rbVal.setAttribute('y', Math.min(rectY + H / 2 + 42, rectY + H - 8));
+
+    var eqY = Math.max(rectY + H + 92, 600);
+    els.eqMain.setAttribute('y', eqY);
+    els.eqSub.setAttribute('y', eqY + 44);
+  }
+
+  /* ---------- 右侧面板 ---------- */
+  function updatePanel() {
+    var s = state();
+    els.v_a.textContent = a; els.v_b.textContent = b; els.v_c.textContent = c;
+    els.ro_a.textContent = a;
+    els.ro_b.textContent = b;
+    els.ro_c.textContent = c;
+    els.ro_left.textContent = s.left;
+    els.ro_right.textContent = s.right;
+    els.ro_whole.textContent = s.whole;
+    els.ro_sum.textContent = s.left + s.right;
+    els.ro_eq.textContent = s.eq ? '✓ 相等' : '✗ 不等';
+    els.ro_eq.className = s.eq ? 'ok' : 'bad';
+  }
+
+  function updateHint() {
+    var map = {
+      idle: '拖动滑块 · 实时观察两块与整块 ｜ Space 播放"分块—合拢"动画',
+      splitting: '分块中 … 观察：左块 + 右块 面积之和不变',
+      held: '两块已分开 —— 左块 + 右块 恰好拼回整块',
+      merging: '合拢中 … 两块正好拼回整块'
+    };
+    els.animHint.textContent = map[phase] || map.idle;
+  }
+
+  function updateAll() {
+    updateTexts();
+    updateGeom();
+    updatePanel();
+    updateHint();
+  }
+
+  /* ---------- 动画 ---------- */
+  function advance() {
+    if (phase === 'idle') phase = 'splitting';
+    if (phase === 'splitting') {
+      splitT += STEP;
+      if (splitT >= 1) { splitT = 1; phase = 'held'; holdFrames = 0; }
+    } else if (phase === 'held') {
+      holdFrames++;
+      if (holdFrames >= HOLD) phase = 'merging';
+    } else if (phase === 'merging') {
+      splitT -= STEP;
+      if (splitT <= 0) { splitT = 0; phase = 'idle'; }
+    }
+  }
+  function loop() {
+    if (!raf) raf = requestAnimationFrame(tick);
+  }
+  function tick() {
+    raf = null;
+    advance();
+    updateAll();
+    if (phase !== 'idle') loop();
+  }
+  function playAnim()   { if (!raf) loop(); }
+  function pauseAnim()  { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+  function stepAnim()   { pauseAnim(); advance(); updateAll(); }
+  function resetAnim()  { pauseAnim(); splitT = 0; phase = 'idle'; holdFrames = 0; updateAll(); }
+  function reverseAnim() {
+    if (phase === 'splitting') phase = 'merging';
+    else if (phase === 'merging') phase = 'splitting';
+    else if (phase === 'held') phase = 'merging';
+    else if (phase === 'idle') phase = 'splitting';
+    loop();
+  }
+  function togglePlay() { if (raf) pauseAnim(); else playAnim(); }
+
+  /* ---------- 赋值检验 ---------- */
+  function verify() {
+    var s = state();
+    var st = els.verifyStatus;
+    st.textContent = '赋值 a=' + a + ', b=' + b + ', c=' + c +
+      ' → (a+b)×c = ' + s.whole +
+      '，a×c+b×c = ' + s.left + ' + ' + s.right + ' = ' + (s.left + s.right) +
+      '  ' + (s.eq ? '✓ 两边相等' : '✗ 两边不等');
+    st.className = 'status ' + (s.eq ? 'ok' : 'bad');
+    return { ok: s.eq, a: a, b: b, c: c, left: s.left, right: s.right, whole: s.whole };
+  }
+
+  function clearStatus() {
+    els.verifyStatus.textContent = '';
+    els.verifyStatus.className = 'status';
+  }
+
+  /* ---------- URL 分享参数 ---------- */
+  function readURL() {
+    try {
+      var q = new URLSearchParams(location.search);
+      a = clamp(parseInt(q.get('a'), 10) || 3);
+      b = clamp(parseInt(q.get('b'), 10) || 5);
+      c = clamp(parseInt(q.get('c'), 10) || 4);
+    } catch (e) { /* 保持默认 */ }
+  }
+  function syncURL() {
+    try {
+      var q = new URLSearchParams(location.search);
+      q.set('a', a); q.set('b', b); q.set('c', c);
+      history.replaceState(null, '', location.pathname + '?' + q.toString());
+    } catch (e) { /* 忽略 */ }
+  }
+
+  /* ---------- 参数设置 ---------- */
+  function setParams(p) {
+    if (p && p.a !== undefined) a = clamp(p.a);
+    if (p && p.b !== undefined) b = clamp(p.b);
+    if (p && p.c !== undefined) c = clamp(p.c);
+    els.sl_a.value = a; els.sl_b.value = b; els.sl_c.value = c;
+    clearStatus();
+    updateAll();
+    syncURL();
+    return state();
+  }
+
+  /* ---------- 课堂提问 · 先猜后验 ---------- */
+  var QDATA = [
+    { correct: 0, exp: '一定相等 —— 这正是乘法分配律。矩形被竖线切分后，两块面积之和恒等于整块：(a+b)×c = a×c + b×c。' },
+    { correct: 0, exp: '左块 + 右块 = 整块 —— 切割不增不减，两块正好拼回整块，所以面积相加。' },
+    { correct: 0, exp: '和不变，仍等于整块 —— 变的是 a / b / c 的大小与切分位置，切分原则不变，和永远等于整块。' }
+  ];
+  function initQuestions() {
+    document.querySelectorAll('.qcard').forEach(function (card) {
+      var qi = parseInt(card.querySelector('.qopts').getAttribute('data-q'), 10);
+      var opts = card.querySelectorAll('.qopts button');
+      var reveal = card.querySelector('.qreveal');
+      var ans = card.querySelector('.qans');
+      var verdict = ans.querySelector('.qverdict');
+      var exp = ans.querySelector('.qexp');
+
+      opts.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          opts.forEach(function (o) { o.classList.remove('sel'); });
+          btn.classList.add('sel');
+        });
+      });
+
+      reveal.addEventListener('click', function () {
+        var sel = card.querySelector('.qopts button.sel');
+        if (!sel) {
+          verdict.textContent = '请先猜一个再揭晓：';
+          verdict.className = 'qverdict';
+          ans.classList.add('show');
+          return;
+        }
+        var guess = parseInt(sel.getAttribute('data-g'), 10);
+        var ok = guess === QDATA[qi].correct;
+        opts[QDATA[qi].correct].classList.add('ok-ans');
+        if (!ok) sel.classList.add('bad-ans');
+        verdict.textContent = ok ? '✓ 猜对了。' : '✗ 猜错了。';
+        verdict.className = 'qverdict' + (ok ? '' : ' bad');
+        exp.textContent = QDATA[qi].exp;
+        ans.classList.add('show');
+        reveal.disabled = true;
+      });
+    });
+  }
+
+  /* ---------- 事件绑定 ---------- */
+  function bindEvents() {
+    els.sl_a.addEventListener('input', function () { setParams({ a: +els.sl_a.value }); });
+    els.sl_b.addEventListener('input', function () { setParams({ b: +els.sl_b.value }); });
+    els.sl_c.addEventListener('input', function () { setParams({ c: +els.sl_c.value }); });
+
+    els.btnVerify.addEventListener('click', function () {
+      a = 1 + Math.floor(Math.random() * 9);
+      b = 1 + Math.floor(Math.random() * 9);
+      c = 1 + Math.floor(Math.random() * 9);
+      els.sl_a.value = a; els.sl_b.value = b; els.sl_c.value = c;
+      updateAll();
+      syncURL();
+      verify();
+    });
+
+    els.btnPlay.addEventListener('click', playAnim);
+    els.btnPause.addEventListener('click', pauseAnim);
+    els.btnStep.addEventListener('click', stepAnim);
+    els.btnRev.addEventListener('click', reverseAnim);
+    els.btnReset.addEventListener('click', resetAnim);
+
+    document.addEventListener('keydown', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('input,textarea,select,button,[contenteditable="true"]')) return;
+      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+      else if (e.code === 'ArrowRight') { e.preventDefault(); stepAnim(); }
+      else if (e.code === 'ArrowLeft') { e.preventDefault(); reverseAnim(); }
+      else if (e.code === 'KeyR') { e.preventDefault(); resetAnim(); }
+    });
+  }
+
+  /* ---------- 对外 API ---------- */
+  var SciDemo = {
+    setParams: setParams,
+    play: playAnim,
+    pause: pauseAnim,
+    step: stepAnim,
+    reset: resetAnim,
+    reverse: reverseAnim,
+    verify: verify,
+    state: state,
+    get isReady() { return ready; }
+  };
+  window.SciDemo = SciDemo;
+
+  /* ---------- 初始化 ---------- */
+  readURL();
+  els.sl_a.value = a; els.sl_b.value = b; els.sl_c.value = c;
+  initQuestions();
+  bindEvents();
+  updateAll();
+  syncURL();
+  ready = true;
+})();
+</script>
+</body>
+</html>

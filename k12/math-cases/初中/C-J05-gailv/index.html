@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C-J05 概率模拟 · 大数学交互交付</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border-bottom:1px solid #334155;padding:16px 24px;display:flex;align-items:center;gap:16px}
+.header .badge{background:#2563eb;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;letter-spacing:.5px;white-space:nowrap}
+.header h1{font-size:18px;font-weight:600;color:#f1f5f9;white-space:nowrap}
+.header .sub{font-size:12px;color:#94a3b8;margin-left:auto;white-space:nowrap}
+.main{max-width:1180px;margin:0 auto;padding:20px;display:grid;grid-template-columns:1fr 310px;gap:20px}
+@media(max-width:880px){.main{grid-template-columns:1fr}}
+.left-panel{background:#1e293b;border-radius:12px;border:1px solid #334155;overflow:hidden}
+.left-panel svg{display:block;width:100%;height:auto}
+.right-panel{display:flex;flex-direction:column;gap:12px}
+.card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px}
+.card-title{font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.field{margin-bottom:12px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:12px;color:#94a3b8;margin-bottom:4px}
+.field select,.field input[type=range]{width:100%;accent-color:#2563eb}
+.field select{background:#0f172a;color:#e2e8f0;border:1px solid #475569;border-radius:6px;padding:6px 8px;font-size:13px;cursor:pointer}
+.field input[type=range]{height:6px;-webkit-appearance:none;appearance:none;background:#334155;border-radius:3px;outline:none}
+.field input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:#2563eb;border-radius:50%;cursor:pointer}
+.val{float:right;color:#e2e8f0;font-weight:600;font-size:12px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{flex:1;min-width:0;padding:8px 6px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-play{background:#2563eb;color:#fff}
+.btn-play:hover{background:#1d4ed8}
+.btn-pause{background:#d97706;color:#fff}
+.btn-pause:hover{background:#b45309}
+.btn-step{background:#059669;color:#fff}
+.btn-step:hover{background:#047857}
+.btn-reset{background:#dc2626;color:#fff}
+.btn-reset:hover{background:#b91c1c}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.readout-item{background:#0f172a;border-radius:6px;padding:8px 10px;text-align:center}
+.readout-item .num{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.readout-item .lbl{font-size:10px;color:#94a3b8;margin-top:2px}
+.color-exp{color:#2563eb}
+.color-th{color:#E8B964}
+.color-curr{color:#059669}
+.color-n{color:#e2e8f0}
+.questions{background:#0f172a;border-radius:8px;padding:12px;font-size:12px;line-height:1.7;color:#cbd5e1}
+.questions p{margin-bottom:6px}
+.questions p:last-child{margin-bottom:0}
+.questions strong{color:#E8B964}
+.footer{max-width:1180px;margin:0 auto;padding:8px 20px 20px;text-align:center;font-size:11px;color:#475569}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="badge">C-J05</span>
+  <h1>概率模拟 · 从实验到理论</h1>
+  <span class="sub">大数学 AI 可视化交互交付</span>
+</div>
+
+<div class="main">
+  <div class="left-panel">
+    <svg id="svg" viewBox="0 0 1000 720" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="gCoinA" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f59e0b"/>
+          <stop offset="100%" stop-color="#d97706"/>
+        </linearGradient>
+        <linearGradient id="gCoinB" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#64748b"/>
+          <stop offset="100%" stop-color="#475569"/>
+        </linearGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+
+      <!-- Experiment animation area -->
+      <rect x="0" y="0" width="1000" height="340" fill="#1e293b"/>
+      <text x="500" y="28" text-anchor="middle" fill="#64748b" font-size="13" id="expLabel">实验区域</text>
+
+      <!-- Coin group -->
+      <g id="coinGroup" transform="translate(500,180)">
+        <ellipse id="coinShadow" cx="0" cy="72" rx="52" ry="10" fill="#000" opacity=".25"/>
+        <g id="coinBody">
+          <!-- coin edge -->
+          <rect id="coinEdge" x="-50" y="-12" width="100" height="24" rx="4" fill="#b45309" opacity=".6"/>
+          <!-- coin face -->
+          <ellipse id="coinFace" cx="0" cy="0" rx="50" ry="50" fill="url(#gCoinA)" stroke="#f59e0b" stroke-width="2"/>
+          <text id="coinText" x="0" y="8" text-anchor="middle" fill="#fff" font-size="28" font-weight="700">正</text>
+          <circle cx="0" cy="0" r="38" fill="none" stroke="#fbbf24" stroke-width="1.5" opacity=".5"/>
+        </g>
+        <text id="coinResult" x="0" y="110" text-anchor="middle" fill="#059669" font-size="20" font-weight="700" opacity="0"></text>
+      </g>
+
+      <!-- Dice group -->
+      <g id="diceGroup" transform="translate(500,180)" visibility="hidden">
+        <rect id="diceShadow" x="-52" y="62" width="104" height="14" rx="6" fill="#000" opacity=".2"/>
+        <g id="diceBody">
+          <rect id="diceRect" x="-50" y="-50" width="100" height="100" rx="14" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2"/>
+          <g id="diceDots"></g>
+        </g>
+        <text id="diceResult" x="0" y="110" text-anchor="middle" fill="#059669" font-size="20" font-weight="700" opacity="0"></text>
+      </g>
+
+      <!-- Divider -->
+      <line x1="40" y1="340" x2="960" y2="340" stroke="#334155" stroke-width="1"/>
+
+      <!-- Chart area -->
+      <rect x="0" y="340" width="1000" height="380" fill="#0f172a" rx="0"/>
+      <text x="500" y="365" text-anchor="middle" fill="#64748b" font-size="13">频率收敛图</text>
+
+      <!-- Chart axes drawn by JS -->
+      <g id="chartGroup" transform="translate(80,395)">
+        <!-- Grid + axes drawn in JS -->
+        <g id="chartGrid"></g>
+        <g id="chartLines"></g>
+        <g id="chartPoints"></g>
+      </g>
+    </svg>
+  </div>
+
+  <div class="right-panel">
+    <div class="card">
+      <div class="card-title">实验设置</div>
+      <div class="field">
+        <label>实验类型</label>
+        <select id="selExp">
+          <option value="coin">🪙 抛硬币（正/反面）</option>
+          <option value="dice">🎲 掷骰子（≥4点）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>总试验次数 <span class="val" id="lblN">100</span></label>
+        <input type="range" id="sliderN" min="10" max="1000" step="10" value="100"/>
+      </div>
+      <div class="field">
+        <label>速度 <span class="val" id="lblSpeed">中</span></label>
+        <input type="range" id="sliderSpeed" min="1" max="5" step="1" value="3"/>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="btn-row">
+        <button class="btn btn-play" id="btnPlay" title="Space">▶ 播放</button>
+        <button class="btn btn-pause" id="btnPause" title="Space">⏸ 暂停</button>
+        <button class="btn btn-step" id="btnStep" title="→">⏭ 单步</button>
+        <button class="btn btn-reset" id="btnReset" title="R">↺ 重置</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">实时数据</div>
+      <div class="readout">
+        <div class="readout-item"><div class="num color-n" id="rTrial">0</div><div class="lbl">当前次数</div></div>
+        <div class="readout-item"><div class="num color-exp" id="rFreq">—</div><div class="lbl">实验频率</div></div>
+        <div class="readout-item"><div class="num color-th" id="rTheory">0.500</div><div class="lbl">理论概率</div></div>
+        <div class="readout-item"><div class="num color-curr" id="rHit">0</div><div class="lbl">成功次数</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">课堂探究</div>
+      <div class="questions">
+        <p>❓ <strong>先猜：</strong>抛 100 次硬币，正面朝上会接近 50 次吗？</p>
+        <p>❓ <strong>验证：</strong>为什么实验次数越多，频率越接近概率？</p>
+      </div>
+    </div>
+
+    <div class="card" id="verifyCard" style="display:none;border-color:#059669">
+      <div class="card-title" style="color:#059669">验证结果</div>
+      <div id="verifyText" style="font-size:12px;line-height:1.6;color:#cbd5e1"></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">C-J05 概率模拟 · SciDemo Protocol · 大数学 AI 可视化交付</div>
+
+<script>
+(function(){
+"use strict";
+
+// ─── State ───
+const S = {
+  exp: "coin",        // "coin" | "dice"
+  totalN: 100,
+  speed: 3,
+  trials: [],          // array of 0/1 results
+  running: false,
+  timer: null,
+  animating: false,
+  currentSuccesses: 0, // for dice: successes so far
+};
+
+const THEORY = { coin: 0.5, dice: 4/6 };
+const SPEED_MS = [600, 350, 180, 80, 20];
+
+// ─── DOM refs ───
+const $ = id => document.getElementById(id);
+const selExp = $("selExp");
+const sliderN = $("sliderN");
+const sliderSpeed = $("sliderSpeed");
+const lblN = $("lblN");
+const lblSpeed = $("lblSpeed");
+const btnPlay = $("btnPlay");
+const btnPause = $("btnPause");
+const btnStep = $("btnStep");
+const btnReset = $("btnReset");
+const rTrial = $("rTrial");
+const rFreq = $("rFreq");
+const rTheory = $("rTheory");
+const rHit = $("rHit");
+const coinGroup = $("coinGroup");
+const diceGroup = $("diceGroup");
+const coinBody = $("coinBody");
+const coinFace = $("coinFace");
+const coinText = $("coinText");
+const coinResult = $("coinResult");
+const diceBody = $("diceBody");
+const diceRect = $("diceRect");
+const diceDots = $("diceDots");
+const diceResult = $("diceResult");
+const chartGrid = $("chartGrid");
+const chartLines = $("chartLines");
+const chartPoints = $("chartPoints");
+const expLabel = $("expLabel");
+const verifyCard = $("verifyCard");
+const verifyText = $("verifyText");
+
+// ─── Chart layout ───
+const CHART = { ox: 0, oy: 0, w: 840, h: 280 };
+const CHART_LBL = { left: "频率", bottom: "试验次数" };
+
+function theoryP(){ return THEORY[S.exp]; }
+
+// ─── Init ───
+function init(){
+  syncURL();
+  setupListeners();
+  updateExperimentUI();
+  drawChart();
+  updateReadout();
+}
+
+function syncURL(){
+  const p = new URLSearchParams(location.search);
+  if(p.has("exp")){ S.exp = p.get("exp"); selExp.value = S.exp; }
+  if(p.has("n")){ S.totalN = Math.max(10, Math.min(1000, parseInt(p.get("n"))||100)); sliderN.value = S.totalN; lblN.textContent = S.totalN; }
+}
+
+function pushURL(){
+  const u = new URL(location.href);
+  u.searchParams.set("exp", S.exp);
+  u.searchParams.set("n", S.totalN);
+  history.replaceState(null,"",u.toString());
+}
+
+function setupListeners(){
+  selExp.addEventListener("change", () => {
+    if(S.running) pause();
+    S.exp = selExp.value;
+    reset();
+  });
+  sliderN.addEventListener("input", () => {
+    S.totalN = parseInt(sliderN.value);
+    lblN.textContent = S.totalN;
+  });
+  sliderSpeed.addEventListener("input", () => {
+    S.speed = parseInt(sliderSpeed.value);
+    lblSpeed.textContent = ["极慢","慢","中","快","极快"][S.speed-1];
+  });
+  btnPlay.addEventListener("click", play);
+  btnPause.addEventListener("click", pause);
+  btnStep.addEventListener("click", step);
+  btnReset.addEventListener("click", reset);
+  document.addEventListener("keydown", e => {
+    if(e.code === "Space"){ e.preventDefault(); S.running ? pause() : play(); }
+    else if(e.code === "ArrowRight"){ e.preventDefault(); step(); }
+    else if(e.code === "KeyR" && !e.ctrlKey && !e.metaKey){ e.preventDefault(); reset(); }
+  });
+}
+
+// ─── Play / Pause / Step / Reset ───
+function play(){
+  if(S.trials.length >= S.totalN) return;
+  S.running = true;
+  btnPlay.style.display = "none";
+  btnPause.style.display = "";
+  scheduleNext();
+}
+
+function pause(){
+  S.running = false;
+  clearTimeout(S.timer);
+  btnPlay.style.display = "";
+  btnPause.style.display = "none";
+}
+
+function step(){
+  if(S.running) pause();
+  if(S.trials.length >= S.totalN) return;
+  runTrial();
+}
+
+function reset(){
+  pause();
+  S.trials = [];
+  S.animating = false;
+  S.currentSuccesses = 0;
+  $("verifyCard").style.display = "none";
+  updateExperimentUI();
+  drawChart();
+  updateReadout();
+  pushURL();
+}
+
+function scheduleNext(){
+  if(!S.running) return;
+  if(S.trials.length >= S.totalN){ pause(); showVerify(); return; }
+  S.timer = setTimeout(() => {
+    runTrial(() => { if(S.running) scheduleNext(); });
+  }, SPEED_MS[S.speed-1]);
+}
+
+// ─── Run one trial ───
+function runTrial(cb){
+  if(S.animating || S.trials.length >= S.totalN) return;
+  S.animating = true;
+  const success = S.exp === "coin"
+    ? Math.random() < 0.5
+    : Math.random() < (4/6);
+  S.trials.push(success ? 1 : 0);
+  S.currentSuccesses = S.trials.reduce((a,b) => a+b, 0);
+
+  if(S.exp === "coin"){
+    animateCoin(success, () => { S.animating = false; updateAfterTrial(); if(cb) cb(); });
+  } else {
+    animateDice(success, () => { S.animating = false; updateAfterTrial(); if(cb) cb(); });
+  }
+}
+
+function updateAfterTrial(){
+  plotPoint(S.trials.length - 1);
+  updateReadout();
+  updateExperimentUI();
+}
+
+// ─── Readout ───
+function updateReadout(){
+  const n = S.trials.length;
+  rTrial.textContent = n;
+  rTheory.textContent = theoryP().toFixed(3);
+  if(n === 0){
+    rFreq.textContent = "—";
+    rHit.textContent = "0";
+  } else {
+    rFreq.textContent = (S.currentSuccesses / n).toFixed(3);
+    rHit.textContent = S.currentSuccesses;
+  }
+}
+
+// ─── Experiment UI toggle ───
+function updateExperimentUI(){
+  if(S.exp === "coin"){
+    coinGroup.setAttribute("visibility","visible");
+    diceGroup.setAttribute("visibility","hidden");
+    expLabel.textContent = "抛硬币实验";
+  } else {
+    coinGroup.setAttribute("visibility","hidden");
+    diceGroup.setAttribute("visibility","visible");
+    expLabel.textContent = "掷骰子实验（≥4点为成功）";
+  }
+}
+
+// ─── Coin animation ───
+function animateCoin(heads, done){
+  const dur = Math.min(SPEED_MS[S.speed-1] * 0.85, 400);
+  const flips = 3 + Math.floor(Math.random()*3);
+  const totalRot = 360 * flips + (heads ? 0 : 180);
+  const start = performance.now();
+  const coinFaceEl = coinFace;
+  const coinTextEl = coinText;
+  coinResult.setAttribute("opacity","0");
+
+  function frame(now){
+    const t = Math.min((now - start) / dur, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    const scaleX = Math.cos(ease * totalRot * Math.PI / 180);
+    const absX = Math.abs(scaleX);
+    // Determine show side
+    const angle = ease * totalRot;
+    const mod = ((angle % 360) + 360) % 360;
+    const showHeads = mod < 180;
+    // Update face
+    coinFaceEl.setAttribute("fill", showHeads ? "url(#gCoinA)" : "url(#gCoinB)");
+    coinFaceEl.setAttribute("rx", 50 * absX + 2);
+    coinTextEl.textContent = showHeads ? "正" : "反";
+    coinTextEl.setAttribute("x", 0);
+    // Y bounce
+    const bounce = -60 * Math.sin(ease * Math.PI);
+    coinBody.setAttribute("transform", `translate(0,${bounce}) scale(${0.5+absX*0.5})`);
+    // Shadow
+    $("coinShadow").setAttribute("rx", 52 + 20*(1 - absX));
+    $("coinShadow").setAttribute("opacity", 0.15 + 0.15*(1 - absX));
+
+    if(t < 1){ requestAnimationFrame(frame); }
+    else {
+      // Final state
+      coinFaceEl.setAttribute("fill", heads ? "url(#gCoinA)" : "url(#gCoinB)");
+      coinFaceEl.setAttribute("rx", 50);
+      coinTextEl.textContent = heads ? "正" : "反";
+      coinBody.setAttribute("transform", "translate(0,0) scale(1)");
+      $("coinShadow").setAttribute("rx", 52);
+      $("coinShadow").setAttribute("opacity", 0.25);
+      // Show result text
+      coinResult.textContent = heads ? "✓ 正面" : "✗ 反面";
+      coinResult.setAttribute("fill", heads ? "#059669" : "#dc2626");
+      coinResult.setAttribute("opacity","1");
+      setTimeout(done, Math.max(dur * 0.25, 40));
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+// ─── Dice animation ───
+const DOT_POS = {
+  1: [[50,50]],
+  2: [[28,28],[72,72]],
+  3: [[28,28],[50,50],[72,72]],
+  4: [[28,28],[72,28],[28,72],[72,72]],
+  5: [[28,28],[72,28],[50,50],[28,72],[72,72]],
+  6: [[28,22],[72,22],[28,50],[72,50],[28,78],[72,78]]
+};
+
+function setDiceDots(val){
+  diceDots.innerHTML = "";
+  (DOT_POS[val] || []).forEach(([x,y]) => {
+    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx", x - 50);
+    c.setAttribute("cy", y - 50);
+    c.setAttribute("r", 6.5);
+    c.setAttribute("fill", "#1e293b");
+    diceDots.appendChild(c);
+  });
+}
+
+function animateDice(success, done){
+  const dur = Math.min(SPEED_MS[S.speed-1] * 0.85, 400);
+  const finalVal = Math.floor(Math.random()*6) + 1;
+  const isWin = finalVal >= 4;
+  const start = performance.now();
+  diceResult.setAttribute("opacity","0");
+
+  function frame(now){
+    const t = Math.min((now - start) / dur, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    // Show random faces during animation
+    if(t < 0.85){
+      const rv = Math.floor(Math.random()*6) + 1;
+      setDiceDots(rv);
+      const rot = Math.random() * 360;
+      diceBody.setAttribute("transform", `rotate(${rot}) scale(${0.6 + Math.random()*0.3})`);
+    } else {
+      setDiceDots(finalVal);
+      const rot = 360 * (1 - ease);
+      diceBody.setAttribute("transform", `rotate(${rot * 0.1}) scale(1)`);
+    }
+
+    if(t < 1){ requestAnimationFrame(frame); }
+    else {
+      setDiceDots(finalVal);
+      diceBody.setAttribute("transform", "rotate(0) scale(1)");
+      // Color the die if it's a win/loss for our criterion
+      diceRect.setAttribute("fill", isWin ? "#d1fae5" : "#e2e8f0");
+      diceRect.setAttribute("stroke", isWin ? "#059669" : "#94a3b8");
+      diceResult.textContent = isWin ? `✓ ${finalVal}点` : `✗ ${finalVal}点`;
+      diceResult.setAttribute("fill", isWin ? "#059669" : "#dc2626");
+      diceResult.setAttribute("opacity","1");
+      setTimeout(done, Math.max(dur * 0.25, 40));
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+// ─── Chart ───
+function drawChart(){
+  // Clear
+  chartGrid.innerHTML = "";
+  chartLines.innerHTML = "";
+  chartPoints.innerHTML = "";
+
+  const {ox,oy,w,h} = CHART;
+
+  // Grid lines
+  const g = chartGrid;
+  // Y axis labels & grid
+  for(let i = 0; i <= 10; i++){
+    const y = oy + h - (i/10)*h;
+    const line = svgEl("line",{x1:ox,y1:y,x2:ox+w,y2:y,stroke:"#1e293b","stroke-width":1});
+    g.appendChild(line);
+    if(i % 2 === 0){
+      const txt = svgEl("text",{x:ox-8,y:y+4,"text-anchor":"end",fill:"#64748b","font-size":11});
+      txt.textContent = (i/10).toFixed(1);
+      g.appendChild(txt);
+    }
+  }
+  // X axis labels
+  const n = S.totalN;
+  const xTicks = Math.min(10, n);
+  for(let i = 0; i <= xTicks; i++){
+    const val = Math.round(i * n / xTicks);
+    const x = ox + (val / n) * w;
+    const txt = svgEl("text",{x,y:oy+h+18,"text-anchor":"middle",fill:"#64748b","font-size":11});
+    txt.textContent = val;
+    g.appendChild(txt);
+  }
+  // Axis lines
+  g.appendChild(svgEl("line",{x1:ox,y1:oy+h,x2:ox+w,y2:oy+h,stroke:"#475569","stroke-width":1.5}));
+  g.appendChild(svgEl("line",{x1:ox,y1:oy,x2:ox,y2:oy+h,stroke:"#475569","stroke-width":1.5}));
+
+  // Axis labels
+  const yLbl = svgEl("text",{x:ox-48,y:oy+h/2,"text-anchor":"middle",fill:"#94a3b8","font-size":12,transform:`rotate(-90,${ox-48},${oy+h/2})`});
+  yLbl.textContent = "频率";
+  g.appendChild(yLbl);
+  const xLbl = svgEl("text",{x:ox+w/2,y:oy+h+34,"text-anchor":"middle",fill:"#94a3b8","font-size":12});
+  xLbl.textContent = "试验次数";
+  g.appendChild(xLbl);
+
+  // Theoretical line
+  const ty = oy + h - theoryP() * h;
+  g.appendChild(svgEl("line",{x1:ox,y1:ty,x2:ox+w,y2:ty,stroke:"#E8B964","stroke-width":2,"stroke-dasharray":"8,4",opacity:0.8}));
+  const thLbl = svgEl("text",{x:ox+w+4,y:ty+4,fill:"#E8B964","font-size":11,"font-weight":600});
+  thLbl.textContent = `P=${theoryP().toFixed(2)}`;
+  g.appendChild(thLbl);
+
+  // Plot existing points
+  S.trials.forEach((v, i) => plotPoint(i));
+}
+
+function plotPoint(idx){
+  const {ox,oy,w,h} = CHART;
+  const n = S.totalN;
+  const x = ox + ((idx+1) / n) * w;
+  const freq = S.trials.slice(0, idx+1).reduce((a,b)=>a+b,0) / (idx+1);
+  const y = oy + h - freq * h;
+
+  // Draw connecting line from previous point
+  if(idx > 0){
+    const prevFreq = S.trials.slice(0, idx).reduce((a,b)=>a+b,0) / idx;
+    const px = ox + (idx / n) * w;
+    const py = oy + h - prevFreq * h;
+    const line = svgEl("line",{x1:px,y1:py,x2:x,y2:y,stroke:"#2563eb","stroke-width":1.5,opacity:0.7});
+    chartLines.appendChild(line);
+  }
+
+  // Dot
+  const isLast = (idx === S.trials.length - 1);
+  const r = isLast ? 5 : 2.5;
+  const c = svgEl("circle",{cx:x,cy:y,r:r,fill: isLast ? "#059669" : "#2563eb", opacity: isLast ? 1 : 0.6});
+  if(isLast){
+    c.setAttribute("filter","url(#glow)");
+  }
+  chartPoints.appendChild(c);
+}
+
+function svgEl(tag, attrs){
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for(const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+// ─── Verify ───
+function showVerify(){
+  const n = S.trials.length;
+  if(n === 0) return;
+  const freq = S.currentSuccesses / n;
+  const th = theoryP();
+  const diff = Math.abs(freq - th);
+  const within = diff <= 0.1;
+  const close = diff <= 0.05;
+
+  verifyCard.style.display = "";
+  verifyCard.style.borderColor = within ? "#059669" : "#d97706";
+  let html = `<p>共 <strong>${n}</strong> 次试验，实验频率 = <strong>${freq.toFixed(4)}</strong>，理论概率 = <strong>${th.toFixed(4)}</strong>，偏差 = <strong>${diff.toFixed(4)}</strong>。</p>`;
+  if(close){
+    html += `<p style="color:#059669">✅ 非常接近！频率与概率偏差 &lt; 0.05，大数定律生效。</p>`;
+  } else if(within){
+    html += `<p style="color:#E8B964">⚠ 偏差在合理范围内（&lt;0.1），继续增加试验次数观察收敛。</p>`;
+  } else {
+    html += `<p style="color:#dc2626">❌ 偏差较大（&ge;0.1），这在小样本中很正常。增大 n 再试试！</p>`;
+  }
+  html += `<p style="color:#94a3b8;font-size:11px">💡 频率总是趋向概率，但不会完全等于。即使抛一百万次，也可能差零点零零几。</p>`;
+  verifyText.innerHTML = html;
+}
+
+// ─── SciDemo Protocol ───
+window.SciDemo = {
+  setParams(o){
+    if(o.exp){ S.exp = o.exp; selExp.value = o.exp; }
+    if(o.n){ S.totalN = Math.max(10, Math.min(1000, o.n)); sliderN.value = S.totalN; lblN.textContent = S.totalN; }
+    reset();
+  },
+  play,
+  pause,
+  step,
+  reset,
+  reverse(){ /* not applicable */ },
+  verify(){ showVerify(); return { experimental: S.trials.length ? S.currentSuccesses/S.trials.length : null, theoretical: theoryP(), trials: S.trials.length }; },
+  state(){ return { exp: S.exp, totalN: S.totalN, trials: S.trials.length, successes: S.currentSuccesses, frequency: S.trials.length ? S.currentSuccesses/S.trials.length : null, theoretical: theoryP(), running: S.running }; },
+  isReady(){ return true; }
+};
+
+init();
+})();
+</script>
+</body>
+</html>
